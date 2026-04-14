@@ -6,7 +6,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Images, Upload, Settings, LogOut, User, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { Images, Upload, Settings, LogOut, User, LayoutDashboard, ChevronDown, PackageOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function NavLink({ to, children, icon: Icon }) {
@@ -74,6 +74,11 @@ export function Layout({ children }) {
                   <DropdownMenuItem asChild>
                     <Link to="/admin/users" className="flex items-center gap-2 cursor-pointer">
                       <User className="h-4 w-4" />Users
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/import" className="flex items-center gap-2 cursor-pointer">
+                      <PackageOpen className="h-4 w-4" />Import XBackBone
                     </Link>
                   </DropdownMenuItem>
                 </>
