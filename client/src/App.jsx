@@ -13,6 +13,7 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminUsers from '@/pages/admin/Users';
 import AdminFiles from '@/pages/admin/Files';
 import AdminImport from '@/pages/admin/Import';
+import Settings from '@/pages/Settings';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           {/* Protected */}
           <Route path="/gallery" element={<ProtectedRoute><Layout><Gallery /></Layout></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><Layout><Upload /></Layout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
 
           {/* Admin */}
           <Route path="/admin" element={<ProtectedRoute adminOnly><Layout><AdminDashboard /></Layout></ProtectedRoute>} />

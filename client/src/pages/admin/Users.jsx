@@ -11,9 +11,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
-import { RefreshCw, Trash2, UserPlus, Power, Pencil, Check, X } from 'lucide-react';
+import { RefreshCw, Trash2, UserPlus, Power, Pencil, Check, X, KeyRound } from 'lucide-react';
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
@@ -23,6 +26,9 @@ export default function AdminUsers() {
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
   const [editingFolder, setEditingFolder] = useState(null); // { id, value }
   const folderInputRef = useRef(null);
+  const [pwDialog, setPwDialog] = useState(null); // { id, username }
+  const [newPw, setNewPw] = useState('');
+  const [savingPw, setSavingPw] = useState(false);
 
   async function load() {
     const r = await fetch('/api/admin/users');
@@ -88,6 +94,34 @@ export default function AdminUsers() {
 
   function cancelEditFolder() {
     setEditingFolder(null);
+  }
+
+  function openPwDialog(id, username) {
+    setNewPw('');
+    setPwDialog({ id, username });
+  }
+
+  async function savePassword() {
+    if (newPw.length < 6) {
+      toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
+    }
+    setSavingPw(true);
+    try {
+      const r = await fetch(`/api/admin/users/${pwDialog.id}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPw }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      toast({ title: `Password changed for "${pwDialog.username}"` });
+      setPwDialog(null);
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingPw(false);
+    }
   }
 
   async function saveFolder(id) {
@@ -238,6 +272,13 @@ export default function AdminUsers() {
                         </Button>
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
+                          title="Change password"
+                          onClick={() => openPwDialog(u._id, u.username)}
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" className="h-8 w-8"
                           title="Regenerate API key"
                           onClick={() => regenKey(u._id, u.username)}
                         >
@@ -274,6 +315,31 @@ export default function AdminUsers() {
           </Table>
         </CardContent>
       </Card>
+      {/* Change password dialog */}
+      <Dialog open={!!pwDialog} onOpenChange={(open) => { if (!open) setPwDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change password for "{pwDialog?.username}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label>New password</Label>
+            <Input
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              minLength={6}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') savePassword(); }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwDialog(null)}>Cancel</Button>
+            <Button onClick={savePassword} disabled={savingPw}>
+              {savingPw ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
