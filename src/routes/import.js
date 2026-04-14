@@ -3,10 +3,10 @@
  *
  * POST /api/admin/import/xbackbone
  *   multipart fields:
- *     db          — XBackBone's database.db file (required)
- *     storagePath — absolute path to XBackBone's storage directory on this
+ *     db          - XBackBone's database.db file (required)
+ *     storagePath - absolute path to XBackBone's storage directory on this
  *                   server (required, e.g. /xbackbone/storage)
- *     defaultUser — our username to assign files when no XBackBone user can
+ *     defaultUser - our username to assign files when no XBackBone user can
  *                   be matched by username (optional)
  *
  * XBackBone user matching: tries to find a local user whose username matches
@@ -100,11 +100,11 @@ function buildMediaSelect(db, mediaTable) {
     'id',
     'user_id',
     'filename',
-    // mimetype — some versions use 'type'
+    // mimetype - some versions use 'type'
     cols.has('mimetype') ? 'mimetype'
       : cols.has('type') ? 'type AS mimetype'
       : "NULL AS mimetype",
-    // original filename — some versions omit this
+    // original filename - some versions omit this
     cols.has('name') ? 'name'
       : cols.has('original_name') ? 'original_name AS name'
       : 'filename AS name',
@@ -136,13 +136,10 @@ function buildUsersSelect(db) {
 
 // ── Filesystem helpers ────────────────────────────────────────────────────────
 
-/**
- * Find a file in storagePath.
- * Priority:
- *   1. storage/{mediaId}/{filename}  — XBackBone's standard ID-bucketed layout
- *   2. storage/{filename}            — flat layout (older installs)
- *   3. storage/*/{filename}          — any other single-level subdirectory
- */
+// Find a file in storagePath. Search order:
+//   1. storage/<mediaId>/<filename>  - XBackBone's standard ID-bucketed layout
+//   2. storage/<filename>            - flat layout (older installs)
+//   3. storage/<subdir>/<filename>   - any other single-level subdirectory
 function findFile(storagePath, mediaId, filename) {
   // 1. ID-bucketed (standard XBackBone layout)
   if (mediaId) {
@@ -162,7 +159,7 @@ function findFile(storagePath, mediaId, filename) {
       const candidate = path.join(storagePath, entry.name, filename);
       if (fs.existsSync(candidate)) return candidate;
     }
-  } catch { /* storagePath unreadable — handled by caller */ }
+  } catch { /* storagePath unreadable - handled by caller */ }
   return null;
 }
 
