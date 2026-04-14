@@ -254,6 +254,21 @@ router.post('/admin/users/:id/regen-key', requireAdmin, async (req, res) => {
   res.json({ apiKey: user.apiKey });
 });
 
+router.patch('/admin/users/:id/password', requireAdmin, async (req, res) => {
+  const { password } = req.body;
+  if (!password || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Password required' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  const user = await User.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  user.password = password;
+  await user.save();
+  res.json({ success: true });
+});
+
 router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
   const { folderName } = req.body;
   if (!folderName || typeof folderName !== 'string') {
@@ -269,6 +284,24 @@ router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
   const user = await User.findByIdAndUpdate(req.params.id, { folderName: trimmed }, { new: true });
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json({ folderName: user.folderName });
+});
+
+// ── User: change own password ───────────────────────────────────────────────
+router.patch('/user/password', requireLogin, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current and new password required' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  const user = await User.findById(req.session.user.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const valid = await user.comparePassword(currentPassword);
+  if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+  user.password = newPassword;
+  await user.save();
+  res.json({ success: true });
 });
 
 // ── Admin: all files ────────────────────────────────────────────────────────
