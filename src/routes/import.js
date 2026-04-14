@@ -138,12 +138,23 @@ function buildUsersSelect(db) {
 
 /**
  * Find a file in storagePath.
- * Checks flat layout first, then one subdirectory deep.
+ * Priority:
+ *   1. storage/{mediaId}/{filename}  — XBackBone's standard ID-bucketed layout
+ *   2. storage/{filename}            — flat layout (older installs)
+ *   3. storage/*/{filename}          — any other single-level subdirectory
  */
-function findFile(storagePath, filename) {
+function findFile(storagePath, mediaId, filename) {
+  // 1. ID-bucketed (standard XBackBone layout)
+  if (mediaId) {
+    const bucketed = path.join(storagePath, mediaId, filename);
+    if (fs.existsSync(bucketed)) return bucketed;
+  }
+
+  // 2. Flat
   const flat = path.join(storagePath, filename);
   if (fs.existsSync(flat)) return flat;
 
+  // 3. Any subdirectory
   try {
     const entries = fs.readdirSync(storagePath, { withFileTypes: true });
     for (const entry of entries) {
@@ -226,7 +237,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
         continue;
       }
 
-      const srcPath = findFile(storagePath, media.filename);
+      const srcPath = findFile(storagePath, media.id, media.filename);
       if (!srcPath) {
         results.skipped++;
         results.details.push({
