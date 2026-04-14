@@ -14,9 +14,12 @@ const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
 router.post('/upload', requireApiKey, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
+  // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
+  const storedName = path.relative(UPLOAD_DIR, req.file.path);
+
   const file = await File.create({
     originalName: req.file.originalname,
-    storedName: req.file.filename,
+    storedName,
     mimeType: req.file.mimetype,
     size: req.file.size,
     uploader: req.apiUser._id,
@@ -41,9 +44,11 @@ router.post('/web-upload', requireLogin, upload.array('files', 20), async (req, 
 
   const created = [];
   for (const f of req.files) {
+    // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
+    const storedName = path.relative(UPLOAD_DIR, f.path);
     const doc = await File.create({
       originalName: f.originalname,
-      storedName: f.filename,
+      storedName,
       mimeType: f.mimetype,
       size: f.size,
       uploader: req.session.user.id,
