@@ -9,9 +9,33 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { Search, X, Trash2 } from 'lucide-react';
+
+function buildPageItems(page, pages) {
+  if (pages <= 7) {
+    return Array.from({ length: pages }, (_, i) => i + 1);
+  }
+  const items = [];
+  items.push(1);
+  if (page - 1 > 2) items.push('...');
+  for (let i = Math.max(2, page - 1); i <= Math.min(pages - 1, page + 1); i++) {
+    items.push(i);
+  }
+  if (page + 1 < pages - 1) items.push('...');
+  items.push(pages);
+  return items;
+}
 
 export default function AdminFiles() {
   const { toast } = useToast();
@@ -138,16 +162,38 @@ export default function AdminFiles() {
       </Card>
 
       {pages > 1 && (
-        <div className="flex justify-center gap-1 flex-wrap">
-          {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
-            <Button
-              key={p} variant={p === page ? 'default' : 'outline'} size="sm" className="w-9 p-0"
-              onClick={() => setSearchParams({ q, page: p })}
-            >
-              {p}
-            </Button>
-          ))}
-        </div>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                disabled={page <= 1}
+                onClick={() => setSearchParams({ q, page: page - 1 })}
+              />
+            </PaginationItem>
+            {buildPageItems(page, pages).map((item, idx) =>
+              item === '...' ? (
+                <PaginationItem key={`ellipsis-${idx}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={item}>
+                  <PaginationLink
+                    isActive={item === page}
+                    onClick={() => setSearchParams({ q, page: item })}
+                  >
+                    {item}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                disabled={page >= pages}
+                onClick={() => setSearchParams({ q, page: page + 1 })}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );
