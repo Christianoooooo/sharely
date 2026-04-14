@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      MONGODB_URI: "mongodb://${MONGO_APP_USER:-appuser}:${MONGO_APP_PASSWORD}@mongo:27017/instant-sharing-tool?authSource=instant-sharing-tool"
+      SESSION_SECRET: "${SESSION_SECRET}"
+      BASE_URL: "${BASE_URL:-http://localhost:3000}"
+      MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-100}"
+      ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_ROOT_PASSWORD}"
+      MONGO_INITDB_DATABASE: instant-sharing-tool
+      MONGO_APP_USER: "${MONGO_APP_USER:-appuser}"
+      MONGO_APP_PASSWORD: "${MONGO_APP_PASSWORD}"
+    volumes:
+      - mongo_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet --eval "db.adminCommand('ping').ok"
+          -u $$MONGO_INITDB_ROOT_USERNAME
+          -p $$MONGO_INITDB_ROOT_PASSWORD
+          --authenticationDatabase admin
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  mongo_data:
