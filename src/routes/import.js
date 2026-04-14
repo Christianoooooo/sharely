@@ -81,7 +81,7 @@ function detectSchema(tables) {
  * Build a SELECT query for the media table that adapts to the actual columns
  * present. XBackBone's schema varies between versions.
  * Always selects: id, user_id, filename
- * Optional with fallbacks: mimetype, name, created_at, download_count
+ * Optional with fallbacks: storage_path, mimetype, created_at, download_count
  */
 function buildMediaSelect(db, mediaTable) {
   const cols = new Set(getColumnNames(db, mediaTable));
@@ -100,16 +100,15 @@ function buildMediaSelect(db, mediaTable) {
     'id',
     'user_id',
     'filename',
-    // mimetype - some versions use 'type'
+    // storage_path: exact relative path inside the storage dir (e.g. TeWI2/XocuKUnu60.jpg)
+    cols.has('storage_path') ? 'storage_path' : 'NULL AS storage_path',
+    // mimetype - not always present; derived from filename as fallback
     cols.has('mimetype') ? 'mimetype'
       : cols.has('type') ? 'type AS mimetype'
-      : "NULL AS mimetype",
-    // original filename - some versions omit this
-    cols.has('name') ? 'name'
-      : cols.has('original_name') ? 'original_name AS name'
-      : 'filename AS name',
+      : 'NULL AS mimetype',
     // creation timestamp
-    cols.has('created_at') ? 'created_at'
+    cols.has('timestamp') ? 'timestamp AS created_at'
+      : cols.has('created_at') ? 'created_at'
       : cols.has('upload_date') ? 'upload_date AS created_at'
       : 'NULL AS created_at',
     // view/download counter
@@ -137,14 +136,14 @@ function buildUsersSelect(db) {
 // ── Filesystem helpers ────────────────────────────────────────────────────────
 
 // Find a file in storagePath. Search order:
-//   1. storage/<mediaId>/<filename>  - XBackBone's standard ID-bucketed layout
-//   2. storage/<filename>            - flat layout (older installs)
-//   3. storage/<subdir>/<filename>   - any other single-level subdirectory
-function findFile(storagePath, mediaId, filename) {
-  // 1. ID-bucketed (standard XBackBone layout)
-  if (mediaId) {
-    const bucketed = path.join(storagePath, mediaId, filename);
-    if (fs.existsSync(bucketed)) return bucketed;
+//   1. storage/<storage_path>        - exact relative path from DB (e.g. TeWI2/XocuKUnu60.jpg)
+//   2. storage/<filename>            - flat layout fallback
+//   3. storage/<subdir>/<filename>   - any single-level subdirectory fallback
+function findFile(storagePath, storagePath_rel, filename) {
+  // 1. Exact storage_path from the database
+  if (storagePath_rel) {
+    const exact = path.join(storagePath, storagePath_rel);
+    if (fs.existsSync(exact)) return exact;
   }
 
   // 2. Flat
@@ -227,18 +226,18 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
       if (!localUser) {
         results.skipped++;
         results.details.push({
-          file: media.name || media.filename,
+          file: media.filename,
           status: 'skipped',
           reason: 'no matching local user and no defaultUser set',
         });
         continue;
       }
 
-      const srcPath = findFile(storagePath, String(media.id), media.filename);
+      const srcPath = findFile(storagePath, media.storage_path, media.filename);
       if (!srcPath) {
         results.skipped++;
         results.details.push({
-          file: media.name || media.filename,
+          file: media.filename,
           status: 'skipped',
           reason: 'file not found in storagePath',
         });
@@ -247,7 +246,8 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
 
       const folder = localUser.folderName || localUser.username;
       const destDir = path.join(UPLOAD_DIR, folder);
-      const ext = path.extname(media.filename) || path.extname(media.name || '') || '';
+      // Derive extension from the stored path (most reliable) or original filename
+      const ext = path.extname(media.storage_path || media.filename || '') || '';
       const newFilename = `${crypto.randomBytes(4).toString('hex')}${ext}`;
       const newStoredName = path.posix.join(folder, newFilename);
       const destPath = path.join(destDir, newFilename);
@@ -256,13 +256,13 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
       const srcStat = fs.statSync(srcPath);
       const existing = await File.findOne({
         uploader: localUser._id,
-        originalName: media.name || media.filename,
+        originalName: media.filename,
         size: srcStat.size,
       });
       if (existing) {
         results.skipped++;
         results.details.push({
-          file: media.name || media.filename,
+          file: media.filename,
           status: 'skipped',
           reason: 'already imported',
         });
@@ -279,7 +279,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
           'application/octet-stream';
 
         await File.create({
-          originalName: media.name || media.filename,
+          originalName: media.filename,
           storedName: newStoredName,
           mimeType,
           size: srcStat.size,
@@ -290,14 +290,14 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
 
         results.imported++;
         results.details.push({
-          file: media.name || media.filename,
+          file: media.filename,
           status: 'imported',
           user: localUser.username,
         });
       } catch (err) {
         results.errors++;
         results.details.push({
-          file: media.name || media.filename,
+          file: media.filename,
           status: 'error',
           reason: err.message,
         });
