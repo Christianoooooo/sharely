@@ -1,0 +1,55 @@
+<%- include('../partials/header', { title: 'All Files' }) %>
+
+<div class="page-header">
+  <h1>All Files <span class="muted small">(<%= total %>)</span></h1>
+  <a href="/admin" class="btn-outline">← Dashboard</a>
+</div>
+
+<form class="search-bar" method="GET" action="/admin/files">
+  <input type="text" name="q" placeholder="Search by filename…" value="<%= q %>" />
+  <button type="submit" class="btn-outline">Search</button>
+  <% if (q) { %><a href="/admin/files" class="btn-ghost">Clear</a><% } %>
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>File</th>
+      <th>Type</th>
+      <th>Size</th>
+      <th>Uploader</th>
+      <th>Views</th>
+      <th>Date</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% files.forEach(f => { %>
+      <tr>
+        <td><a href="/f/<%= f.shortId %>"><%= f.originalName %></a></td>
+        <td><span class="badge"><%= f.displayType %></span></td>
+        <td><%= f.sizeHuman %></td>
+        <td><%= f.uploader?.username || '—' %></td>
+        <td><%= f.views %></td>
+        <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
+        <td>
+          <form method="POST" action="/f/<%= f.shortId %>/delete"
+                onsubmit="return confirm('Delete this file?')">
+            <button type="submit" class="btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<% if (pages > 1) { %>
+  <nav class="pagination">
+    <% for (let p = 1; p <= pages; p++) { %>
+      <a href="/admin/files?page=<%= p %>&q=<%= encodeURIComponent(q) %>"
+         class="page-btn<%= p === page ? ' active' : '' %>"><%= p %></a>
+    <% } %>
+  </nav>
+<% } %>
+
+<%- include('../partials/footer') %>

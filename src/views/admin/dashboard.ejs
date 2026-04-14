@@ -1,0 +1,69 @@
+<%- include('../partials/header', { title: 'Admin' }) %>
+
+<div class="page-header">
+  <h1>Admin Dashboard</h1>
+  <div>
+    <a href="/admin/users" class="btn-outline">Users</a>
+    <a href="/admin/files" class="btn-outline">All Files</a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value"><%= userCount %></div>
+    <div class="stat-label">Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value"><%= fileCount %></div>
+    <div class="stat-label">Files</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">
+      <%
+        const tb = totalSize;
+        let sizeStr;
+        if (tb < 1024) sizeStr = tb + ' B';
+        else if (tb < 1048576) sizeStr = (tb/1024).toFixed(1) + ' KB';
+        else if (tb < 1073741824) sizeStr = (tb/1048576).toFixed(1) + ' MB';
+        else sizeStr = (tb/1073741824).toFixed(2) + ' GB';
+      %>
+      <%= sizeStr %>
+    </div>
+    <div class="stat-label">Storage Used</div>
+  </div>
+</div>
+
+<h2>Recent Uploads</h2>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>File</th>
+      <th>Type</th>
+      <th>Size</th>
+      <th>Uploader</th>
+      <th>Views</th>
+      <th>Date</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% recentFiles.forEach(f => { %>
+      <tr>
+        <td><a href="/f/<%= f.shortId %>"><%= f.originalName %></a></td>
+        <td><span class="badge"><%= f.displayType %></span></td>
+        <td><%= f.sizeHuman %></td>
+        <td><%= f.uploader?.username || '—' %></td>
+        <td><%= f.views %></td>
+        <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
+        <td>
+          <form method="POST" action="/f/<%= f.shortId %>/delete"
+                onsubmit="return confirm('Delete?')">
+            <button type="submit" class="btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<%- include('../partials/footer') %>

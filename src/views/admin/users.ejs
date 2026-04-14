@@ -1,0 +1,86 @@
+<%- include('../partials/header', { title: 'Users' }) %>
+
+<div class="page-header">
+  <h1>User Management</h1>
+  <a href="/admin" class="btn-outline">← Dashboard</a>
+</div>
+
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+<!-- Create user form -->
+<details class="card mb-2">
+  <summary class="card-title">Create New User</summary>
+  <form method="POST" action="/admin/users/create" class="inline-form">
+    <input type="text" name="username" placeholder="Username" minlength="3" maxlength="32" required />
+    <input type="password" name="password" placeholder="Password" minlength="6" required />
+    <select name="role">
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button type="submit" class="btn-primary">Create</button>
+  </form>
+</details>
+
+<!-- User table -->
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Role</th>
+      <th>Files</th>
+      <th>Storage</th>
+      <th>Status</th>
+      <th>Created</th>
+      <th>API Key</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% users.forEach(u => { %>
+      <%
+        let storageStr;
+        const s = u.storageUsed;
+        if (s < 1024) storageStr = s + ' B';
+        else if (s < 1048576) storageStr = (s/1024).toFixed(1) + ' KB';
+        else if (s < 1073741824) storageStr = (s/1048576).toFixed(1) + ' MB';
+        else storageStr = (s/1073741824).toFixed(2) + ' GB';
+      %>
+      <tr class="<%= !u.isActive ? 'row-inactive' : '' %>">
+        <td><strong><%= u.username %></strong></td>
+        <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
+        <td><%= u.fileCount %></td>
+        <td><%= storageStr %></td>
+        <td>
+          <span class="badge <%= u.isActive ? 'badge-active' : 'badge-inactive' %>">
+            <%= u.isActive ? 'Active' : 'Inactive' %>
+          </span>
+        </td>
+        <td><%= new Date(u.createdAt).toLocaleDateString() %></td>
+        <td>
+          <code class="api-key-short" title="<%= u.apiKey %>"><%= u.apiKey.slice(0,8) %>…</code>
+        </td>
+        <td class="action-cell">
+          <% if (u._id.toString() !== user.id.toString()) { %>
+            <form method="POST" action="/admin/users/<%= u._id %>/toggle" style="display:inline">
+              <button type="submit" class="btn-ghost btn-sm">
+                <%= u.isActive ? 'Deactivate' : 'Activate' %>
+              </button>
+            </form>
+            <form method="POST" action="/admin/users/<%= u._id %>/regen-key" style="display:inline">
+              <button type="submit" class="btn-ghost btn-sm">Regen Key</button>
+            </form>
+            <form method="POST" action="/admin/users/<%= u._id %>/delete" style="display:inline"
+                  onsubmit="return confirm('Delete user <%= u.username %> and all their files?')">
+              <button type="submit" class="btn-danger btn-sm">Delete</button>
+            </form>
+          <% } else { %>
+            <span class="muted">(you)</span>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<%- include('../partials/footer') %>

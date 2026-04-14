@@ -1,0 +1,101 @@
+<%
+const hlExts = {
+  js:'javascript', ts:'typescript', jsx:'javascript', tsx:'typescript',
+  py:'python', rb:'ruby', go:'go', rs:'rust', java:'java', c:'c', cpp:'cpp',
+  h:'c', hpp:'cpp', cs:'csharp', php:'php', sh:'bash', bash:'bash', zsh:'bash',
+  yml:'yaml', yaml:'yaml', toml:'toml', json:'json', xml:'xml',
+  html:'html', htm:'html', css:'css', scss:'scss', less:'less',
+  md:'markdown', sql:'sql', kt:'kotlin', swift:'swift', lua:'lua',
+  pl:'perl', r:'r', vue:'xml', svelte:'xml',
+};
+const lang = hlExts[ext] || 'plaintext';
+const isHl = file.displayType === 'code' || file.displayType === 'text';
+%>
+<%- include('partials/header', {
+  title: file.originalName,
+  extraHead: isHl
+    ? '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />'
+    : ''
+}) %>
+
+<div class="file-view-header">
+  <div class="file-title-row">
+    <h1 class="file-title" title="<%= file.originalName %>"><%= file.originalName %></h1>
+    <div class="file-actions">
+      <a href="/f/<%= file.shortId %>/download" class="btn-outline">Download</a>
+      <% if (user && (user.id === file.uploader?._id?.toString() || user.role === 'admin')) { %>
+        <form method="POST" action="/f/<%= file.shortId %>/delete" style="display:inline"
+              onsubmit="return confirm('Delete this file?')">
+          <button type="submit" class="btn-danger">Delete</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+  <div class="file-meta-row">
+    <span class="badge"><%= file.mimeType %></span>
+    <span><%= file.sizeHuman %></span>
+    <span><%= file.views %> view<%= file.views !== 1 ? 's' : '' %></span>
+    <% if (file.uploader) { %><span>by <strong><%= file.uploader.username %></strong></span><% } %>
+    <span><%= new Date(file.createdAt).toLocaleDateString() %></span>
+  </div>
+  <div class="share-row">
+    <input type="text" class="share-input" readonly
+           value="<%= process.env.BASE_URL || '' %>/f/<%= file.shortId %>"
+           id="shareUrl" />
+    <button class="btn-ghost" onclick="copyUrl()">Copy</button>
+  </div>
+</div>
+
+<!-- Viewer -->
+<div class="file-viewer">
+  <% if (file.displayType === 'image') { %>
+    <img src="/f/<%= file.shortId %>/raw" alt="<%= file.originalName %>" class="viewer-image" />
+
+  <% } else if (file.displayType === 'video') { %>
+    <video controls class="viewer-video" preload="metadata">
+      <source src="/f/<%= file.shortId %>/raw" type="<%= file.mimeType %>" />
+      Your browser does not support the video tag.
+    </video>
+
+  <% } else if (file.displayType === 'audio') { %>
+    <audio controls class="viewer-audio">
+      <source src="/f/<%= file.shortId %>/raw" type="<%= file.mimeType %>" />
+    </audio>
+
+  <% } else if (file.displayType === 'pdf') { %>
+    <iframe src="/f/<%= file.shortId %>/raw" class="viewer-pdf" title="<%= file.originalName %>"></iframe>
+
+  <% } else if ((file.displayType === 'code' || file.displayType === 'text') && content !== null) { %>
+    <pre class="viewer-code"><code class="language-<%= lang %>"><%= content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') %></code></pre>
+
+  <% } else { %>
+    <div class="viewer-download">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/>
+        <polyline points="9 15 12 18 15 15"/>
+      </svg>
+      <p><%= file.originalName %></p>
+      <p class="muted"><%= file.sizeHuman %></p>
+      <a href="/f/<%= file.shortId %>/download" class="btn-primary">Download</a>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer', {
+  extraScript: `
+    <script>
+      function copyUrl() {
+        const el = document.getElementById('shareUrl');
+        el.select();
+        navigator.clipboard.writeText(el.value).then(() => {
+          const btn = el.nextElementSibling;
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 2000);
+        });
+      }
+    </script>
+    ${ isHl ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script><script>hljs.highlightAll();</script>' : ''}
+  `
+}) %>

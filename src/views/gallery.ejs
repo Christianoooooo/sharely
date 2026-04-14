@@ -1,0 +1,69 @@
+<%- include('partials/header', { title: 'Gallery' }) %>
+
+<div class="page-header">
+  <h1>Gallery <span class="muted small">(<%= total %> file<%= total !== 1 ? 's' : '' %>)</span></h1>
+  <a href="/upload" class="btn-primary">+ Upload</a>
+</div>
+
+<!-- Search & Filter -->
+<form class="search-bar" method="GET" action="/gallery">
+  <input type="text" name="q" placeholder="Search files…" value="<%= q %>" />
+  <select name="type">
+    <option value="all"<%= type === 'all' ? ' selected' : '' %>>All types</option>
+    <option value="image"<%= type === 'image' ? ' selected' : '' %>>Images</option>
+    <option value="video"<%= type === 'video' ? ' selected' : '' %>>Videos</option>
+    <option value="audio"<%= type === 'audio' ? ' selected' : '' %>>Audio</option>
+    <option value="pdf"<%= type === 'pdf' ? ' selected' : '' %>>PDF</option>
+    <option value="code"<%= type === 'code' ? ' selected' : '' %>>Code / Text</option>
+  </select>
+  <button type="submit" class="btn-outline">Search</button>
+  <% if (q || type !== 'all') { %>
+    <a href="/gallery" class="btn-ghost">Clear</a>
+  <% } %>
+</form>
+
+<!-- Grid -->
+<% if (files.length === 0) { %>
+  <div class="empty-state">
+    <p>No files found.</p>
+    <a href="/upload" class="btn-primary">Upload your first file</a>
+  </div>
+<% } else { %>
+  <div class="gallery-grid">
+    <% files.forEach(file => { %>
+      <a class="gallery-card" href="/f/<%= file.shortId %>" title="<%= file.originalName %>">
+        <div class="gallery-thumb">
+          <% if (file.displayType === 'image') { %>
+            <img src="/f/<%= file.shortId %>/raw" alt="<%= file.originalName %>" loading="lazy" />
+          <% } else if (file.displayType === 'video') { %>
+            <div class="type-icon">🎬</div>
+          <% } else if (file.displayType === 'audio') { %>
+            <div class="type-icon">🎵</div>
+          <% } else if (file.displayType === 'pdf') { %>
+            <div class="type-icon">📄</div>
+          <% } else if (file.displayType === 'code') { %>
+            <div class="type-icon">💻</div>
+          <% } else { %>
+            <div class="type-icon">📁</div>
+          <% } %>
+        </div>
+        <div class="gallery-info">
+          <span class="file-name"><%= file.originalName %></span>
+          <span class="file-meta"><%= file.sizeHuman %><% if (isAdmin) { %> · <%= file.uploader?.username || 'unknown' %><% } %></span>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pages > 1) { %>
+    <nav class="pagination">
+      <% for (let p = 1; p <= pages; p++) { %>
+        <a href="/gallery?page=<%= p %>&q=<%= encodeURIComponent(q) %>&type=<%= type %>"
+           class="page-btn<%= p === page ? ' active' : '' %>"><%= p %></a>
+      <% } %>
+    </nav>
+  <% } %>
+<% } %>
+
+<%- include('partials/footer') %>
