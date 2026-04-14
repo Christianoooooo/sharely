@@ -26,7 +26,6 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const multer = require('multer');
 const initSqlJs = require('sql.js');
 const mime = require('mime-types');
 const { requireAdmin } = require('../middleware/auth');
@@ -34,9 +33,6 @@ const File = require('../models/File');
 const User = require('../models/User');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads');
-
-// Multer for the SQLite DB upload — temp file, deleted after processing
-const dbUpload = multer({ dest: '/tmp/xbb-import/' });
 
 // ── SQLite helpers ────────────────────────────────────────────────────────────
 
@@ -161,13 +157,16 @@ function findFile(storagePath, filename) {
 
 // ── Import route ──────────────────────────────────────────────────────────────
 
-router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res, next) => {
-  const tmpDbPath = req.file?.path;
+router.post('/xbackbone', requireAdmin, async (req, res, next) => {
   let db = null;
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'database.db file is required' });
+    const dbPath = (req.body.dbPath || '').trim();
+    if (!dbPath) {
+      return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
+    }
+    if (!fs.existsSync(dbPath)) {
+      return res.status(400).json({ error: `dbPath not found: ${dbPath}` });
     }
 
     const storagePath = (req.body.storagePath || '').trim();
@@ -180,7 +179,7 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res, 
 
     // ── Parse SQLite ─────────────────────────────────────────────────────────
     const SQL = await initSqlJs();
-    const dbBuffer = fs.readFileSync(tmpDbPath);
+    const dbBuffer = fs.readFileSync(dbPath);
     db = new SQL.Database(new Uint8Array(dbBuffer));
 
     const tables = getTableNames(db);
@@ -299,26 +298,28 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res, 
 
     res.json(results);
   } catch (err) {
-    next(err); // forward to Express error handler — prevents process crash
+    next(err);
   } finally {
     if (db) { try { db.close(); } catch { /* ignore */ } }
-    if (tmpDbPath) { try { fs.unlinkSync(tmpDbPath); } catch { /* ignore */ } }
   }
 });
 
 // ── Preview route ─────────────────────────────────────────────────────────────
 
-router.post('/xbackbone/preview', requireAdmin, dbUpload.single('db'), async (req, res, next) => {
-  const tmpDbPath = req.file?.path;
+router.post('/xbackbone/preview', requireAdmin, async (req, res, next) => {
   let db = null;
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'database.db file is required' });
+    const dbPath = (req.body.dbPath || '').trim();
+    if (!dbPath) {
+      return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
+    }
+    if (!fs.existsSync(dbPath)) {
+      return res.status(400).json({ error: `dbPath not found: ${dbPath}` });
     }
 
     const SQL = await initSqlJs();
-    const dbBuffer = fs.readFileSync(tmpDbPath);
+    const dbBuffer = fs.readFileSync(dbPath);
     db = new SQL.Database(new Uint8Array(dbBuffer));
 
     const tables = getTableNames(db);
@@ -358,7 +359,6 @@ router.post('/xbackbone/preview', requireAdmin, dbUpload.single('db'), async (re
     next(err);
   } finally {
     if (db) { try { db.close(); } catch { /* ignore */ } }
-    if (tmpDbPath) { try { fs.unlinkSync(tmpDbPath); } catch { /* ignore */ } }
   }
 });
 
