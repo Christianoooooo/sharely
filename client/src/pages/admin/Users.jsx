@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
-import { RefreshCw, Trash2, UserPlus, Power } from 'lucide-react';
+import { RefreshCw, Trash2, UserPlus, Power, Pencil, Check, X } from 'lucide-react';
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
@@ -21,6 +21,8 @@ export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
+  const [editingFolder, setEditingFolder] = useState(null); // { id, value }
+  const folderInputRef = useRef(null);
 
   async function load() {
     const r = await fetch('/api/admin/users');
@@ -79,6 +81,33 @@ export default function AdminUsers() {
     }
   }
 
+  function startEditFolder(id, current) {
+    setEditingFolder({ id, value: current || '' });
+    setTimeout(() => folderInputRef.current?.focus(), 0);
+  }
+
+  function cancelEditFolder() {
+    setEditingFolder(null);
+  }
+
+  async function saveFolder(id) {
+    const folderName = editingFolder.value.trim();
+    if (!folderName) { cancelEditFolder(); return; }
+    const r = await fetch(`/api/admin/users/${id}/folder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderName }),
+    });
+    const data = await r.json();
+    if (r.ok) {
+      toast({ title: `Folder renamed to "${data.folderName}"` });
+      setEditingFolder(null);
+      load();
+    } else {
+      toast({ title: data.error, variant: 'destructive' });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">User Management</h1>
@@ -134,6 +163,7 @@ export default function AdminUsers() {
             <TableHeader>
               <TableRow>
                 <TableHead>Username</TableHead>
+                <TableHead>Folder</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Files</TableHead>
                 <TableHead>Storage</TableHead>
@@ -147,6 +177,39 @@ export default function AdminUsers() {
               {users.map((u) => (
                 <TableRow key={u._id} className={!u.isActive ? 'opacity-50' : ''}>
                   <TableCell className="font-medium">{u.username}</TableCell>
+                  <TableCell>
+                    {editingFolder?.id === u._id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          ref={folderInputRef}
+                          className="h-7 w-36 text-xs"
+                          value={editingFolder.value}
+                          onChange={(e) => setEditingFolder((p) => ({ ...p, value: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveFolder(u._id);
+                            if (e.key === 'Escape') cancelEditFolder();
+                          }}
+                        />
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => saveFolder(u._id)}>
+                          <Check className="h-3.5 w-3.5 text-green-500" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditFolder}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{u.folderName || u.username}</code>
+                        <Button
+                          variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Rename folder"
+                          onClick={() => startEditFolder(u._id, u.folderName || u.username)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge>
                   </TableCell>
