@@ -1,0 +1,178 @@
+import { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/components/ui/use-toast';
+import { fmtSize } from '@/lib/utils';
+import { Upload as UploadIcon, X, Download, RefreshCw, Copy } from 'lucide-react';
+
+export default function Upload() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const fileInputRef = useRef(null);
+
+  const addFiles = useCallback((incoming) => {
+    setFiles((prev) => {
+      const existing = new Set(prev.map((f) => f.name + f.size));
+      const news = Array.from(incoming).filter((f) => !existing.has(f.name + f.size));
+      return [...prev, ...news];
+    });
+  }, []);
+
+  function removeFile(idx) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    addFiles(e.dataTransfer.files);
+  }
+
+  async function handleUpload() {
+    if (files.length === 0) return;
+    setUploading(true);
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+
+    try {
+      const r = await fetch('/api/web-upload', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Upload failed');
+
+      toast({ title: `Uploaded ${data.files.length} file${data.files.length !== 1 ? 's' : ''}` });
+      setFiles([]);
+
+      if (data.files.length === 1) {
+        navigate(`/f/${data.files[0].shortId}`);
+      } else {
+        navigate('/gallery');
+      }
+    } catch (err) {
+      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function regenKey() {
+    const r = await fetch('/api/regen-key', { method: 'POST' });
+    const data = await r.json();
+    setApiKey(data.apiKey);
+    toast({ title: 'API key regenerated' });
+  }
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copied to clipboard' });
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Upload</h1>
+        <p className="text-muted-foreground text-sm mt-1">Drop files or browse to upload</p>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`
+          rounded-lg border-2 border-dashed cursor-pointer transition-all p-12 text-center
+          ${dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/20'}
+        `}
+      >
+        <UploadIcon className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+        <p className="font-medium">Drop files here or click to browse</p>
+        <p className="text-sm text-muted-foreground mt-1">Images, GIF, video, code, PDF and more</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => addFiles(e.target.files)}
+        />
+      </div>
+
+      {/* File list */}
+      {files.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{files.length} file{files.length !== 1 ? 's' : ''} selected</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {files.map((f, i) => (
+              <div key={i} className="flex items-center justify-between text-sm border rounded-md px-3 py-2">
+                <span className="truncate max-w-[70%]">{f.name}</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-muted-foreground">{fmtSize(f.size)}</span>
+                  <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <Button className="w-full mt-2" onClick={handleUpload} disabled={uploading}>
+              {uploading ? 'Uploading…' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Separator />
+
+      {/* ShareX config */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="h-4 w-4" />ShareX Integration
+          </CardTitle>
+          <CardDescription>Download the .sxcu config and import it into ShareX</CardDescription>
+        </CardHeader>
+        <CardContent className="flex gap-2 flex-wrap">
+          <Button variant="outline" asChild>
+            <a href="/api/sharex-config" download>Download .sxcu</a>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* API */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">API Upload</CardTitle>
+          <CardDescription>Use curl or any HTTP client</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <pre className="rounded-md bg-muted p-4 text-xs overflow-x-auto whitespace-pre-wrap break-all">
+{`curl -X POST \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -F "file=@/path/to/file" \\
+  /api/upload`}
+          </pre>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={regenKey} className="gap-2 shrink-0">
+              <RefreshCw className="h-3.5 w-3.5" />Regenerate key
+            </Button>
+            {apiKey && (
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <code className="text-xs bg-muted px-2 py-1 rounded truncate flex-1">{apiKey}</code>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => copyToClipboard(apiKey)}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

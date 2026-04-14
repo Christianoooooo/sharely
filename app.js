@@ -9,48 +9,34 @@ const app = express();
 
 connectDB();
 
-// View engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'src/views'));
-
-// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Session
 app.use(session({
   secret: process.env.SESSION_SECRET || 'changeme',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }, // 7 days
+  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 },
 }));
 
-// Expose user to all views
-app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
-  next();
-});
-
-// Routes
-app.use('/auth', require('./src/routes/auth'));
+// JSON API routes
+app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api', require('./src/routes/api'));
-app.use('/admin', require('./src/routes/admin'));
-app.use('/gallery', require('./src/routes/gallery'));
-app.use('/', require('./src/routes/files'));
 
-// 404
-app.use((req, res) => {
-  res.status(404).render('error', { code: 404, message: 'Page not found' });
+// Raw file serving (not JSON)
+app.use('/f', require('./src/routes/files'));
+
+// Serve React SPA in production
+const clientDist = path.join(__dirname, 'client/dist');
+app.use(express.static(clientDist));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-// 500
-app.use((err, req, res, _next) => {
+app.use((err, _req, res, _next) => {
   console.error(err.stack);
-  res.status(500).render('error', { code: 500, message: 'Internal server error' });
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 3000;
