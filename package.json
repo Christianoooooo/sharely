@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "build": "cd client && npm install && npm run build"
+    "build": "cd client && npm install && npm run build",
+    "migrate:user-folders": "node scripts/migrate-uploads-to-user-folders.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
