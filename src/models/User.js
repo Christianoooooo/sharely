@@ -25,6 +25,13 @@ const userSchema = new mongoose.Schema({
     unique: true,
     default: () => crypto.randomBytes(24).toString('hex'),
   },
+  folderName: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    maxlength: 64,
+  },
   isActive: {
     type: Boolean,
     default: true,
@@ -35,8 +42,11 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving
+// Hash password before saving; auto-assign folderName on new users
 userSchema.pre('save', async function (next) {
+  if (this.isNew && !this.folderName) {
+    this.folderName = this.username;
+  }
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();

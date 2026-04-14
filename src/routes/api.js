@@ -249,6 +249,23 @@ router.post('/admin/users/:id/regen-key', requireAdmin, async (req, res) => {
   res.json({ apiKey: user.apiKey });
 });
 
+router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
+  const { folderName } = req.body;
+  if (!folderName || typeof folderName !== 'string') {
+    return res.status(400).json({ error: 'folderName required' });
+  }
+  const trimmed = folderName.trim();
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed) || trimmed.length > 64) {
+    return res.status(400).json({ error: 'Folder name may only contain letters, numbers, dashes and underscores (max 64 chars)' });
+  }
+  const conflict = await User.findOne({ folderName: trimmed, _id: { $ne: req.params.id } });
+  if (conflict) return res.status(409).json({ error: 'Folder name already taken' });
+
+  const user = await User.findByIdAndUpdate(req.params.id, { folderName: trimmed }, { new: true });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  res.json({ folderName: user.folderName });
+});
+
 // ── Admin: all files ────────────────────────────────────────────────────────
 router.get('/admin/files', requireAdmin, async (req, res) => {
   const { q, page: pageStr } = req.query;
