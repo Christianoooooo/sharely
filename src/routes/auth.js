@@ -4,80 +4,62 @@ const User = require('../models/User');
 
 const allowRegistration = () => process.env.ALLOW_REGISTRATION !== 'false';
 
-// GET /auth/login
-router.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect('/gallery');
-  res.render('login', { error: null });
+// GET /api/auth/me
+router.get('/me', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  res.json({ user: req.session.user });
 });
 
-// POST /auth/login
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
-    return res.render('login', { error: 'Username and password are required' });
+    return res.status(400).json({ error: 'Username and password required' });
   }
-
   const user = await User.findOne({ username });
   if (!user || !user.isActive) {
-    return res.render('login', { error: 'Invalid credentials' });
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
-
   const valid = await user.comparePassword(password);
   if (!valid) {
-    return res.render('login', { error: 'Invalid credentials' });
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
-
   req.session.user = { id: user._id, username: user.username, role: user.role };
-  res.redirect('/gallery');
+  res.json({ user: req.session.user });
 });
 
-// GET /auth/register
-router.get('/register', (req, res) => {
-  if (req.session.user) return res.redirect('/gallery');
-  if (!allowRegistration()) {
-    return res.status(403).render('error', { code: 403, message: 'Registration is disabled' });
-  }
-  res.render('register', { error: null });
-});
-
-// POST /auth/register
+// POST /api/auth/register
 router.post('/register', async (req, res) => {
   if (!allowRegistration()) {
-    return res.status(403).render('error', { code: 403, message: 'Registration is disabled' });
+    return res.status(403).json({ error: 'Registration is disabled' });
   }
-
   const { username, password, confirmPassword } = req.body;
-
   if (!username || !password) {
-    return res.render('register', { error: 'Username and password are required' });
+    return res.status(400).json({ error: 'Username and password required' });
   }
   if (password !== confirmPassword) {
-    return res.render('register', { error: 'Passwords do not match' });
+    return res.status(400).json({ error: 'Passwords do not match' });
   }
   if (username.length < 3 || username.length > 32) {
-    return res.render('register', { error: 'Username must be 3–32 characters' });
+    return res.status(400).json({ error: 'Username must be 3–32 characters' });
   }
   if (password.length < 6) {
-    return res.render('register', { error: 'Password must be at least 6 characters' });
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
-
   const exists = await User.findOne({ username });
   if (exists) {
-    return res.render('register', { error: 'Username already taken' });
+    return res.status(409).json({ error: 'Username already taken' });
   }
-
-  // First user ever becomes admin
   const count = await User.countDocuments();
   const role = count === 0 ? 'admin' : 'user';
-
   const user = await User.create({ username, password, role });
   req.session.user = { id: user._id, username: user.username, role: user.role };
-  res.redirect('/gallery');
+  res.status(201).json({ user: req.session.user });
 });
 
-// GET /auth/logout
-router.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/auth/login'));
+// POST /api/auth/logout
+router.post('/logout', (req, res) => {
+  req.session.destroy(() => res.json({ success: true }));
 });
 
 module.exports = router;

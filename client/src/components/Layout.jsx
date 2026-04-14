@@ -1,0 +1,100 @@
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Images, Upload, Settings, LogOut, User, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+function NavLink({ to, children, icon: Icon }) {
+  const { pathname } = useLocation();
+  const active = pathname === to || pathname.startsWith(to + '/');
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+        active
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+      )}
+    >
+      {Icon && <Icon className="h-4 w-4" />}
+      {children}
+    </Link>
+  );
+}
+
+export function Layout({ children }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    navigate('/auth/login');
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 flex h-14 items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <Link to="/" className="font-bold text-primary text-sm tracking-widest uppercase">IST</Link>
+            <Separator orientation="vertical" className="h-5" />
+            <nav className="flex items-center gap-1">
+              <NavLink to="/gallery" icon={Images}>Gallery</NavLink>
+              <NavLink to="/upload" icon={Upload}>Upload</NavLink>
+              {user?.role === 'admin' && (
+                <NavLink to="/admin" icon={LayoutDashboard}>Admin</NavLink>
+              )}
+            </nav>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">{user?.username}</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link to="/upload" className="flex items-center gap-2 cursor-pointer">
+                  <Settings className="h-4 w-4" />API & ShareX
+                </Link>
+              </DropdownMenuItem>
+              {user?.role === 'admin' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/users" className="flex items-center gap-2 cursor-pointer">
+                      <User className="h-4 w-4" />Users
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4" />Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+        {children}
+      </main>
+
+      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
+        instant-sharing-tool
+      </footer>
+    </div>
+  );
+}

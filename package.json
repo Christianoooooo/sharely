@@ -1,17 +1,17 @@
 {
   "name": "instant-sharing-tool",
   "version": "1.0.0",
-  "description": "Lightweight file manager with ShareX and *NIX support — images, GIF, video, code, text, PDF",
+  "description": "Lightweight file manager with ShareX and *NIX support",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "build": "cd client && npm install && npm run build"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.1.0",
     "dotenv": "^16.4.5",
-    "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "mime-types": "^2.1.35",
