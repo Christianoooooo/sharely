@@ -49,6 +49,34 @@ function rowsToObjects(result) {
   );
 }
 
+/** Return all table names present in the SQLite database. */
+function getTableNames(db) {
+  const result = db.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+  return rowsToObjects(result).map((r) => r.name);
+}
+
+/**
+ * Validate that the database contains the expected XBackBone tables.
+ * Returns an error string if invalid, or null if OK.
+ * Also detects the media table name (XBackBone uses 'media'; some forks use 'uploads').
+ */
+function detectSchema(tables) {
+  const hasUsers = tables.includes('users');
+  // XBackBone uses 'media'; tolerate 'uploads' as an alias used in some forks
+  const mediaTable = tables.includes('media') ? 'media'
+    : tables.includes('uploads') ? 'uploads'
+    : null;
+
+  if (!hasUsers || !mediaTable) {
+    const found = tables.length ? tables.join(', ') : '(none)';
+    return {
+      error: `Not a valid XBackBone database. Expected tables: users, media. Found: ${found}`,
+      mediaTable: null,
+    };
+  }
+  return { error: null, mediaTable };
+}
+
 /**
  * Find a file in storagePath.
  * Checks flat layout first (storagePath/filename), then one subdirectory deep.
@@ -95,9 +123,16 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
     const dbBuffer = fs.readFileSync(tmpDbPath);
     const db = new SQL.Database(new Uint8Array(dbBuffer));
 
+    const tables = getTableNames(db);
+    const { error: schemaError, mediaTable } = detectSchema(tables);
+    if (schemaError) {
+      db.close();
+      return res.status(400).json({ error: schemaError });
+    }
+
     const xbbUsers = rowsToObjects(db.exec('SELECT id, username, email FROM users'));
     const xbbMedia = rowsToObjects(
-      db.exec('SELECT id, user_id, filename, mimetype, name, created_at, download_count FROM media'),
+      db.exec(`SELECT id, user_id, filename, mimetype, name, created_at, download_count FROM ${mediaTable}`),
     );
     db.close();
 
@@ -232,9 +267,16 @@ router.post('/xbackbone/preview', requireAdmin, dbUpload.single('db'), async (re
     const dbBuffer = fs.readFileSync(tmpDbPath);
     const db = new SQL.Database(new Uint8Array(dbBuffer));
 
+    const tables = getTableNames(db);
+    const { error: schemaError, mediaTable } = detectSchema(tables);
+    if (schemaError) {
+      db.close();
+      return res.status(400).json({ error: schemaError });
+    }
+
     const xbbUsers = rowsToObjects(db.exec('SELECT id, username, email FROM users'));
     const countResult = db.exec(
-      'SELECT user_id, COUNT(*) as cnt FROM media GROUP BY user_id',
+      `SELECT user_id, COUNT(*) as cnt FROM ${mediaTable} GROUP BY user_id`,
     );
     db.close();
 
