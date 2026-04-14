@@ -100,6 +100,8 @@ function buildMediaSelect(db, mediaTable) {
     'id',
     'user_id',
     'filename',
+    // code: XBackBone share code used as our shortId for reliable idempotency
+    cols.has('code') ? 'code' : 'NULL AS code',
     // storage_path: exact relative path inside the storage dir (e.g. TeWI2/XocuKUnu60.jpg)
     cols.has('storage_path') ? 'storage_path' : 'NULL AS storage_path',
     // mimetype - not always present; derived from filename as fallback
@@ -252,21 +254,20 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
       const newStoredName = path.posix.join(folder, newFilename);
       const destPath = path.join(destDir, newFilename);
 
-      // Idempotency: skip if already imported
+      // Idempotency: the XBackBone share code is stored as our shortId.
+      // If a File with that shortId already exists the item was already imported.
       const srcStat = fs.statSync(srcPath);
-      const existing = await File.findOne({
-        uploader: localUser._id,
-        originalName: media.filename,
-        size: srcStat.size,
-      });
-      if (existing) {
-        results.skipped++;
-        results.details.push({
-          file: media.filename,
-          status: 'skipped',
-          reason: 'already imported',
-        });
-        continue;
+      if (media.code) {
+        const existing = await File.findOne({ shortId: media.code });
+        if (existing) {
+          results.skipped++;
+          results.details.push({
+            file: media.filename,
+            status: 'skipped',
+            reason: 'already imported',
+          });
+          continue;
+        }
       }
 
       try {
@@ -279,6 +280,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
           'application/octet-stream';
 
         await File.create({
+          shortId: media.code || undefined, // preserve XBackBone code as shortId
           originalName: media.filename,
           storedName: newStoredName,
           mimeType,
