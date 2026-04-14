@@ -9,16 +9,16 @@
  *     defaultUser — our username to assign files when no XBackBone user can
  *                   be matched by username (optional)
  *
- * XBackBone user matching: the import tries to find a local user whose
- * username matches the XBackBone user's username (case-insensitive).
- * Files belonging to unmatched XBackBone users are assigned to defaultUser;
- * if no defaultUser is given those files are skipped.
+ * XBackBone user matching: tries to find a local user whose username matches
+ * the XBackBone user's username (case-insensitive). Files belonging to
+ * unmatched users are assigned to defaultUser; if no defaultUser is given
+ * those files are skipped.
  *
  * File discovery: looks for {storagePath}/{xbb_filename}, then searches one
  * level of subdirectories as fallback (covers user-token-bucketed layouts).
  *
- * The operation is idempotent with respect to shortId: if a File document
- * with the same storedName already exists it is skipped.
+ * The operation is idempotent: files with the same originalName + size +
+ * uploader are skipped if already present.
  */
 
 const express = require('express');
@@ -26,7 +26,6 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const multer = require('multer');
 const initSqlJs = require('sql.js');
 const mime = require('mime-types');
 const { requireAdmin } = require('../middleware/auth');
@@ -35,12 +34,9 @@ const User = require('../models/User');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
-// Multer for the SQLite DB upload — temp file, deleted after processing
-const dbUpload = multer({ dest: '/tmp/xbb-import/' });
+// ── SQLite helpers ────────────────────────────────────────────────────────────
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Resolve a SQL.js result-set row to a plain object using column names. */
+/** Resolve a SQL.js result-set to an array of plain objects. */
 function rowsToObjects(result) {
   if (!result || result.length === 0) return [];
   const { columns, values } = result[0];
@@ -55,14 +51,18 @@ function getTableNames(db) {
   return rowsToObjects(result).map((r) => r.name);
 }
 
+/** Return the column names of a table using PRAGMA. */
+function getColumnNames(db, table) {
+  const result = db.exec(`PRAGMA table_info(${table})`);
+  return rowsToObjects(result).map((r) => r.name);
+}
+
 /**
- * Validate that the database contains the expected XBackBone tables.
- * Returns an error string if invalid, or null if OK.
- * Also detects the media table name (XBackBone uses 'media'; some forks use 'uploads').
+ * Detect the media table name and validate required tables exist.
+ * Returns { error, mediaTable }.
  */
 function detectSchema(tables) {
   const hasUsers = tables.includes('users');
-  // XBackBone uses 'media'; tolerate 'uploads' as an alias used in some forks
   const mediaTable = tables.includes('media') ? 'media'
     : tables.includes('uploads') ? 'uploads'
     : null;
@@ -78,14 +78,72 @@ function detectSchema(tables) {
 }
 
 /**
+ * Build a SELECT query for the media table that adapts to the actual columns
+ * present. XBackBone's schema varies between versions.
+ * Always selects: id, user_id, filename
+ * Optional with fallbacks: mimetype, name, created_at, download_count
+ */
+function buildMediaSelect(db, mediaTable) {
+  const cols = new Set(getColumnNames(db, mediaTable));
+
+  // Require the minimal columns
+  for (const required of ['id', 'user_id', 'filename']) {
+    if (!cols.has(required)) {
+      throw new Error(
+        `Media table is missing required column "${required}". ` +
+        `Columns found: ${[...cols].join(', ')}`,
+      );
+    }
+  }
+
+  const parts = [
+    'id',
+    'user_id',
+    'filename',
+    // mimetype — some versions use 'type'
+    cols.has('mimetype') ? 'mimetype'
+      : cols.has('type') ? 'type AS mimetype'
+      : "NULL AS mimetype",
+    // original filename — some versions omit this
+    cols.has('name') ? 'name'
+      : cols.has('original_name') ? 'original_name AS name'
+      : 'filename AS name',
+    // creation timestamp
+    cols.has('created_at') ? 'created_at'
+      : cols.has('upload_date') ? 'upload_date AS created_at'
+      : 'NULL AS created_at',
+    // view/download counter
+    cols.has('download_count') ? 'download_count'
+      : cols.has('views') ? 'views AS download_count'
+      : '0 AS download_count',
+  ];
+
+  return `SELECT ${parts.join(', ')} FROM ${mediaTable}`;
+}
+
+/**
+ * Build a SELECT query for the users table, adapting to available columns.
+ */
+function buildUsersSelect(db) {
+  const cols = new Set(getColumnNames(db, 'users'));
+  const parts = [
+    'id',
+    cols.has('username') ? 'username' : "NULL AS username",
+    cols.has('email') ? 'email' : "NULL AS email",
+  ];
+  return `SELECT ${parts.join(', ')} FROM users`;
+}
+
+// ── Filesystem helpers ────────────────────────────────────────────────────────
+
+/**
  * Find a file in storagePath.
- * Checks flat layout first (storagePath/filename), then one subdirectory deep.
+ * Checks flat layout first, then one subdirectory deep.
  */
 function findFile(storagePath, filename) {
   const flat = path.join(storagePath, filename);
   if (fs.existsSync(flat)) return flat;
 
-  // Search one level of subdirectories (user-token-bucketed layouts)
   try {
     const entries = fs.readdirSync(storagePath, { withFileTypes: true });
     for (const entry of entries) {
@@ -93,21 +151,22 @@ function findFile(storagePath, filename) {
       const candidate = path.join(storagePath, entry.name, filename);
       if (fs.existsSync(candidate)) return candidate;
     }
-  } catch {
-    // storagePath unreadable — handled by caller
-  }
+  } catch { /* storagePath unreadable — handled by caller */ }
   return null;
 }
 
-// ── Route ─────────────────────────────────────────────────────────────────────
+// ── Import route ──────────────────────────────────────────────────────────────
 
-router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) => {
-  const tmpDbPath = req.file?.path;
+router.post('/xbackbone', requireAdmin, async (req, res, next) => {
+  let db = null;
 
   try {
-    // ── Validate inputs ──────────────────────────────────────────────────────
-    if (!req.file) {
-      return res.status(400).json({ error: 'database.db file is required' });
+    const dbPath = (req.body.dbPath || '').trim();
+    if (!dbPath) {
+      return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
+    }
+    if (!fs.existsSync(dbPath)) {
+      return res.status(400).json({ error: `dbPath not found: ${dbPath}` });
     }
 
     const storagePath = (req.body.storagePath || '').trim();
@@ -120,21 +179,19 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
 
     // ── Parse SQLite ─────────────────────────────────────────────────────────
     const SQL = await initSqlJs();
-    const dbBuffer = fs.readFileSync(tmpDbPath);
-    const db = new SQL.Database(new Uint8Array(dbBuffer));
+    const dbBuffer = fs.readFileSync(dbPath);
+    db = new SQL.Database(new Uint8Array(dbBuffer));
 
     const tables = getTableNames(db);
     const { error: schemaError, mediaTable } = detectSchema(tables);
     if (schemaError) {
-      db.close();
+      db.close(); db = null;
       return res.status(400).json({ error: schemaError });
     }
 
-    const xbbUsers = rowsToObjects(db.exec('SELECT id, username, email FROM users'));
-    const xbbMedia = rowsToObjects(
-      db.exec(`SELECT id, user_id, filename, mimetype, name, created_at, download_count FROM ${mediaTable}`),
-    );
-    db.close();
+    const xbbUsers = rowsToObjects(db.exec(buildUsersSelect(db)));
+    const xbbMedia = rowsToObjects(db.exec(buildMediaSelect(db, mediaTable)));
+    db.close(); db = null;
 
     // ── Build XBackBone userId → local User map ──────────────────────────────
     const localUsers = await User.find({}, 'username folderName');
@@ -142,13 +199,12 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
       localUsers.map((u) => [u.username.toLowerCase(), u]),
     );
 
-    // Optional fallback user
     let defaultLocalUser = null;
     if (req.body.defaultUser) {
       defaultLocalUser = localByUsername.get(req.body.defaultUser.trim().toLowerCase()) || null;
     }
 
-    const xbbUserMap = new Map(); // xbbUserId (number) → local User doc
+    const xbbUserMap = new Map();
     for (const xu of xbbUsers) {
       const match = xu.username ? localByUsername.get(xu.username.toLowerCase()) : null;
       xbbUserMap.set(xu.id, match || defaultLocalUser);
@@ -170,7 +226,6 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
         continue;
       }
 
-      // Locate file on disk
       const srcPath = findFile(storagePath, media.filename);
       if (!srcPath) {
         results.skipped++;
@@ -182,23 +237,21 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
         continue;
       }
 
-      // Determine target folder
       const folder = localUser.folderName || localUser.username;
       const destDir = path.join(UPLOAD_DIR, folder);
-
-      // Generate a new unique stored filename
       const ext = path.extname(media.filename) || path.extname(media.name || '') || '';
       const newFilename = `${crypto.randomBytes(4).toString('hex')}${ext}`;
       const newStoredName = path.posix.join(folder, newFilename);
       const destPath = path.join(destDir, newFilename);
 
-      // Skip if already imported (same storedName pattern check via original name + size)
-      const existingCheck = await File.findOne({
+      // Idempotency: skip if already imported
+      const srcStat = fs.statSync(srcPath);
+      const existing = await File.findOne({
         uploader: localUser._id,
         originalName: media.name || media.filename,
-        size: fs.statSync(srcPath).size,
+        size: srcStat.size,
       });
-      if (existingCheck) {
+      if (existing) {
         results.skipped++;
         results.details.push({
           file: media.name || media.filename,
@@ -212,7 +265,6 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
         fs.mkdirSync(destDir, { recursive: true });
         fs.copyFileSync(srcPath, destPath);
 
-        const stat = fs.statSync(destPath);
         const mimeType =
           media.mimetype ||
           mime.lookup(media.filename) ||
@@ -222,7 +274,7 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
           originalName: media.name || media.filename,
           storedName: newStoredName,
           mimeType,
-          size: stat.size,
+          size: srcStat.size,
           uploader: localUser._id,
           views: media.download_count || 0,
           createdAt: media.created_at ? new Date(media.created_at) : new Date(),
@@ -245,40 +297,43 @@ router.post('/xbackbone', requireAdmin, dbUpload.single('db'), async (req, res) 
     }
 
     res.json(results);
+  } catch (err) {
+    next(err);
   } finally {
-    // Always clean up the temp SQLite file
-    if (tmpDbPath) {
-      try { fs.unlinkSync(tmpDbPath); } catch { /* ignore */ }
-    }
+    if (db) { try { db.close(); } catch { /* ignore */ } }
   }
 });
 
-// ── Preview: return XBackBone users + match status ───────────────────────────
+// ── Preview route ─────────────────────────────────────────────────────────────
 
-router.post('/xbackbone/preview', requireAdmin, dbUpload.single('db'), async (req, res) => {
-  const tmpDbPath = req.file?.path;
+router.post('/xbackbone/preview', requireAdmin, async (req, res, next) => {
+  let db = null;
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'database.db file is required' });
+    const dbPath = (req.body.dbPath || '').trim();
+    if (!dbPath) {
+      return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
+    }
+    if (!fs.existsSync(dbPath)) {
+      return res.status(400).json({ error: `dbPath not found: ${dbPath}` });
     }
 
     const SQL = await initSqlJs();
-    const dbBuffer = fs.readFileSync(tmpDbPath);
-    const db = new SQL.Database(new Uint8Array(dbBuffer));
+    const dbBuffer = fs.readFileSync(dbPath);
+    db = new SQL.Database(new Uint8Array(dbBuffer));
 
     const tables = getTableNames(db);
     const { error: schemaError, mediaTable } = detectSchema(tables);
     if (schemaError) {
-      db.close();
+      db.close(); db = null;
       return res.status(400).json({ error: schemaError });
     }
 
-    const xbbUsers = rowsToObjects(db.exec('SELECT id, username, email FROM users'));
+    const xbbUsers = rowsToObjects(db.exec(buildUsersSelect(db)));
     const countResult = db.exec(
-      `SELECT user_id, COUNT(*) as cnt FROM ${mediaTable} GROUP BY user_id`,
+      `SELECT user_id, COUNT(*) AS cnt FROM ${mediaTable} GROUP BY user_id`,
     );
-    db.close();
+    db.close(); db = null;
 
     const fileCounts = new Map(
       rowsToObjects(countResult).map((r) => [r.user_id, r.cnt]),
@@ -292,7 +347,7 @@ router.post('/xbackbone/preview', requireAdmin, dbUpload.single('db'), async (re
     const users = xbbUsers.map((xu) => ({
       xbbId: xu.id,
       xbbUsername: xu.username || null,
-      xbbEmail: xu.email,
+      xbbEmail: xu.email || null,
       fileCount: fileCounts.get(xu.id) || 0,
       matchedLocalUser: xu.username
         ? (localByUsername.get(xu.username.toLowerCase()) || null)
@@ -300,10 +355,10 @@ router.post('/xbackbone/preview', requireAdmin, dbUpload.single('db'), async (re
     }));
 
     res.json({ users, localUsers: localUsers.map((u) => u.username) });
+  } catch (err) {
+    next(err);
   } finally {
-    if (tmpDbPath) {
-      try { fs.unlinkSync(tmpDbPath); } catch { /* ignore */ }
-    }
+    if (db) { try { db.close(); } catch { /* ignore */ } }
   }
 });
 

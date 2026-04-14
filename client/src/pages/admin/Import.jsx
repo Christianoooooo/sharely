@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,8 +25,6 @@ function Step({ n, label, active, done }) {
   );
 }
 
-// ── Result badge ───────────────────────────────────────────────────────────────
-
 function StatusBadge({ status }) {
   if (status === 'imported') return <Badge className="bg-green-500/15 text-green-700 border-green-200 hover:bg-green-500/15">Imported</Badge>;
   if (status === 'skipped') return <Badge variant="secondary">Skipped</Badge>;
@@ -37,45 +35,42 @@ function StatusBadge({ status }) {
 
 export default function AdminImport() {
   const { toast } = useToast();
-  const dbInputRef = useRef(null);
 
-  // Step 1: DB upload + preview
-  const [dbFile, setDbFile] = useState(null);
-  const [previewing, setPreviewing] = useState(false);
-  const [preview, setPreview] = useState(null); // { users, localUsers }
-
-  // Step 2: configure mapping
+  // Paths (step 1)
+  const [dbPath, setDbPath] = useState('');
   const [storagePath, setStoragePath] = useState('');
-  const [userMapping, setUserMapping] = useState({}); // xbbId → localUsername | ''
+  const [previewing, setPreviewing] = useState(false);
+
+  // User mapping (step 2)
+  const [preview, setPreview] = useState(null); // { users, localUsers }
   const [defaultUser, setDefaultUser] = useState('');
 
-  // Step 3: import results
+  // Results (step 3)
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState(null); // { imported, skipped, errors, details }
+  const [result, setResult] = useState(null);
 
   const step = result ? 3 : preview ? 2 : 1;
 
-  // ── Step 1: load preview from DB ───────────────────────────────────────────
+  // ── Step 1 → 2: analyse paths ───────────────────────────────────────────────
 
   async function handlePreview() {
-    if (!dbFile) return;
+    if (!dbPath.trim()) {
+      toast({ title: 'Database path is required', variant: 'destructive' });
+      return;
+    }
     setPreviewing(true);
     setPreview(null);
     setResult(null);
     try {
-      const form = new FormData();
-      form.append('db', dbFile);
-
-      const r = await fetch('/api/admin/import/xbackbone/preview', { method: 'POST', body: form });
+      const r = await fetch('/api/admin/import/xbackbone/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dbPath: dbPath.trim() }),
+      });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
 
       // Pre-fill mapping with auto-matched users
-      const initialMapping = {};
-      for (const xu of data.users) {
-        initialMapping[xu.xbbId] = xu.matchedLocalUser || '';
-      }
-      setUserMapping(initialMapping);
       setPreview(data);
     } catch (err) {
       toast({ title: err.message, variant: 'destructive' });
@@ -87,19 +82,21 @@ export default function AdminImport() {
   // ── Step 2 → 3: run import ─────────────────────────────────────────────────
 
   async function handleImport() {
-    if (!dbFile || !storagePath.trim()) {
+    if (!storagePath.trim()) {
       toast({ title: 'Storage path is required', variant: 'destructive' });
       return;
     }
     setImporting(true);
     setResult(null);
     try {
-      const form = new FormData();
-      form.append('db', dbFile);
-      form.append('storagePath', storagePath.trim());
-      if (defaultUser) form.append('defaultUser', defaultUser);
+      const body = { dbPath: dbPath.trim(), storagePath: storagePath.trim() };
+      if (defaultUser) body.defaultUser = defaultUser;
 
-      const r = await fetch('/api/admin/import/xbackbone', { method: 'POST', body: form });
+      const r = await fetch('/api/admin/import/xbackbone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
 
@@ -113,13 +110,11 @@ export default function AdminImport() {
   }
 
   function reset() {
-    setDbFile(null);
+    setDbPath('');
+    setStoragePath('');
     setPreview(null);
     setResult(null);
-    setStoragePath('');
-    setUserMapping({});
     setDefaultUser('');
-    if (dbInputRef.current) dbInputRef.current.value = '';
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -135,9 +130,9 @@ export default function AdminImport() {
 
       {/* Steps */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Step n={1} label="Upload database" active={step === 1} done={step > 1} />
+        <Step n={1} label="Configure paths" active={step === 1} done={step > 1} />
         <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Step n={2} label="Configure &amp; map users" active={step === 2} done={step > 2} />
+        <Step n={2} label="Map users" active={step === 2} done={step > 2} />
         <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
         <Step n={3} label="Results" active={step === 3} done={false} />
       </div>
@@ -146,24 +141,37 @@ export default function AdminImport() {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Upload XBackBone database</CardTitle>
+            <CardTitle className="text-base">XBackBone paths</CardTitle>
             <CardDescription>
-              Select the <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">database.db</code> file
-              from your XBackBone installation. This is only used to read metadata — no data is modified.
+              Both paths must be accessible on the server filesystem. Mount them as
+              read-only Docker volumes if needed, e.g.:
+              <code className="block font-mono text-xs bg-muted px-2 py-1 rounded mt-1 whitespace-pre">
+                volumes:{'\n'}
+                {'  '}- /path/to/xbackbone/database.db:/xbackbone/database.db:ro{'\n'}
+                {'  '}- /path/to/xbackbone/storage:/xbackbone/storage:ro
+              </code>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="db-file">database.db</Label>
+              <Label htmlFor="db-path">Path to database.db</Label>
               <Input
-                id="db-file"
-                ref={dbInputRef}
-                type="file"
-                accept=".db,application/octet-stream"
-                onChange={(e) => setDbFile(e.target.files[0] || null)}
+                id="db-path"
+                placeholder="/xbackbone/database.db"
+                value={dbPath}
+                onChange={(e) => setDbPath(e.target.value)}
               />
             </div>
-            <Button onClick={handlePreview} disabled={!dbFile || previewing}>
+            <div className="space-y-2">
+              <Label htmlFor="storage-path">Path to storage directory</Label>
+              <Input
+                id="storage-path"
+                placeholder="/xbackbone/storage"
+                value={storagePath}
+                onChange={(e) => setStoragePath(e.target.value)}
+              />
+            </div>
+            <Button onClick={handlePreview} disabled={!dbPath.trim() || previewing}>
               {previewing ? (
                 <><span className="animate-spin mr-2">⟳</span>Analysing…</>
               ) : (
@@ -177,74 +185,41 @@ export default function AdminImport() {
       {/* ── STEP 2 ── */}
       {step === 2 && preview && (
         <div className="space-y-4">
-          {/* User mapping table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">User mapping</CardTitle>
               <CardDescription>
                 Users auto-matched by username are pre-filled. Adjust as needed.
-                Files whose XBackBone user has no mapping will be assigned to the fallback user (if set).
+                Files from unmatched XBackBone users are assigned to the fallback user (if set).
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="space-y-4">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>XBackBone user</TableHead>
                     <TableHead>Files</TableHead>
-                    <TableHead>Map to local user</TableHead>
+                    <TableHead>Matched local user</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {preview.users.map((xu) => (
                     <TableRow key={xu.xbbId}>
                       <TableCell>
-                        <div className="font-medium">{xu.xbbUsername || <span className="text-muted-foreground">(no username)</span>}</div>
-                        <div className="text-xs text-muted-foreground">{xu.xbbEmail}</div>
+                        <div className="font-medium">{xu.xbbUsername || <span className="text-muted-foreground italic">(no username)</span>}</div>
+                        {xu.xbbEmail && <div className="text-xs text-muted-foreground">{xu.xbbEmail}</div>}
                       </TableCell>
                       <TableCell className="text-muted-foreground">{xu.fileCount}</TableCell>
                       <TableCell>
-                        <select
-                          value={userMapping[xu.xbbId] || ''}
-                          onChange={(e) => setUserMapping((m) => ({ ...m, [xu.xbbId]: e.target.value }))}
-                          className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          <option value="">— use fallback —</option>
-                          {preview.localUsers.map((lu) => (
-                            <option key={lu} value={lu}>{lu}</option>
-                          ))}
-                        </select>
+                        {xu.matchedLocalUser
+                          ? <Badge variant="secondary">{xu.matchedLocalUser}</Badge>
+                          : <span className="text-xs text-muted-foreground">— uses fallback —</span>}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
 
-          {/* Storage path + fallback + action */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Storage configuration</CardTitle>
-              <CardDescription>
-                The storage directory must be accessible from this server's filesystem.
-                For Docker, mount XBackBone's storage volume, e.g.:
-                <code className="block font-mono text-xs bg-muted px-2 py-1 rounded mt-1">
-                  volumes:<br />
-                  &nbsp;&nbsp;- /path/to/xbackbone/storage:/xbackbone/storage:ro
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="storage-path">Storage directory path (server-side)</Label>
-                <Input
-                  id="storage-path"
-                  placeholder="/xbackbone/storage"
-                  value={storagePath}
-                  onChange={(e) => setStoragePath(e.target.value)}
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="default-user">Fallback user (for unmatched XBackBone users)</Label>
                 <select
@@ -259,8 +234,9 @@ export default function AdminImport() {
                   ))}
                 </select>
               </div>
+
               <div className="flex gap-2">
-                <Button onClick={handleImport} disabled={!storagePath.trim() || importing}>
+                <Button onClick={handleImport} disabled={importing}>
                   {importing ? (
                     <><span className="animate-spin mr-2">⟳</span>Importing…</>
                   ) : (
@@ -277,7 +253,6 @@ export default function AdminImport() {
       {/* ── STEP 3 ── */}
       {step === 3 && result && (
         <div className="space-y-4">
-          {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-4">
@@ -314,7 +289,6 @@ export default function AdminImport() {
             </Card>
           </div>
 
-          {/* Details table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Details</CardTitle>
