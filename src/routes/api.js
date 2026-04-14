@@ -130,17 +130,21 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   const config = {
-    Version: '14.1.0',
+    Version: '16.1.0',
     Name: 'Instant Sharing Tool',
-    DestinationType: 'ImageUploader, FileUploader',
+    DestinationType: 'ImageUploader, TextUploader, FileUploader',
     RequestMethod: 'POST',
-    RequestURL: `${BASE_URL()}/api/upload`,
-    Headers: { Authorization: `Bearer ${user.apiKey}` },
+    RequestURL: `${BASE_URL()}/upload`,
     Body: 'MultipartFormData',
-    FileFormName: 'file',
-    URL: '$json:url$',
-    ThumbnailURL: '$json:url$',
-    DeletionURL: '$json:delete_url$',
+    Arguments: {
+      file: '{filename}',
+      text: '{input}',
+      token: user.apiKey,
+    },
+    FileFormName: 'upload',
+    URL: '{json:url}',
+    ThumbnailURL: '{json:url}/raw',
+    DeletionURL: `{json:url}/delete/${user.apiKey}`,
   };
 
   res.setHeader('Content-Type', 'application/json');

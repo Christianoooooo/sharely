@@ -4,6 +4,9 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 const connectDB = require('./src/config/db');
+const uploadMiddleware = require('./src/middleware/upload');
+const { requireApiKey } = require('./src/middleware/auth');
+const File = require('./src/models/File');
 
 const app = express();
 
@@ -19,6 +22,20 @@ app.use(session({
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
   cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 },
 }));
+
+// ShareX upload endpoint — multer runs first so req.body.token is available for auth
+app.post('/upload', uploadMiddleware.single('upload'), requireApiKey, async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file provided' });
+  const file = await File.create({
+    originalName: req.file.originalname,
+    storedName: req.file.filename,
+    mimeType: req.file.mimetype,
+    size: req.file.size,
+    uploader: req.apiUser._id,
+  });
+  const base = process.env.BASE_URL || 'http://localhost:3000';
+  res.json({ url: `${base}/f/${file.shortId}` });
+});
 
 // JSON API routes
 app.use('/api/auth', require('./src/routes/auth'));

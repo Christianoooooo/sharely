@@ -4,6 +4,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const File = require('../models/File');
+const User = require('../models/User');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
@@ -24,6 +25,25 @@ router.get('/:shortId/raw', async (req, res) => {
     `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.originalName)}"`,
   );
   fs.createReadStream(filePath).pipe(res);
+});
+
+// GET /f/:shortId/delete/:token — ShareX deletion URL
+router.get('/:shortId/delete/:token', async (req, res) => {
+  const user = await User.findOne({ apiKey: req.params.token, isActive: true });
+  if (!user) return res.status(401).json({ error: 'Invalid token' });
+
+  const file = await File.findOne({ shortId: req.params.shortId });
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  const isOwner = file.uploader.toString() === user._id.toString();
+  if (!isOwner && user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const fp = path.join(UPLOAD_DIR, file.storedName);
+  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  await file.deleteOne();
+  res.json({ success: true });
 });
 
 // GET /f/:shortId/download — force download
