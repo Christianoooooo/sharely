@@ -234,7 +234,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
         continue;
       }
 
-      const srcPath = findFile(storagePath, media.id, media.filename);
+      const srcPath = findFile(storagePath, String(media.id), media.filename);
       if (!srcPath) {
         results.skipped++;
         results.details.push({
