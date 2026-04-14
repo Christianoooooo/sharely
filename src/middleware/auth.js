@@ -19,7 +19,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Require API key (Authorization: Bearer <key> or ?api_key=<key>)
+// Require API key (Authorization: Bearer <key>, ?api_key=<key>, x-api-key header, or body token field)
 async function requireApiKey(req, res, next) {
   let key = null;
 
@@ -30,6 +30,8 @@ async function requireApiKey(req, res, next) {
     key = req.query.api_key;
   } else if (req.headers['x-api-key']) {
     key = req.headers['x-api-key'];
+  } else if (req.body && req.body.token) {
+    key = req.body.token;
   }
 
   if (!key) {
