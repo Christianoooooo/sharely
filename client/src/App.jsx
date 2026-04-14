@@ -12,6 +12,7 @@ import FileView from '@/pages/FileView';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminUsers from '@/pages/admin/Users';
 import AdminFiles from '@/pages/admin/Files';
+import AdminImport from '@/pages/admin/Import';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute adminOnly><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><Layout><AdminUsers /></Layout></ProtectedRoute>} />
           <Route path="/admin/files" element={<ProtectedRoute adminOnly><Layout><AdminFiles /></Layout></ProtectedRoute>} />
+          <Route path="/admin/import" element={<ProtectedRoute adminOnly><Layout><AdminImport /></Layout></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/gallery" replace />} />

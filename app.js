@@ -57,6 +57,7 @@ app.post('/upload', uploadMiddleware.single('upload'), requireApiKey, async (req
 
 // JSON API routes
 app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/admin/import', require('./src/routes/import'));
 app.use('/api', require('./src/routes/api'));
 
 // Raw file serving (not JSON)
