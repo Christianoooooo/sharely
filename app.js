@@ -9,11 +9,11 @@ const uploadMiddleware = require('./src/middleware/upload');
 const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
 
+const migrateUserFolders = require('./src/migrations/migrateUserFolders');
+
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 const app = express();
-
-connectDB();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -75,6 +75,11 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`instant-sharing-tool running on http://localhost:${PORT}`);
-});
+
+(async () => {
+  await connectDB();
+  await migrateUserFolders();
+  app.listen(PORT, () => {
+    console.log(`instant-sharing-tool running on http://localhost:${PORT}`);
+  });
+})();
