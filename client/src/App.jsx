@@ -32,7 +32,7 @@ function TitleUpdater() {
   const { pathname } = useLocation();
   useEffect(() => {
     const page = PAGE_TITLES[pathname];
-    document.title = page ? `sharely | ${page}` : 'sharely';
+    document.title = page ? `Sharely | ${page}` : 'Sharely';
   }, [pathname]);
   return null;
 }
