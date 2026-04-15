@@ -23,10 +23,10 @@ const uploadLimiter = rateLimit({
 const CHUNK_DIR = path.resolve(__dirname, '../../uploads/.chunks');
 fs.mkdirSync(CHUNK_DIR, { recursive: true });
 
-// Multer for individual chunks (memory storage, max 51 MB to accommodate 50 MB chunks)
+// Multer for individual chunks (memory storage, max 99 MB to accommodate 100 MB chunks)
 const chunkMulter = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 51 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 },
 });
 
 function resolveChunkDir(uploadId) {
