@@ -36,6 +36,13 @@ const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
 // ── SQLite helpers ────────────────────────────────────────────────────────────
 
+/** Validate that a string is a safe SQL identifier (letters, digits, underscores). */
+function assertSafeIdentifier(name) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    throw new Error(`Unsafe identifier: ${name}`);
+  }
+}
+
 /** Resolve a SQL.js result-set to an array of plain objects. */
 function rowsToObjects(result) {
   if (!result || result.length === 0) return [];
@@ -53,6 +60,7 @@ function getTableNames(db) {
 
 /** Return the column names of a table using PRAGMA. */
 function getColumnNames(db, table) {
+  assertSafeIdentifier(table);
   const result = db.exec(`PRAGMA table_info(${table})`);
   return rowsToObjects(result).map((r) => r.name);
 }
@@ -119,6 +127,7 @@ function buildMediaSelect(db, mediaTable) {
       : '0 AS download_count',
   ];
 
+  assertSafeIdentifier(mediaTable);
   return `SELECT ${parts.join(', ')} FROM ${mediaTable}`;
 }
 
@@ -175,7 +184,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
     }
     if (!fs.existsSync(dbPath)) {
-      return res.status(400).json({ error: `dbPath not found: ${dbPath}` });
+      return res.status(400).json({ error: 'dbPath not found' });
     }
 
     const storagePath = (req.body.storagePath || '').trim();
@@ -183,7 +192,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'storagePath is required' });
     }
     if (!fs.existsSync(storagePath)) {
-      return res.status(400).json({ error: `storagePath not found: ${storagePath}` });
+      return res.status(400).json({ error: 'storagePath not found' });
     }
 
     // ── Parse SQLite ─────────────────────────────────────────────────────────
@@ -325,7 +334,7 @@ router.post('/xbackbone/preview', requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
     }
     if (!fs.existsSync(dbPath)) {
-      return res.status(400).json({ error: `dbPath not found: ${dbPath}` });
+      return res.status(400).json({ error: 'dbPath not found' });
     }
 
     const SQL = await initSqlJs();
@@ -340,6 +349,7 @@ router.post('/xbackbone/preview', requireAdmin, async (req, res, next) => {
     }
 
     const xbbUsers = rowsToObjects(db.exec(buildUsersSelect(db)));
+    assertSafeIdentifier(mediaTable);
     const countResult = db.exec(
       `SELECT user_id, COUNT(*) AS cnt FROM ${mediaTable} GROUP BY user_id`,
     );

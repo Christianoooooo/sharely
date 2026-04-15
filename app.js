@@ -4,6 +4,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
+const { rateLimit } = require('express-rate-limit');
 const connectDB = require('./src/config/db');
 const uploadMiddleware = require('./src/middleware/upload');
 const { requireApiKey } = require('./src/middleware/auth');
@@ -11,25 +12,53 @@ const File = require('./src/models/File');
 
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 
+if (!process.env.SESSION_SECRET) {
+  console.error('FATAL: SESSION_SECRET environment variable is not set.');
+  process.exit(1);
+}
+
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 const app = express();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+app.use((_req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';",
+  );
+  next();
+});
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'changeme',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 },
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  },
 }));
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many uploads, please try again later.' },
+});
 
 // ShareX upload endpoint — multer runs first so req.body.token is available for auth.
 // Because auth runs after multer, the file lands in the root uploads dir initially;
 // we move it into the user's subfolder once the user identity is known.
-app.post('/upload', uploadMiddleware.single('upload'), requireApiKey, async (req, res) => {
+app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApiKey, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
   const user = req.apiUser;
@@ -55,10 +84,25 @@ app.post('/upload', uploadMiddleware.single('upload'), requireApiKey, async (req
   res.json({ url: `${base}/f/${file.shortId}` });
 });
 
+// CSRF protection: reject cross-origin requests by comparing Origin to Host.
+// sameSite:'strict' cookies already block most CSRF; this is an additional layer.
+function requireSameOrigin(req, res, next) {
+  const origin = req.headers.origin;
+  if (!origin) return next(); // no Origin header → same-origin or non-browser request
+  try {
+    if (new URL(origin).host !== req.headers.host) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } catch {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+}
+
 // JSON API routes
-app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/auth', requireSameOrigin, require('./src/routes/auth'));
 app.use('/api/admin/import', require('./src/routes/import'));
-app.use('/api', require('./src/routes/api'));
+app.use('/api', requireSameOrigin, require('./src/routes/api'));
 
 // Raw file serving (not JSON)
 app.use('/f', require('./src/routes/files'));
