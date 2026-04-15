@@ -30,7 +30,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 app.use((_req, res, next) => {
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader(
     'Content-Security-Policy',
@@ -38,7 +38,8 @@ app.use((_req, res, next) => {
     // Web Analytics beacon (injected by the Cloudflare proxy) can load.
     // cloudflareinsights.com is allowed in connect-src so the beacon can report
     // back to Cloudflare's collection endpoint.
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com;",
+    // frame-ancestors 'self' allows the PDF viewer iframe (same-origin) to work.
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self';",
   );
   next();
 });
