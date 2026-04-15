@@ -29,7 +29,8 @@ function fixMojibake(str) {
     const reDecoded = Buffer.from(str, 'latin1').toString('utf8');
     // If re-decoding introduced replacement characters the original was not
     // valid UTF-8 masquerading as Latin-1 — keep the original.
-    if (reDecoded.includes('\uFFFD')) return str;
+    // Also keep the original if re-decoding made no change (nothing to correct).
+    if (reDecoded.includes('\uFFFD') || reDecoded === str) return str;
     return reDecoded;
   } catch {
     return str;
