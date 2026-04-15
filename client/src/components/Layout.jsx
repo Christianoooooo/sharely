@@ -107,7 +107,7 @@ export function Layout({ children }) {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/admin/import" className="flex items-center gap-2 cursor-pointer">
-                      <FontAwesomeIcon icon={faBoxOpen} className="h-4 w-4" />Import XBackBone
+                      <FontAwesomeIcon icon={faBoxOpen} className="h-4 w-4" />XBackBone Migration
                     </Link>
                   </DropdownMenuItem>
                 </>
