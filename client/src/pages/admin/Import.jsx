@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faMagnifyingGlass, faCircleCheck, faCircleExclamation, faForwardStep, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 // ── Step indicator ─────────────────────────────────────────────────────────────
 
@@ -27,15 +28,17 @@ function Step({ n, label, active, done }) {
 }
 
 function StatusBadge({ status }) {
-  if (status === 'imported') return <Badge className="bg-green-500/15 text-green-700 border-green-200 hover:bg-green-500/15">Imported</Badge>;
-  if (status === 'skipped') return <Badge variant="secondary">Skipped</Badge>;
-  return <Badge variant="destructive">Error</Badge>;
+  const { t } = useTranslation();
+  if (status === 'imported') return <Badge className="bg-green-500/15 text-green-700 border-green-200 hover:bg-green-500/15">{t('adminImport.statusImported')}</Badge>;
+  if (status === 'skipped') return <Badge variant="secondary">{t('adminImport.statusSkipped')}</Badge>;
+  return <Badge variant="destructive">{t('adminImport.statusError')}</Badge>;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminImport() {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   // Paths (step 1)
   const [dbPath, setDbPath] = useState('');
@@ -56,7 +59,7 @@ export default function AdminImport() {
 
   async function handlePreview() {
     if (!dbPath.trim()) {
-      toast({ title: 'Database path is required', variant: 'destructive' });
+      toast({ title: t('adminImport.dbRequired'), variant: 'destructive' });
       return;
     }
     setPreviewing(true);
@@ -84,7 +87,7 @@ export default function AdminImport() {
 
   async function handleImport() {
     if (!storagePath.trim()) {
-      toast({ title: 'Storage path is required', variant: 'destructive' });
+      toast({ title: t('adminImport.storageRequired'), variant: 'destructive' });
       return;
     }
     setImporting(true);
@@ -102,7 +105,7 @@ export default function AdminImport() {
       if (!r.ok) throw new Error(data.error);
 
       setResult(data);
-      toast({ title: `Import complete — ${data.imported} file(s) imported` });
+      toast({ title: t('adminImport.importComplete', { count: data.imported }) });
     } catch (err) {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
@@ -123,29 +126,28 @@ export default function AdminImport() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold">Migrate from XBackBone</h1>
+        <h1 className="text-2xl font-bold">{t('adminImport.title')}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Migrate files and metadata from an existing XBackBone instance.
+          {t('adminImport.subtitle')}
         </p>
       </div>
 
       {/* Steps */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Step n={1} label="Configure paths" active={step === 1} done={step > 1} />
+        <Step n={1} label={t('adminImport.stepPaths')} active={step === 1} done={step > 1} />
         <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Step n={2} label="Map users" active={step === 2} done={step > 2} />
+        <Step n={2} label={t('adminImport.stepUsers')} active={step === 2} done={step > 2} />
         <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Step n={3} label="Results" active={step === 3} done={false} />
+        <Step n={3} label={t('adminImport.stepResults')} active={step === 3} done={false} />
       </div>
 
       {/* ── STEP 1 ── */}
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">XBackBone paths</CardTitle>
+            <CardTitle className="text-base">{t('adminImport.pathsTitle')}</CardTitle>
             <CardDescription>
-              Both paths must be accessible on the server filesystem. Mount them as
-              read-only Docker volumes if needed, e.g.:
+              {t('adminImport.pathsDesc')}
               <code className="block font-mono text-xs bg-muted px-2 py-1 rounded mt-1 whitespace-pre">
                 volumes:{'\n'}
                 {'  '}- /path/to/xbackbone/database.db:/xbackbone/database.db:ro{'\n'}
@@ -155,7 +157,7 @@ export default function AdminImport() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="db-path">Path to database.db</Label>
+              <Label htmlFor="db-path">{t('adminImport.dbPath')}</Label>
               <Input
                 id="db-path"
                 placeholder="/xbackbone/database.db"
@@ -164,7 +166,7 @@ export default function AdminImport() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="storage-path">Path to storage directory</Label>
+              <Label htmlFor="storage-path">{t('adminImport.storagePath')}</Label>
               <Input
                 id="storage-path"
                 placeholder="/xbackbone/storage"
@@ -174,9 +176,9 @@ export default function AdminImport() {
             </div>
             <Button onClick={handlePreview} disabled={!dbPath.trim() || previewing}>
               {previewing ? (
-                <><span className="animate-spin mr-2">⟳</span>Analysing…</>
+                <><span className="animate-spin mr-2">⟳</span>{t('adminImport.analysing')}</>
               ) : (
-                <><FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 mr-2" />Analyse database</>
+                <><FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 mr-2" />{t('adminImport.analyseDb')}</>
               )}
             </Button>
           </CardContent>
@@ -188,33 +190,30 @@ export default function AdminImport() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">User mapping</CardTitle>
-              <CardDescription>
-                Users auto-matched by username are pre-filled. Adjust as needed.
-                Files from unmatched XBackBone users are assigned to the fallback user (if set).
-              </CardDescription>
+              <CardTitle className="text-base">{t('adminImport.userMappingTitle')}</CardTitle>
+              <CardDescription>{t('adminImport.userMappingDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>XBackBone user</TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead>Matched local user</TableHead>
+                    <TableHead>{t('adminImport.colXbbUser')}</TableHead>
+                    <TableHead>{t('adminImport.colFiles')}</TableHead>
+                    <TableHead>{t('adminImport.colMatchedUser')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {preview.users.map((xu) => (
                     <TableRow key={xu.xbbId}>
                       <TableCell>
-                        <div className="font-medium">{xu.xbbUsername || <span className="text-muted-foreground italic">(no username)</span>}</div>
+                        <div className="font-medium">{xu.xbbUsername || <span className="text-muted-foreground italic">{t('adminImport.noUsername')}</span>}</div>
                         {xu.xbbEmail && <div className="text-xs text-muted-foreground">{xu.xbbEmail}</div>}
                       </TableCell>
                       <TableCell className="text-muted-foreground">{xu.fileCount}</TableCell>
                       <TableCell>
                         {xu.matchedLocalUser
                           ? <Badge variant="secondary">{xu.matchedLocalUser}</Badge>
-                          : <span className="text-xs text-muted-foreground">— uses fallback —</span>}
+                          : <span className="text-xs text-muted-foreground">{t('adminImport.usesFallback')}</span>}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -222,14 +221,14 @@ export default function AdminImport() {
               </Table>
 
               <div className="space-y-2">
-                <Label htmlFor="default-user">Fallback user (for unmatched XBackBone users)</Label>
+                <Label htmlFor="default-user">{t('adminImport.fallbackUser')}</Label>
                 <select
                   id="default-user"
                   value={defaultUser}
                   onChange={(e) => setDefaultUser(e.target.value)}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">— skip unmatched files —</option>
+                  <option value="">{t('adminImport.skipUnmatched')}</option>
                   {preview.localUsers.map((lu) => (
                     <option key={lu} value={lu}>{lu}</option>
                   ))}
@@ -239,12 +238,12 @@ export default function AdminImport() {
               <div className="flex gap-2">
                 <Button onClick={handleImport} disabled={importing}>
                   {importing ? (
-                    <><span className="animate-spin mr-2">⟳</span>Importing…</>
+                    <><span className="animate-spin mr-2">⟳</span>{t('adminImport.importing')}</>
                   ) : (
-                    <><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />Run import</>
+                    <><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />{t('adminImport.runImport')}</>
                   )}
                 </Button>
-                <Button variant="outline" onClick={reset} disabled={importing}>Start over</Button>
+                <Button variant="outline" onClick={reset} disabled={importing}>{t('adminImport.startOver')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -261,7 +260,7 @@ export default function AdminImport() {
                   <FontAwesomeIcon icon={faCircleCheck} className="h-5 w-5 text-green-600" />
                   <div>
                     <div className="text-2xl font-bold">{result.imported}</div>
-                    <div className="text-xs text-muted-foreground">Imported</div>
+                    <div className="text-xs text-muted-foreground">{t('adminImport.statImported')}</div>
                   </div>
                 </div>
               </CardContent>
@@ -272,7 +271,7 @@ export default function AdminImport() {
                   <FontAwesomeIcon icon={faForwardStep} className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <div className="text-2xl font-bold">{result.skipped}</div>
-                    <div className="text-xs text-muted-foreground">Skipped</div>
+                    <div className="text-xs text-muted-foreground">{t('adminImport.statSkipped')}</div>
                   </div>
                 </div>
               </CardContent>
@@ -283,7 +282,7 @@ export default function AdminImport() {
                   <FontAwesomeIcon icon={faCircleExclamation} className="h-5 w-5 text-destructive" />
                   <div>
                     <div className="text-2xl font-bold">{result.errors}</div>
-                    <div className="text-xs text-muted-foreground">Errors</div>
+                    <div className="text-xs text-muted-foreground">{t('adminImport.statErrors')}</div>
                   </div>
                 </div>
               </CardContent>
@@ -292,16 +291,16 @@ export default function AdminImport() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Details</CardTitle>
+              <CardTitle className="text-base">{t('adminImport.details')}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="max-h-[480px] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>File</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Info</TableHead>
+                      <TableHead>{t('adminImport.colFile')}</TableHead>
+                      <TableHead>{t('adminImport.colStatus')}</TableHead>
+                      <TableHead>{t('adminImport.colInfo')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -320,7 +319,7 @@ export default function AdminImport() {
             </CardContent>
           </Card>
 
-          <Button variant="outline" onClick={reset}>New import</Button>
+          <Button variant="outline" onClick={reset}>{t('adminImport.newImport')}</Button>
         </div>
       )}
     </div>

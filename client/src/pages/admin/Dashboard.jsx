@@ -12,10 +12,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   async function load() {
     const r = await fetch('/api/admin/stats');
@@ -27,30 +29,30 @@ export default function AdminDashboard() {
   async function deleteFile(shortId, name) {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
     if (r.ok) {
-      toast({ title: `Deleted "${name}"` });
+      toast({ title: t('adminDashboard.deleted', { name }) });
       load();
     } else {
-      toast({ title: 'Delete failed', variant: 'destructive' });
+      toast({ title: t('adminDashboard.deleteFailed'), variant: 'destructive' });
     }
   }
 
   if (!stats) {
-    return <div className="text-muted-foreground text-sm animate-pulse py-12 text-center">Loading…</div>;
+    return <div className="text-muted-foreground text-sm animate-pulse py-12 text-center">{t('adminDashboard.loading')}</div>;
   }
 
   const statCards = [
-    { label: 'Users', value: stats.userCount, icon: faUsers },
-    { label: 'Files', value: stats.fileCount, icon: faFolderOpen },
-    { label: 'Storage', value: fmtSize(stats.totalSize), icon: faHardDrive },
+    { label: t('adminDashboard.statUsers'), value: stats.userCount, icon: faUsers },
+    { label: t('adminDashboard.statFiles'), value: stats.fileCount, icon: faFolderOpen },
+    { label: t('adminDashboard.statStorage'), value: fmtSize(stats.totalSize), icon: faHardDrive },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('adminDashboard.title')}</h1>
         <div className="flex gap-2">
-          <Button variant="outline" asChild><Link to="/admin/users">Users</Link></Button>
-          <Button variant="outline" asChild><Link to="/admin/files">All Files</Link></Button>
+          <Button variant="outline" asChild><Link to="/admin/users">{t('adminDashboard.users')}</Link></Button>
+          <Button variant="outline" asChild><Link to="/admin/files">{t('adminDashboard.allFiles')}</Link></Button>
         </div>
       </div>
 
@@ -72,18 +74,18 @@ export default function AdminDashboard() {
       {/* Recent uploads */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent Uploads</CardTitle>
+          <CardTitle className="text-base">{t('adminDashboard.recentUploads')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>File</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Uploader</TableHead>
-                <TableHead>Views</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>{t('adminDashboard.tableFile')}</TableHead>
+                <TableHead>{t('adminDashboard.tableType')}</TableHead>
+                <TableHead>{t('adminDashboard.tableSize')}</TableHead>
+                <TableHead>{t('adminDashboard.tableUploader')}</TableHead>
+                <TableHead>{t('adminDashboard.tableViews')}</TableHead>
+                <TableHead>{t('adminDashboard.tableDate')}</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -109,13 +111,13 @@ export default function AdminDashboard() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete file?</AlertDialogTitle>
-                          <AlertDialogDescription>"{f.originalName}" will be permanently deleted.</AlertDialogDescription>
+                          <AlertDialogTitle>{t('adminDashboard.deleteFile')}</AlertDialogTitle>
+                          <AlertDialogDescription>{t('adminDashboard.deleteFileDesc', { name: f.originalName })}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t('adminDashboard.cancel')}</AlertDialogCancel>
                           <AlertDialogAction onClick={() => deleteFile(f.shortId, f.originalName)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Delete
+                            {t('adminDashboard.delete')}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
