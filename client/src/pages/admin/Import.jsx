@@ -123,7 +123,7 @@ export default function AdminImport() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold">Import from XBackBone</h1>
+        <h1 className="text-2xl font-bold">Migrate from XBackBone</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           Migrate files and metadata from an existing XBackBone instance.
         </p>
