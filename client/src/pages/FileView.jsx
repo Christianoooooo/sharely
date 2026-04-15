@@ -108,7 +108,7 @@ function FileViewer({ file }) {
 
   if (displayType === 'image') {
     return (
-      <div className="flex items-center justify-center p-4 min-h-[40vh] bg-[repeating-conic-gradient(hsl(var(--muted))_0%_25%,transparent_0%_50%)] bg-[length:20px_20px]">
+      <div className="flex items-center justify-center p-4 min-h-[40vh]">
         <img src={`/f/${shortId}/raw`} alt={file.originalName} className="max-w-full max-h-[80vh] object-contain rounded" />
       </div>
     );
