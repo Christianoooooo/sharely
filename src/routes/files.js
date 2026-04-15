@@ -4,7 +4,6 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const File = require('../models/File');
-const User = require('../models/User');
 
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 
@@ -36,21 +35,17 @@ router.get('/:shortId/raw', async (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-// GET /f/:shortId/delete/:token — ShareX deletion URL
+// GET /f/:shortId/delete/:token — ShareX deletion URL (per-file token)
 router.get('/:shortId/delete/:token', async (req, res) => {
-  const user = await User.findOne({ apiKey: req.params.token, isActive: true });
-  if (!user) return res.status(401).json({ error: 'Invalid token' });
-
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).json({ error: 'File not found' });
 
-  const isOwner = file.uploader.toString() === user._id.toString();
-  if (!isOwner && user.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
+  if (!file.deleteToken || file.deleteToken !== req.params.token) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
 
   const fp = resolveUploadPath(file.storedName);
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   await file.deleteOne();
   res.json({ success: true });
 });

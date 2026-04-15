@@ -183,7 +183,13 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
     if (!dbPath) {
       return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
     }
-    if (!fs.existsSync(dbPath)) {
+    if (!/\.(db|sqlite|sqlite3)$/i.test(dbPath)) {
+      return res.status(400).json({ error: 'dbPath must be a .db or .sqlite file' });
+    }
+    try {
+      const stat = fs.lstatSync(dbPath);
+      if (!stat.isFile()) return res.status(400).json({ error: 'dbPath must be a regular file' });
+    } catch {
       return res.status(400).json({ error: 'dbPath not found' });
     }
 
@@ -191,7 +197,10 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
     if (!storagePath) {
       return res.status(400).json({ error: 'storagePath is required' });
     }
-    if (!fs.existsSync(storagePath)) {
+    try {
+      const stat = fs.lstatSync(storagePath);
+      if (!stat.isDirectory()) return res.status(400).json({ error: 'storagePath must be a directory' });
+    } catch {
       return res.status(400).json({ error: 'storagePath not found' });
     }
 
@@ -333,7 +342,13 @@ router.post('/xbackbone/preview', requireAdmin, async (req, res, next) => {
     if (!dbPath) {
       return res.status(400).json({ error: 'dbPath (path to database.db) is required' });
     }
-    if (!fs.existsSync(dbPath)) {
+    if (!/\.(db|sqlite|sqlite3)$/i.test(dbPath)) {
+      return res.status(400).json({ error: 'dbPath must be a .db or .sqlite file' });
+    }
+    try {
+      const stat = fs.lstatSync(dbPath);
+      if (!stat.isFile()) return res.status(400).json({ error: 'dbPath must be a regular file' });
+    } catch {
       return res.status(400).json({ error: 'dbPath not found' });
     }
 
