@@ -23,10 +23,13 @@ const uploadLimiter = rateLimit({
 const CHUNK_DIR = path.resolve(__dirname, '../../uploads/.chunks');
 fs.mkdirSync(CHUNK_DIR, { recursive: true });
 
-// Multer for individual chunks (memory storage, max 21 MB to accommodate 20 MB chunks)
+// Multer for individual chunks (memory storage).
+// Limit is 51 MB to handle clients still using 50 MB chunks.
+// Once the Docker image is rebuilt with the new client (max 20 MB chunks),
+// this limit is still safely above the 20 MB maximum.
 const chunkMulter = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 21 * 1024 * 1024 },
+  limits: { fileSize: 51 * 1024 * 1024 },
 });
 
 function resolveChunkDir(uploadId) {
