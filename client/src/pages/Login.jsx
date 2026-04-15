@@ -6,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 function LoginForm({ className, ...props }) {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,9 +35,9 @@ function LoginForm({ className, ...props }) {
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">{t('login.title')}</CardTitle>
           <CardDescription>
-            Enter your username below to login to your account
+            {t('login.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -46,7 +49,7 @@ function LoginForm({ className, ...props }) {
                 </div>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">{t('login.username')}</Label>
                 <Input
                   id="username"
                   name="username"
@@ -59,7 +62,7 @@ function LoginForm({ className, ...props }) {
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t('login.password')}</Label>
                 </div>
                 <Input
                   id="password"
@@ -70,13 +73,13 @@ function LoginForm({ className, ...props }) {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Logging in…' : 'Login'}
+                {loading ? t('login.submitting') : t('login.submit')}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link to="/auth/register" className="underline underline-offset-4">
-                Sign up
+                {t('login.signUp')}
               </Link>
             </div>
           </form>
@@ -90,6 +93,9 @@ export default function Login() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
+        <div className="flex justify-end mb-4">
+          <LanguageSelector />
+        </div>
         <LoginForm />
       </div>
     </div>

@@ -9,6 +9,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useTranslation } from 'react-i18next';
 
 function NavLink({ to, children, icon }) {
   const { pathname } = useLocation();
@@ -46,6 +48,7 @@ function UserAvatar({ user, size = 'sm' }) {
 export function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   async function handleLogout() {
     await logout();
@@ -61,64 +64,68 @@ export function Layout({ children }) {
             <Link to="/" className="font-bold text-primary text-sm tracking-widest uppercase">sharely</Link>
             <Separator orientation="vertical" className="h-5" />
             <nav className="flex items-center gap-1">
-              <NavLink to="/gallery" icon={faImages}>Gallery</NavLink>
-              <NavLink to="/upload" icon={faUpload}>Upload</NavLink>
+              <NavLink to="/gallery" icon={faImages}>{t('nav.gallery')}</NavLink>
+              <NavLink to="/upload" icon={faUpload}>{t('nav.upload')}</NavLink>
               {user?.role === 'admin' && (
-                <NavLink to="/admin" icon={faTableCellsLarge}>Admin</NavLink>
+                <NavLink to="/admin" icon={faTableCellsLarge}>{t('nav.admin')}</NavLink>
               )}
             </nav>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <UserAvatar user={user} size="sm" />
-                <span className="hidden sm:inline">{user?.username}</span>
-                <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              {/* User header */}
-              <div className="flex items-center gap-3 px-2 py-2">
-                <UserAvatar user={user} size="md" />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium truncate">{user?.username}</span>
-                  <span className="text-xs text-muted-foreground capitalize">{user?.role}</span>
+          <div className="flex items-center gap-1">
+            <LanguageSelector />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <UserAvatar user={user} size="sm" />
+                  <span className="hidden sm:inline">{user?.username}</span>
+                  <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {/* User header */}
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <UserAvatar user={user} size="md" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium truncate">{user?.username}</span>
+                    <span className="text-xs text-muted-foreground capitalize">{user?.role}</span>
+                  </div>
                 </div>
-              </div>
-              <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-              {/* Settings */}
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
-                  <FontAwesomeIcon icon={faGear} className="h-4 w-4" />Settings
-                </Link>
-              </DropdownMenuItem>
+                {/* Settings */}
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
+                    <FontAwesomeIcon icon={faGear} className="h-4 w-4" />{t('nav.settings')}
+                  </Link>
+                </DropdownMenuItem>
 
-              {/* Admin section */}
-              {user?.role === 'admin' && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">Admin</DropdownMenuLabel>
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin/users" className="flex items-center gap-2 cursor-pointer">
-                      <FontAwesomeIcon icon={faUser} className="h-4 w-4" />Users
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin/import" className="flex items-center gap-2 cursor-pointer">
-                      <FontAwesomeIcon icon={faBoxOpen} className="h-4 w-4" />XBackBone Migration
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
+                {/* Admin section */}
+                {user?.role === 'admin' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">{t('nav.admin')}</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/users" className="flex items-center gap-2 cursor-pointer">
+                        <FontAwesomeIcon icon={faUser} className="h-4 w-4" />{t('nav.users')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/import" className="flex items-center gap-2 cursor-pointer">
+                        <FontAwesomeIcon icon={faBoxOpen} className="h-4 w-4" />{t('nav.xbackbone')}
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
 
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive">
-                <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive">
+                  <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />{t('nav.logout')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
@@ -129,7 +136,7 @@ export function Layout({ children }) {
 
       <footer className="border-t py-4 text-center text-xs text-muted-foreground space-y-1">
         <div>
-          Powered by{' '}
+          {t('footer.poweredBy')}{' '}
           <a
             href="https://github.com/Christianoooooo/sharely"
             target="_blank"
@@ -139,7 +146,7 @@ export function Layout({ children }) {
             Christian
           </a>
         </div>
-        <div>Licensed under the MIT License</div>
+        <div>{t('footer.license')}</div>
       </footer>
     </div>
   );

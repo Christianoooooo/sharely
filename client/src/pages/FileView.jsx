@@ -64,6 +64,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faUser } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 function CodeViewer({ shortId, lang }) {
   const [code, setCode] = useState('');
@@ -162,6 +163,7 @@ function FileViewInner() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
 
@@ -169,36 +171,36 @@ function FileViewInner() {
     fetch(`/api/file/${shortId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data) => setFile(data.file))
-      .catch((code) => setError(code === 404 ? 'File not found' : 'Failed to load file'));
-  }, [shortId]);
+      .catch((code) => setError(code === 404 ? t('fileView.fileNotFound') : t('fileView.loadFailed')));
+  }, [shortId, t]);
 
   async function handleDelete() {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
     if (r.ok) {
-      toast({ title: 'File deleted' });
+      toast({ title: t('fileView.fileDeleted') });
       navigate('/gallery');
     } else {
-      toast({ title: 'Delete failed', variant: 'destructive' });
+      toast({ title: t('fileView.deleteFailed'), variant: 'destructive' });
     }
   }
 
   function copyUrl() {
     const url = `${window.location.origin}/f/${shortId}`;
     navigator.clipboard.writeText(url);
-    toast({ title: 'URL copied' });
+    toast({ title: t('fileView.urlCopied') });
   }
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <p className="text-xl font-semibold">{error}</p>
-        <Button asChild variant="outline"><Link to="/gallery">Back to gallery</Link></Button>
+        <Button asChild variant="outline"><Link to="/gallery">{t('fileView.backToGallery')}</Link></Button>
       </div>
     );
   }
 
   if (!file) {
-    return <div className="flex justify-center py-24 text-muted-foreground text-sm animate-pulse">Loading…</div>;
+    return <div className="flex justify-center py-24 text-muted-foreground text-sm animate-pulse">{t('fileView.loading')}</div>;
   }
 
   const canDelete = user && (user.id === file.uploader?._id || user.role === 'admin');
@@ -223,34 +225,34 @@ function FileViewInner() {
             </div>
             <div className="flex gap-2 shrink-0 flex-wrap">
               <Button variant="outline" size="sm" onClick={copyUrl} className="gap-1.5">
-                <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />Copy URL
+                <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />{t('fileView.copyUrl')}
               </Button>
               <Button variant="outline" size="sm" asChild className="gap-1.5">
-                <a href={`/f/${shortId}/download`}><FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />Download</a>
+                <a href={`/f/${shortId}/download`}><FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />{t('fileView.download')}</a>
               </Button>
               <Button variant="outline" size="sm" asChild className="gap-1.5">
                 <a href={`/f/${shortId}/raw`} target="_blank" rel="noreferrer">
-                  <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3.5 w-3.5" />Raw
+                  <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3.5 w-3.5" />{t('fileView.raw')}
                 </a>
               </Button>
               {canDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="gap-1.5">
-                      <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />Delete
+                      <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />{t('fileView.delete')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete file?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('fileView.deleteTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        "{file.originalName}" will be permanently deleted. This cannot be undone.
+                        {t('fileView.deleteDescription', { name: file.originalName })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{t('fileView.cancel')}</AlertDialogCancel>
                       <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Delete
+                        {t('fileView.confirmDelete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

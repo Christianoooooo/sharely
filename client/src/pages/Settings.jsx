@@ -6,11 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faKey, faUser, faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
+import { faKey, faUser, faTrash, faUpload, faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES } from '@/i18n';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Settings() {
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
+  const { t, i18n } = useTranslation();
 
   // Password form
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -23,11 +27,11 @@ export default function Settings() {
   async function handlePasswordSubmit(e) {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) {
-      toast({ title: 'New passwords do not match', variant: 'destructive' });
+      toast({ title: t('settings.passwordMismatch'), variant: 'destructive' });
       return;
     }
     if (form.newPassword.length < 6) {
-      toast({ title: 'New password must be at least 6 characters', variant: 'destructive' });
+      toast({ title: t('settings.passwordTooShort'), variant: 'destructive' });
       return;
     }
     setSaving(true);
@@ -42,7 +46,7 @@ export default function Settings() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
-      toast({ title: 'Password changed successfully' });
+      toast({ title: t('settings.passwordChanged') });
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       toast({ title: err.message, variant: 'destructive' });
@@ -64,7 +68,7 @@ export default function Settings() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       await refreshUser();
-      toast({ title: 'Profile picture updated' });
+      toast({ title: t('settings.profileUpdated') });
     } catch (err) {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
@@ -79,7 +83,7 @@ export default function Settings() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       await refreshUser();
-      toast({ title: 'Profile picture removed' });
+      toast({ title: t('settings.profileRemoved') });
     } catch (err) {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
@@ -89,15 +93,15 @@ export default function Settings() {
 
   return (
     <div className="max-w-md space-y-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
       {/* Profile Picture */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <FontAwesomeIcon icon={faUser} className="h-4 w-4" />Profile Picture
+            <FontAwesomeIcon icon={faUser} className="h-4 w-4" />{t('settings.profilePicture')}
           </CardTitle>
-          <CardDescription>Visible in the navigation bar</CardDescription>
+          <CardDescription>{t('settings.profilePictureDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -128,7 +132,7 @@ export default function Settings() {
                 disabled={uploadingAvatar}
               >
                 <FontAwesomeIcon icon={faUpload} className="h-3.5 w-3.5" />
-                {uploadingAvatar ? 'Uploading…' : 'Upload picture'}
+                {uploadingAvatar ? t('settings.uploading') : t('settings.uploadPicture')}
               </Button>
               {user?.avatarUrl && (
                 <Button
@@ -139,12 +143,37 @@ export default function Settings() {
                   disabled={uploadingAvatar}
                 >
                   <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
-                  Remove picture
+                  {t('settings.removePicture')}
                 </Button>
               )}
-              <p className="text-xs text-muted-foreground">Max 2 MB · Images only</p>
+              <p className="text-xs text-muted-foreground">{t('settings.pictureHint')}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Language */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faGlobe} className="h-4 w-4" />{t('settings.language')}
+          </CardTitle>
+          <CardDescription>{t('settings.languageDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={i18n.resolvedLanguage}
+            onValueChange={(val) => i18n.changeLanguage(val)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
@@ -152,14 +181,14 @@ export default function Settings() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <FontAwesomeIcon icon={faKey} className="h-4 w-4" />Change Password
+            <FontAwesomeIcon icon={faKey} className="h-4 w-4" />{t('settings.changePassword')}
           </CardTitle>
-          <CardDescription>Update your account password</CardDescription>
+          <CardDescription>{t('settings.changePasswordDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="currentPassword">Current password</Label>
+              <Label htmlFor="currentPassword">{t('settings.currentPassword')}</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -169,7 +198,7 @@ export default function Settings() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="newPassword">New password</Label>
+              <Label htmlFor="newPassword">{t('settings.newPassword')}</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -180,7 +209,7 @@ export default function Settings() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword">Confirm new password</Label>
+              <Label htmlFor="confirmPassword">{t('settings.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -191,7 +220,7 @@ export default function Settings() {
               />
             </div>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Saving…' : 'Change password'}
+              {saving ? t('settings.saving') : t('settings.savePassword')}
             </Button>
           </form>
         </CardContent>
