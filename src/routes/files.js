@@ -6,14 +6,23 @@ const fs = require('fs');
 const File = require('../models/File');
 const User = require('../models/User');
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
+
+/** Resolve storedName to an absolute path and guard against path traversal. */
+function resolveUploadPath(storedName) {
+  const resolved = path.resolve(UPLOAD_DIR, storedName);
+  if (resolved !== UPLOAD_DIR && !resolved.startsWith(UPLOAD_DIR + path.sep)) {
+    throw new Error('Invalid file path');
+  }
+  return resolved;
+}
 
 // GET /f/:shortId/raw — serve file inline
 router.get('/:shortId/raw', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
 
-  const filePath = path.join(UPLOAD_DIR, file.storedName);
+  const filePath = resolveUploadPath(file.storedName);
   if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
 
   const type = file.displayType;
@@ -40,7 +49,7 @@ router.get('/:shortId/delete/:token', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const fp = path.join(UPLOAD_DIR, file.storedName);
+  const fp = resolveUploadPath(file.storedName);
   if (fs.existsSync(fp)) fs.unlinkSync(fp);
   await file.deleteOne();
   res.json({ success: true });
@@ -51,7 +60,7 @@ router.get('/:shortId/download', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
 
-  const filePath = path.join(UPLOAD_DIR, file.storedName);
+  const filePath = resolveUploadPath(file.storedName);
   if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
 
   res.setHeader('Content-Type', file.mimeType);

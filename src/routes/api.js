@@ -2,16 +2,34 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const { rateLimit } = require('express-rate-limit');
 const { requireLogin, requireAdmin, requireApiKey } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many uploads, please try again later.' },
+});
+
+const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
 
+/** Resolve storedName to an absolute path and guard against path traversal. */
+function resolveUploadPath(storedName) {
+  const resolved = path.resolve(UPLOAD_DIR, storedName);
+  if (resolved !== UPLOAD_DIR && !resolved.startsWith(UPLOAD_DIR + path.sep)) {
+    throw new Error('Invalid file path');
+  }
+  return resolved;
+}
+
 // ── File upload (API key — ShareX) ─────────────────────────────────────────
-router.post('/upload', requireApiKey, upload.single('file'), async (req, res) => {
+router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
   // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
@@ -37,7 +55,7 @@ router.post('/upload', requireApiKey, upload.single('file'), async (req, res) =>
 });
 
 // ── Web upload (session auth) ───────────────────────────────────────────────
-router.post('/web-upload', requireLogin, upload.array('files', 20), async (req, res) => {
+router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 20), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No files provided' });
   }
@@ -69,7 +87,7 @@ router.delete('/delete/:shortId', requireApiKey, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const fp = path.join(UPLOAD_DIR, file.storedName);
+  const fp = resolveUploadPath(file.storedName);
   if (fs.existsSync(fp)) fs.unlinkSync(fp);
   await file.deleteOne();
   res.json({ success: true });
@@ -85,7 +103,7 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const fp = path.join(UPLOAD_DIR, file.storedName);
+  const fp = resolveUploadPath(file.storedName);
   if (fs.existsSync(fp)) fs.unlinkSync(fp);
   await file.deleteOne();
   res.json({ success: true });
@@ -239,8 +257,10 @@ router.delete('/admin/users/:id', requireAdmin, async (req, res) => {
   }
   const userFiles = await File.find({ uploader: user._id });
   for (const f of userFiles) {
-    const fp = path.join(UPLOAD_DIR, f.storedName);
-    if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    try {
+      const fp = resolveUploadPath(f.storedName);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    } catch { /* skip invalid paths */ }
   }
   await File.deleteMany({ uploader: user._id });
   await user.deleteOne();
