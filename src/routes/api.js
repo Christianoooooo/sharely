@@ -563,7 +563,7 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
 
   const storedName = path.relative(UPLOAD_DIR, finalPath);
   const doc = await File.create({
-    originalName: meta.filename,
+    originalName: sanitizeFilename(meta.filename),
     storedName,
     mimeType: meta.mimeType,
     size: meta.totalSize,
