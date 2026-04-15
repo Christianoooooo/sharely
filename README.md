@@ -21,8 +21,8 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 **Requirements:** Docker and Docker Compose
 
 ```bash
-git clone https://github.com/Christianoooooo/instant-sharing-tool.git
-cd instant-sharing-tool
+git clone https://github.com/Christianoooooo/sharely.git
+cd sharely
 cp .env.example .env
 ```
 
