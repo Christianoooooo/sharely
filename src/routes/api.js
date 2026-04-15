@@ -20,6 +20,7 @@ const uploadLimiter = rateLimit({
 });
 
 // ── Avatar helpers ──────────────────────────────────────────────────────────
+const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 const AVATAR_DIR = path.resolve(__dirname, '../../uploads/.avatars');
 fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
@@ -344,8 +345,38 @@ router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
   const conflict = await User.findOne({ folderName: trimmed, _id: { $ne: req.params.id } });
   if (conflict) return res.status(409).json({ error: 'Folder name already taken' });
 
-  const user = await User.findByIdAndUpdate(req.params.id, { folderName: trimmed }, { new: true });
+  const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
+
+  const oldFolderName = user.folderName;
+
+  if (oldFolderName !== trimmed) {
+    const oldPath = path.join(UPLOAD_DIR, oldFolderName);
+    const newPath = path.join(UPLOAD_DIR, trimmed);
+
+    // Rename the physical directory on the volume if it exists
+    if (fs.existsSync(oldPath)) {
+      await fs.promises.rename(oldPath, newPath);
+    }
+
+    // Update storedName in all File documents for this user
+    const filesToUpdate = await File.find({
+      uploader: user._id,
+      storedName: { $regex: `^${oldFolderName}/` },
+    });
+    if (filesToUpdate.length > 0) {
+      await File.bulkWrite(filesToUpdate.map(file => ({
+        updateOne: {
+          filter: { _id: file._id },
+          update: { $set: { storedName: trimmed + file.storedName.slice(oldFolderName.length) } },
+        },
+      })));
+    }
+
+    user.folderName = trimmed;
+    await user.save();
+  }
+
   res.json({ folderName: user.folderName });
 });
 
