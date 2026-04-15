@@ -19,6 +19,11 @@ const uploadLimiter = rateLimit({
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
 
+/** Escape special regex characters to prevent ReDoS via user-supplied search terms. */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Resolve storedName to an absolute path and guard against path traversal. */
 function resolveUploadPath(storedName) {
   const resolved = path.resolve(UPLOAD_DIR, storedName);
@@ -129,7 +134,7 @@ router.get('/gallery', requireLogin, async (req, res) => {
 
   const filter = {};
   if (!isAdmin) filter.uploader = req.session.user.id;
-  if (q) filter.originalName = { $regex: q, $options: 'i' };
+  if (q) filter.originalName = { $regex: escapeRegex(q), $options: 'i' };
 
   if (type && type !== 'all') {
     const typeMap = { image: /^image\//, video: /^video\//, audio: /^audio\//, pdf: /^application\/pdf$/ };
@@ -330,7 +335,7 @@ router.get('/admin/files', requireAdmin, async (req, res) => {
   const page = Math.max(1, parseInt(pageStr || '1', 10));
   const PAGE_SIZE = 30;
 
-  const filter = q ? { originalName: { $regex: q, $options: 'i' } } : {};
+  const filter = q ? { originalName: { $regex: escapeRegex(q), $options: 'i' } } : {};
   const total = await File.countDocuments(filter);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const files = await File.find(filter)

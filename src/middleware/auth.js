@@ -3,7 +3,7 @@ const User = require('../models/User');
 // Require session-based login
 function requireLogin(req, res, next) {
   if (!req.session.user) {
-    return res.redirect('/auth/login');
+    return res.status(401).json({ error: 'Authentication required' });
   }
   next();
 }
@@ -11,10 +11,10 @@ function requireLogin(req, res, next) {
 // Require admin role
 function requireAdmin(req, res, next) {
   if (!req.session.user) {
-    return res.redirect('/auth/login');
+    return res.status(401).json({ error: 'Authentication required' });
   }
   if (req.session.user.role !== 'admin') {
-    return res.status(403).render('error', { code: 403, message: 'Admin access required' });
+    return res.status(403).json({ error: 'Admin access required' });
   }
   next();
 }
