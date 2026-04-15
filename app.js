@@ -21,6 +21,11 @@ const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 const app = express();
 
+// Trust the first proxy (nginx / Cloudflare) so that express-rate-limit can
+// read the real client IP from the X-Forwarded-For header without throwing
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -29,7 +34,11 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';",
+    // static.cloudflareinsights.com is allowed in script-src so the Cloudflare
+    // Web Analytics beacon (injected by the Cloudflare proxy) can load.
+    // cloudflareinsights.com is allowed in connect-src so the beacon can report
+    // back to Cloudflare's collection endpoint.
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com;",
   );
   next();
 });
