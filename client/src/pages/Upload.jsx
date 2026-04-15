@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faXmark, faDownload, faRotate, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faXmark, faDownload, faRotate, faCopy, faFolder } from '@fortawesome/free-solid-svg-icons';
 
 const MB = 1024 * 1024;
 
@@ -78,20 +78,59 @@ async function uploadChunked(file, onProgress) {
   }
 }
 
+// Reads all entries from a directory entry (handles the 100-entry readEntries() limit).
+async function readAllDirEntries(dirEntry) {
+  const reader = dirEntry.createReader();
+  const all = [];
+  await new Promise((resolve) => {
+    function readBatch() {
+      reader.readEntries((batch) => {
+        if (!batch.length) { resolve(); return; }
+        all.push(...batch);
+        readBatch();
+      }, resolve);
+    }
+    readBatch();
+  });
+  return all;
+}
+
+// Recursively collects { file, path } objects from a FileSystemEntry.
+async function collectFilesFromEntry(entry, prefix = '') {
+  if (entry.isFile) {
+    return new Promise((resolve) => {
+      entry.file((file) => {
+        const relPath = prefix ? `${prefix}/${file.name}` : file.name;
+        resolve([{ file, path: relPath }]);
+      });
+    });
+  }
+  if (entry.isDirectory) {
+    const entries = await readAllDirEntries(entry);
+    const dirPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const nested = await Promise.all(entries.map((e) => collectFilesFromEntry(e, dirPrefix)));
+    return nested.flat();
+  }
+  return [];
+}
+
 export default function Upload() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  // Each entry: { file: File, path: string }
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [progress, setProgress] = useState({}); // key: name+size → 0-100
   const fileInputRef = useRef(null);
+  const folderInputRef = useRef(null);
 
   const addFiles = useCallback((incoming) => {
+    // incoming: { file: File, path: string }[]
     setFiles((prev) => {
-      const existing = new Set(prev.map((f) => f.name + f.size));
-      const news = Array.from(incoming).filter((f) => !existing.has(f.name + f.size));
+      const existing = new Set(prev.map((item) => item.file.name + item.file.size));
+      const news = incoming.filter((item) => !existing.has(item.file.name + item.file.size));
       return [...prev, ...news];
     });
   }, []);
@@ -100,10 +139,40 @@ export default function Upload() {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function onDrop(e) {
+  async function onDrop(e) {
     e.preventDefault();
     setDragging(false);
-    addFiles(e.dataTransfer.files);
+
+    const items = Array.from(e.dataTransfer.items || []);
+    if (items.length > 0 && items[0].webkitGetAsEntry) {
+      const collected = [];
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          const result = await collectFilesFromEntry(entry);
+          collected.push(...result);
+        }
+      }
+      addFiles(collected);
+    } else {
+      // Fallback for browsers without DataTransferItem API
+      addFiles(Array.from(e.dataTransfer.files).map((f) => ({ file: f, path: f.name })));
+    }
+  }
+
+  function handleFileSelect(e) {
+    addFiles(Array.from(e.target.files).map((f) => ({ file: f, path: f.name })));
+    e.target.value = '';
+  }
+
+  function handleFolderSelect(e) {
+    addFiles(
+      Array.from(e.target.files).map((f) => ({
+        file: f,
+        path: f.webkitRelativePath || f.name,
+      }))
+    );
+    e.target.value = '';
   }
 
   async function handleUpload() {
@@ -111,15 +180,15 @@ export default function Upload() {
     setUploading(true);
     setProgress({});
 
-    const smallFiles = files.filter((f) => getChunkConfig(f.size) === null);
-    const largeFiles = files.filter((f) => getChunkConfig(f.size) !== null);
+    const smallFiles = files.filter((item) => getChunkConfig(item.file.size) === null);
+    const largeFiles = files.filter((item) => getChunkConfig(item.file.size) !== null);
     const allResults = [];
 
     try {
       // Upload small files in one batch (existing behaviour)
       if (smallFiles.length > 0) {
         const fd = new FormData();
-        smallFiles.forEach((f) => fd.append('files', f));
+        smallFiles.forEach((item) => fd.append('files', item.file));
         const r = await fetch('/api/web-upload', { method: 'POST', body: fd });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || 'Upload failed');
@@ -127,11 +196,11 @@ export default function Upload() {
       }
 
       // Upload large files one by one via chunked API
-      for (const file of largeFiles) {
-        const key = file.name + file.size;
+      for (const item of largeFiles) {
+        const key = item.file.name + item.file.size;
         setProgress((prev) => ({ ...prev, [key]: 0 }));
 
-        const data = await uploadChunked(file, (pct) => {
+        const data = await uploadChunked(item.file, (pct) => {
           setProgress((prev) => ({ ...prev, [key]: pct }));
         });
 
@@ -170,7 +239,7 @@ export default function Upload() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Upload</h1>
-        <p className="text-muted-foreground text-sm mt-1">Drop files or browse to upload</p>
+        <p className="text-muted-foreground text-sm mt-1">Drop files or folders, or browse to upload</p>
       </div>
 
       {/* Drop zone */}
@@ -185,15 +254,34 @@ export default function Upload() {
         `}
       >
         <FontAwesomeIcon icon={faUpload} className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
-        <p className="font-medium">Drop files here or click to browse</p>
+        <p className="font-medium">Drop files or folders here or click to browse</p>
         <p className="text-sm text-muted-foreground mt-1">Images, GIF, video, code, PDF and more</p>
         <input
           ref={fileInputRef}
           type="file"
           multiple
           hidden
-          onChange={(e) => addFiles(e.target.files)}
+          onChange={handleFileSelect}
         />
+        {/* Folder selection input — stops click from bubbling to the drop zone */}
+        <input
+          ref={folderInputRef}
+          type="file"
+          webkitdirectory=""
+          hidden
+          onChange={handleFolderSelect}
+        />
+        <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => folderInputRef.current?.click()}
+          >
+            <FontAwesomeIcon icon={faFolder} className="h-3.5 w-3.5" />
+            Select folder
+          </Button>
+        </div>
       </div>
 
       {/* File list */}
@@ -203,18 +291,18 @@ export default function Upload() {
             <CardTitle className="text-base">{files.length} file{files.length !== 1 ? 's' : ''} selected</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {files.map((f, i) => {
-              const key = f.name + f.size;
+            {files.map((item, i) => {
+              const key = item.file.name + item.file.size;
               const pct = progress[key];
-              const isLarge = getChunkConfig(f.size) !== null;
+              const isLarge = getChunkConfig(item.file.size) !== null;
               const isUploading = uploading && isLarge && pct !== undefined;
 
               return (
                 <div key={i} className="border rounded-md px-3 py-2 text-sm space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="truncate max-w-[70%]">{f.name}</span>
+                    <span className="truncate max-w-[70%]">{item.path}</span>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-muted-foreground">{fmtSize(f.size)}</span>
+                      <span className="text-muted-foreground">{fmtSize(item.file.size)}</span>
                       {!uploading && (
                         <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
                           <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
