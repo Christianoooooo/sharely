@@ -1,4 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import ruby from 'highlight.js/lib/languages/ruby';
+import go from 'highlight.js/lib/languages/go';
+import rust from 'highlight.js/lib/languages/rust';
+import java from 'highlight.js/lib/languages/java';
+import c from 'highlight.js/lib/languages/c';
+import cpp from 'highlight.js/lib/languages/cpp';
+import csharp from 'highlight.js/lib/languages/csharp';
+import php from 'highlight.js/lib/languages/php';
+import bash from 'highlight.js/lib/languages/bash';
+import yaml from 'highlight.js/lib/languages/yaml';
+import toml from 'highlight.js/lib/languages/ini';
+import json from 'highlight.js/lib/languages/json';
+import xml from 'highlight.js/lib/languages/xml';
+import css from 'highlight.js/lib/languages/css';
+import scss from 'highlight.js/lib/languages/scss';
+import markdown from 'highlight.js/lib/languages/markdown';
+import sql from 'highlight.js/lib/languages/sql';
+import kotlin from 'highlight.js/lib/languages/kotlin';
+import swift from 'highlight.js/lib/languages/swift';
+import lua from 'highlight.js/lib/languages/lua';
+import 'highlight.js/styles/github-dark.min.css';
+
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('ruby', ruby);
+hljs.registerLanguage('go', go);
+hljs.registerLanguage('rust', rust);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('c', c);
+hljs.registerLanguage('cpp', cpp);
+hljs.registerLanguage('csharp', csharp);
+hljs.registerLanguage('php', php);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('yaml', yaml);
+hljs.registerLanguage('toml', toml);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('scss', scss);
+hljs.registerLanguage('markdown', markdown);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('kotlin', kotlin);
+hljs.registerLanguage('swift', swift);
+hljs.registerLanguage('lua', lua);
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Layout } from '@/components/Layout';
@@ -15,28 +64,27 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { Download, Trash2, Copy, ExternalLink, Eye, Calendar, User } from 'lucide-react';
 
-// Highlight.js loaded from CDN inside <head> for code files
 function CodeViewer({ shortId, lang }) {
   const [code, setCode] = useState('');
-  const [ready, setReady] = useState(false);
+  const codeRef = useRef(null);
 
   useEffect(() => {
     fetch(`/f/${shortId}/raw`)
       .then((r) => r.text())
-      .then((text) => { setCode(text); setReady(true); });
+      .then((text) => setCode(text));
   }, [shortId]);
 
   useEffect(() => {
-    if (!ready) return;
-    if (window.hljs) {
-      document.querySelectorAll('pre code.hljs-target').forEach((el) => window.hljs.highlightElement(el));
+    if (code && codeRef.current) {
+      codeRef.current.removeAttribute('data-highlighted');
+      hljs.highlightElement(codeRef.current);
     }
-  }, [ready, code]);
+  }, [code]);
 
   return (
     <ScrollArea className="h-[70vh] w-full">
       <pre className="p-4 text-sm leading-relaxed">
-        <code className={`hljs-target language-${lang || 'plaintext'}`}>{code}</code>
+        <code ref={codeRef} className={`language-${lang || 'plaintext'}`}>{code}</code>
       </pre>
     </ScrollArea>
   );
@@ -117,23 +165,6 @@ function FileViewInner() {
       .then((data) => setFile(data.file))
       .catch((code) => setError(code === 404 ? 'File not found' : 'Failed to load file'));
   }, [shortId]);
-
-  // Load highlight.js from CDN when needed
-  useEffect(() => {
-    if (!file) return;
-    if (file.displayType === 'code' || file.displayType === 'text') {
-      if (!document.getElementById('hljs-css')) {
-        const link = document.createElement('link');
-        link.id = 'hljs-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
-        document.head.appendChild(link);
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
-        document.head.appendChild(script);
-      }
-    }
-  }, [file]);
 
   async function handleDelete() {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });

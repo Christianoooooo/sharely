@@ -7,6 +7,11 @@ const fileSchema = new mongoose.Schema({
     unique: true,
     default: () => crypto.randomBytes(4).toString('hex'), // 8 hex chars
   },
+  deleteToken: {
+    type: String,
+    unique: true,
+    default: () => crypto.randomBytes(16).toString('hex'), // 32 hex chars
+  },
   originalName: {
     type: String,
     required: true,

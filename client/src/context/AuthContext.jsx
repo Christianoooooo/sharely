@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Login failed');
     setUser(data.user);
     return data.user;
@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, confirmPassword }),
     });
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Registration failed');
     setUser(data.user);
     return data.user;

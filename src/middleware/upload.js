@@ -35,9 +35,39 @@ const storage = multer.diskStorage({
   },
 });
 
+const BLOCKED_MIME_TYPES = new Set([
+  'application/x-msdownload',
+  'application/x-executable',
+  'application/x-dosexec',
+  'application/x-msdos-program',
+  'application/x-sh',
+  'application/x-csh',
+  'application/x-bat',
+  'application/x-msi',
+  'application/vnd.microsoft.portable-executable',
+]);
+
+const BLOCKED_EXTENSIONS = new Set([
+  '.exe', '.bat', '.cmd', '.com', '.msi', '.ps1', '.psm1', '.psd1',
+  '.sh', '.bash', '.csh', '.zsh', '.fish',
+  '.vbs', '.vbe', '.js.exe', '.jse',
+  '.scr', '.pif', '.application', '.gadget', '.hta',
+  '.php', '.php3', '.php4', '.php5', '.phtml',
+  '.asp', '.aspx', '.jsp', '.jspx', '.cfm',
+]);
+
+function fileFilter(_req, file, cb) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (BLOCKED_MIME_TYPES.has(file.mimetype) || BLOCKED_EXTENSIONS.has(ext)) {
+    return cb(new Error('File type not allowed'));
+  }
+  cb(null, true);
+}
+
 const upload = multer({
   storage,
   limits: { fileSize: MAX_MB * 1024 * 1024 },
+  fileFilter,
 });
 
 module.exports = upload;

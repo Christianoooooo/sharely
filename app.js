@@ -81,7 +81,10 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
     uploader: user._id,
   });
   const base = process.env.BASE_URL || 'http://localhost:3000';
-  res.json({ url: `${base}/f/${file.shortId}` });
+  res.json({
+    url: `${base}/f/${file.shortId}`,
+    delete_url: `${base}/f/${file.shortId}/delete/${file.deleteToken}`,
+  });
 });
 
 // CSRF protection: reject cross-origin requests by comparing Origin to Host.

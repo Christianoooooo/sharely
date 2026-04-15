@@ -88,7 +88,7 @@ router.delete('/delete/:shortId', requireApiKey, async (req, res) => {
   }
 
   const fp = resolveUploadPath(file.storedName);
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   await file.deleteOne();
   res.json({ success: true });
 });
@@ -104,7 +104,7 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
   }
 
   const fp = resolveUploadPath(file.storedName);
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   await file.deleteOne();
   res.json({ success: true });
 });
@@ -167,7 +167,7 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
     FileFormName: 'upload',
     URL: '{json:url}',
     ThumbnailURL: '{json:url}/raw',
-    DeletionURL: `{json:url}/delete/${user.apiKey}`,
+    DeletionURL: '{json:delete_url}',
   };
 
   res.setHeader('Content-Type', 'application/json');
@@ -231,7 +231,7 @@ router.post('/admin/users', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Username and password required' });
   }
   if (username.length < 3) return res.status(400).json({ error: 'Username must be at least 3 characters' });
-  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (password.length < 12) return res.status(400).json({ error: 'Password must be at least 12 characters' });
   const exists = await User.findOne({ username });
   if (exists) return res.status(409).json({ error: 'Username already taken' });
   const user = await User.create({ username, password, role: role === 'admin' ? 'admin' : 'user' });
@@ -279,8 +279,8 @@ router.patch('/admin/users/:id/password', requireAdmin, async (req, res) => {
   if (!password || typeof password !== 'string') {
     return res.status(400).json({ error: 'Password required' });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (password.length < 12) {
+    return res.status(400).json({ error: 'Password must be at least 12 characters' });
   }
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
@@ -312,8 +312,8 @@ router.patch('/user/password', requireLogin, async (req, res) => {
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: 'Current and new password required' });
   }
-  if (newPassword.length < 6) {
-    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  if (newPassword.length < 12) {
+    return res.status(400).json({ error: 'New password must be at least 12 characters' });
   }
   const user = await User.findById(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
