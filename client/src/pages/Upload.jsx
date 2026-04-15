@@ -8,7 +8,7 @@ import { fmtSize } from '@/lib/utils';
 import { Upload as UploadIcon, X, Download, RefreshCw, Copy } from 'lucide-react';
 
 const CHUNK_THRESHOLD = 100 * 1024 * 1024; // 100 MB
-const CHUNK_SIZE = 100 * 1024 * 1024;       // 100 MB per chunk
+const CHUNK_SIZE = 50 * 1024 * 1024;       // 50 MB per chunk
 
 async function uploadChunked(file, onProgress) {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
