@@ -98,7 +98,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 });
 
 // ── Web upload (session auth) ───────────────────────────────────────────────
-router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 20), async (req, res) => {
+router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 500), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No files provided' });
   }
