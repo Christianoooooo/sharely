@@ -18,6 +18,36 @@ function getChunkConfig(size) {
   return                       { chunkSize: 20 * MB, parallelism: 5 }; // 1–2 GB
 }
 
+async function uploadBatch(items, onProgress) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    items.forEach((item) => fd.append('files', item.file));
+
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = (e) => {
+      // When lengthComputable is false the bar stays at 0 (pre-initialised),
+      // which still informs the user that upload is in progress.
+      if (e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { reject(new Error('Invalid response from server')); }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.error || 'Upload failed'));
+        } catch { reject(new Error(`Upload failed (${xhr.status})`)); }
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.open('POST', '/api/web-upload');
+    xhr.send(fd);
+  });
+}
+
 async function uploadChunked(file, onProgress) {
   const { chunkSize, parallelism } = getChunkConfig(file.size);
   const totalChunks = Math.ceil(file.size / chunkSize);
@@ -129,8 +159,8 @@ export default function Upload() {
   const addFiles = useCallback((incoming) => {
     // incoming: { file: File, path: string }[]
     setFiles((prev) => {
-      const existing = new Set(prev.map((item) => item.file.name + item.file.size));
-      const news = incoming.filter((item) => !existing.has(item.file.name + item.file.size));
+      const existing = new Set(prev.map((item) => item.path + item.file.size));
+      const news = incoming.filter((item) => !existing.has(item.path + item.file.size));
       return [...prev, ...news];
     });
   }, []);
@@ -185,19 +215,26 @@ export default function Upload() {
     const allResults = [];
 
     try {
-      // Upload small files in one batch (existing behaviour)
+      // Upload small files in one batch with XHR progress tracking
       if (smallFiles.length > 0) {
-        const fd = new FormData();
-        smallFiles.forEach((item) => fd.append('files', item.file));
-        const r = await fetch('/api/web-upload', { method: 'POST', body: fd });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || 'Upload failed');
+        const initProg = {};
+        smallFiles.forEach((item) => { initProg[item.path + item.file.size] = 0; });
+        setProgress((prev) => ({ ...prev, ...initProg }));
+
+        const data = await uploadBatch(smallFiles, (pct) => {
+          setProgress((prev) => {
+            const updated = { ...prev };
+            smallFiles.forEach((item) => { updated[item.path + item.file.size] = pct; });
+            return updated;
+          });
+        });
+        if (!data.files) throw new Error(data.error || 'Upload failed');
         allResults.push(...data.files);
       }
 
       // Upload large files one by one via chunked API
       for (const item of largeFiles) {
-        const key = item.file.name + item.file.size;
+        const key = item.path + item.file.size;
         setProgress((prev) => ({ ...prev, [key]: 0 }));
 
         const data = await uploadChunked(item.file, (pct) => {
@@ -292,10 +329,9 @@ export default function Upload() {
           </CardHeader>
           <CardContent className="space-y-2">
             {files.map((item, i) => {
-              const key = item.file.name + item.file.size;
+              const key = item.path + item.file.size;
               const pct = progress[key];
-              const isLarge = getChunkConfig(item.file.size) !== null;
-              const isUploading = uploading && isLarge && pct !== undefined;
+              const isUploading = uploading && pct !== undefined;
 
               return (
                 <div key={i} className="border rounded-md px-3 py-2 text-sm space-y-1">
