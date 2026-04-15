@@ -11,6 +11,7 @@ const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
 
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
+const sanitizeFilename = require('./src/utils/sanitizeFilename');
 
 if (!process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET environment variable is not set.');
@@ -84,7 +85,7 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
   }
 
   const file = await File.create({
-    originalName: req.file.originalname,
+    originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType: req.file.mimetype,
     size: req.file.size,

@@ -10,6 +10,7 @@ const upload = require('../middleware/upload');
 const { isBlockedFile } = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
+const sanitizeFilename = require('../utils/sanitizeFilename');
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -79,7 +80,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
 
   const file = await File.create({
-    originalName: req.file.originalname,
+    originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType: req.file.mimetype,
     size: req.file.size,
@@ -108,7 +109,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
     // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
     const storedName = path.relative(UPLOAD_DIR, f.path);
     const doc = await File.create({
-      originalName: f.originalname,
+      originalName: sanitizeFilename(f.originalname),
       storedName,
       mimeType: f.mimetype,
       size: f.size,
@@ -562,7 +563,7 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
 
   const storedName = path.relative(UPLOAD_DIR, finalPath);
   const doc = await File.create({
-    originalName: meta.filename,
+    originalName: sanitizeFilename(meta.filename),
     storedName,
     mimeType: meta.mimeType,
     size: meta.totalSize,
