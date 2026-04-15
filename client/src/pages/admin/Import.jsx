@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileSearch, CheckCircle2, AlertCircle, SkipForward, ArrowRight } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUpload, faMagnifyingGlass, faCircleCheck, faCircleExclamation, faForwardStep, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 
 // ── Step indicator ─────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ function Step({ n, label, active, done }) {
         active ? 'bg-primary/20 text-primary border border-primary' :
         'bg-muted text-muted-foreground'
       }`}>
-        {done ? <CheckCircle2 className="h-4 w-4" /> : n}
+        {done ? <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4" /> : n}
       </div>
       <span className={`text-sm ${active ? 'font-medium' : 'text-muted-foreground'}`}>{label}</span>
     </div>
@@ -131,9 +132,9 @@ export default function AdminImport() {
       {/* Steps */}
       <div className="flex items-center gap-3 flex-wrap">
         <Step n={1} label="Configure paths" active={step === 1} done={step > 1} />
-        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4 text-muted-foreground shrink-0" />
         <Step n={2} label="Map users" active={step === 2} done={step > 2} />
-        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4 text-muted-foreground shrink-0" />
         <Step n={3} label="Results" active={step === 3} done={false} />
       </div>
 
@@ -175,7 +176,7 @@ export default function AdminImport() {
               {previewing ? (
                 <><span className="animate-spin mr-2">⟳</span>Analysing…</>
               ) : (
-                <><FileSearch className="h-4 w-4 mr-2" />Analyse database</>
+                <><FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 mr-2" />Analyse database</>
               )}
             </Button>
           </CardContent>
@@ -240,7 +241,7 @@ export default function AdminImport() {
                   {importing ? (
                     <><span className="animate-spin mr-2">⟳</span>Importing…</>
                   ) : (
-                    <><Upload className="h-4 w-4 mr-2" />Run import</>
+                    <><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />Run import</>
                   )}
                 </Button>
                 <Button variant="outline" onClick={reset} disabled={importing}>Start over</Button>
@@ -257,7 +258,7 @@ export default function AdminImport() {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <FontAwesomeIcon icon={faCircleCheck} className="h-5 w-5 text-green-600" />
                   <div>
                     <div className="text-2xl font-bold">{result.imported}</div>
                     <div className="text-xs text-muted-foreground">Imported</div>
@@ -268,7 +269,7 @@ export default function AdminImport() {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
-                  <SkipForward className="h-5 w-5 text-muted-foreground" />
+                  <FontAwesomeIcon icon={faForwardStep} className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <div className="text-2xl font-bold">{result.skipped}</div>
                     <div className="text-xs text-muted-foreground">Skipped</div>
@@ -279,7 +280,7 @@ export default function AdminImport() {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-destructive" />
+                  <FontAwesomeIcon icon={faCircleExclamation} className="h-5 w-5 text-destructive" />
                   <div>
                     <div className="text-2xl font-bold">{result.errors}</div>
                     <div className="text-xs text-muted-foreground">Errors</div>

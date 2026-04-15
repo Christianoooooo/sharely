@@ -6,10 +6,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Images, Upload, Settings, LogOut, User, LayoutDashboard, ChevronDown, PackageOpen, KeyRound } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faKey } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
 
-function NavLink({ to, children, icon: Icon }) {
+function NavLink({ to, children, icon }) {
   const { pathname } = useLocation();
   const active = pathname === to || pathname.startsWith(to + '/');
   return (
@@ -22,7 +23,7 @@ function NavLink({ to, children, icon: Icon }) {
           : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
       )}
     >
-      {Icon && <Icon className="h-4 w-4" />}
+      {icon && <FontAwesomeIcon icon={icon} className="h-4 w-4" />}
       {children}
     </Link>
   );
@@ -46,10 +47,10 @@ export function Layout({ children }) {
             <Link to="/" className="font-bold text-primary text-sm tracking-widest uppercase">IST</Link>
             <Separator orientation="vertical" className="h-5" />
             <nav className="flex items-center gap-1">
-              <NavLink to="/gallery" icon={Images}>Gallery</NavLink>
-              <NavLink to="/upload" icon={Upload}>Upload</NavLink>
+              <NavLink to="/gallery" icon={faImages}>Gallery</NavLink>
+              <NavLink to="/upload" icon={faUpload}>Upload</NavLink>
               {user?.role === 'admin' && (
-                <NavLink to="/admin" icon={LayoutDashboard}>Admin</NavLink>
+                <NavLink to="/admin" icon={faTableCellsLarge}>Admin</NavLink>
               )}
             </nav>
           </div>
@@ -57,20 +58,20 @@ export function Layout({ children }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2">
-                <User className="h-4 w-4" />
+                <FontAwesomeIcon icon={faUser} className="h-4 w-4" />
                 <span className="hidden sm:inline">{user?.username}</span>
-                <ChevronDown className="h-3 w-3 opacity-50" />
+                <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
                 <Link to="/upload" className="flex items-center gap-2 cursor-pointer">
-                  <Settings className="h-4 w-4" />API & ShareX
+                  <FontAwesomeIcon icon={faGear} className="h-4 w-4" />API & ShareX
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
-                  <KeyRound className="h-4 w-4" />Change Password
+                  <FontAwesomeIcon icon={faKey} className="h-4 w-4" />Change Password
                 </Link>
               </DropdownMenuItem>
               {user?.role === 'admin' && (
@@ -78,19 +79,19 @@ export function Layout({ children }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/admin/users" className="flex items-center gap-2 cursor-pointer">
-                      <User className="h-4 w-4" />Users
+                      <FontAwesomeIcon icon={faUser} className="h-4 w-4" />Users
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/admin/import" className="flex items-center gap-2 cursor-pointer">
-                      <PackageOpen className="h-4 w-4" />Import XBackBone
+                      <FontAwesomeIcon icon={faBoxOpen} className="h-4 w-4" />Import XBackBone
                     </Link>
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive">
-                <LogOut className="h-4 w-4" />Logout
+                <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

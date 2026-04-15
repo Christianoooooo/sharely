@@ -62,7 +62,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
-import { Download, Trash2, Copy, ExternalLink, Eye, Calendar, User } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faUser } from '@fortawesome/free-solid-svg-icons';
 
 function CodeViewer({ shortId, lang }) {
   const [code, setCode] = useState('');
@@ -141,11 +142,11 @@ function FileViewer({ file }) {
 
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">
-      <Download className="h-16 w-16 opacity-20" />
+      <FontAwesomeIcon icon={faDownload} className="h-16 w-16 opacity-20" />
       <p className="text-lg font-medium">{file.originalName}</p>
       <p className="text-sm">{fmtSize(file.size)}</p>
       <Button asChild>
-        <a href={`/f/${shortId}/download`}><Download className="h-4 w-4 mr-2" />Download</a>
+        <a href={`/f/${shortId}/download`}><FontAwesomeIcon icon={faDownload} className="h-4 w-4 mr-2" />Download</a>
       </Button>
     </div>
   );
@@ -210,28 +211,28 @@ function FileViewInner() {
               <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
                 <Badge variant="secondary">{file.displayType}</Badge>
                 <span>{fmtSize(file.size)}</span>
-                <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{file.views}</span>
-                {file.uploader && <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" />{file.uploader.username}</span>}
-                <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{fmtDate(file.createdAt)}</span>
+                <span className="flex items-center gap-1"><FontAwesomeIcon icon={faEye} className="h-3.5 w-3.5" />{file.views}</span>
+                {file.uploader && <span className="flex items-center gap-1"><FontAwesomeIcon icon={faUser} className="h-3.5 w-3.5" />{file.uploader.username}</span>}
+                <span className="flex items-center gap-1"><FontAwesomeIcon icon={faCalendar} className="h-3.5 w-3.5" />{fmtDate(file.createdAt)}</span>
               </div>
             </div>
             <div className="flex gap-2 shrink-0 flex-wrap">
               <Button variant="outline" size="sm" onClick={copyUrl} className="gap-1.5">
-                <Copy className="h-3.5 w-3.5" />Copy URL
+                <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />Copy URL
               </Button>
               <Button variant="outline" size="sm" asChild className="gap-1.5">
-                <a href={`/f/${shortId}/download`}><Download className="h-3.5 w-3.5" />Download</a>
+                <a href={`/f/${shortId}/download`}><FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />Download</a>
               </Button>
               <Button variant="outline" size="sm" asChild className="gap-1.5">
                 <a href={`/f/${shortId}/raw`} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />Raw
+                  <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3.5 w-3.5" />Raw
                 </a>
               </Button>
               {canDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="gap-1.5">
-                      <Trash2 className="h-3.5 w-3.5" />Delete
+                      <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />Delete
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>

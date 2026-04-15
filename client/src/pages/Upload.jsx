@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
-import { Upload as UploadIcon, X, Download, RefreshCw, Copy } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUpload, faXmark, faDownload, faRotate, faCopy } from '@fortawesome/free-solid-svg-icons';
 
 const MB = 1024 * 1024;
 
@@ -183,7 +184,7 @@ export default function Upload() {
           ${dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/20'}
         `}
       >
-        <UploadIcon className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+        <FontAwesomeIcon icon={faUpload} className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
         <p className="font-medium">Drop files here or click to browse</p>
         <p className="text-sm text-muted-foreground mt-1">Images, GIF, video, code, PDF and more</p>
         <input
@@ -216,7 +217,7 @@ export default function Upload() {
                       <span className="text-muted-foreground">{fmtSize(f.size)}</span>
                       {!uploading && (
                         <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
-                          <X className="h-4 w-4" />
+                          <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
                         </button>
                       )}
                     </div>
@@ -248,7 +249,7 @@ export default function Upload() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Download className="h-4 w-4" />ShareX Integration
+            <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />ShareX Integration
           </CardTitle>
           <CardDescription>Download the .sxcu config and import it into ShareX</CardDescription>
         </CardHeader>
@@ -275,13 +276,13 @@ export default function Upload() {
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={regenKey} className="gap-2 shrink-0">
-              <RefreshCw className="h-3.5 w-3.5" />Regenerate key
+              <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />Regenerate key
             </Button>
             {apiKey && (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <code className="text-xs bg-muted px-2 py-1 rounded truncate flex-1">{apiKey}</code>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => copyToClipboard(apiKey)}>
-                  <Copy className="h-3.5 w-3.5" />
+                  <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />
                 </Button>
               </div>
             )}
