@@ -176,7 +176,28 @@ router.get('/gallery', requireLogin, async (req, res) => {
 
   if (type && type !== 'all') {
     const typeMap = { image: /^image\//, video: /^video\//, audio: /^audio\//, pdf: /^application\/pdf$/ };
-    if (typeMap[type]) filter.mimeType = typeMap[type];
+    if (typeMap[type]) {
+      filter.mimeType = typeMap[type];
+    } else if (type === 'code') {
+      const codeExts = ['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'go', 'rs', 'java',
+        'c', 'cpp', 'h', 'hpp', 'cs', 'php', 'sh', 'bash', 'zsh', 'fish',
+        'yml', 'yaml', 'toml', 'ini', 'conf', 'json', 'xml', 'html', 'htm',
+        'css', 'scss', 'less', 'md', 'sql', 'dockerfile', 'makefile', 'r',
+        'swift', 'kt', 'lua', 'pl', 'ex', 'exs', 'hs', 'clj', 'vue', 'svelte'];
+      const extPattern = `\\.(${codeExts.join('|')})$`;
+      const typeCondition = {
+        $or: [
+          { originalName: { $regex: extPattern, $options: 'i' } },
+          { mimeType: { $regex: '^text/' } },
+        ],
+      };
+      if (q) {
+        filter.$and = [{ originalName: filter.originalName }, typeCondition];
+        delete filter.originalName;
+      } else {
+        Object.assign(filter, typeCondition);
+      }
+    }
   }
 
   const total = await File.countDocuments(filter);
