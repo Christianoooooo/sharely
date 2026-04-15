@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass, faXmark, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -40,6 +41,7 @@ function buildPageItems(page, pages) {
 
 export default function AdminFiles() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState([]);
   const [total, setTotal] = useState(0);
@@ -64,10 +66,10 @@ export default function AdminFiles() {
   async function deleteFile(shortId, name) {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
     if (r.ok) {
-      toast({ title: `Deleted "${name}"` });
+      toast({ title: t('adminFiles.deleted', { name }) });
       load();
     } else {
-      toast({ title: 'Delete failed', variant: 'destructive' });
+      toast({ title: t('adminFiles.deleteFailed'), variant: 'destructive' });
     }
   }
 
@@ -80,8 +82,8 @@ export default function AdminFiles() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold">All Files</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{total} total</p>
+          <h1 className="text-2xl font-bold">{t('adminFiles.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{t('adminFiles.total', { count: total })}</p>
         </div>
       </div>
 
@@ -89,7 +91,7 @@ export default function AdminFiles() {
         <div className="relative flex-1 max-w-sm">
           <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search by filename…"
+            placeholder={t('adminFiles.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9 pr-9"
@@ -101,7 +103,7 @@ export default function AdminFiles() {
             </button>
           )}
         </div>
-        <Button type="submit" variant="secondary">Search</Button>
+        <Button type="submit" variant="secondary">{t('adminFiles.search')}</Button>
       </form>
 
       <Card>
@@ -109,12 +111,12 @@ export default function AdminFiles() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>File</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Uploader</TableHead>
-                <TableHead>Views</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>{t('adminFiles.tableFile')}</TableHead>
+                <TableHead>{t('adminFiles.tableType')}</TableHead>
+                <TableHead>{t('adminFiles.tableSize')}</TableHead>
+                <TableHead>{t('adminFiles.tableUploader')}</TableHead>
+                <TableHead>{t('adminFiles.tableViews')}</TableHead>
+                <TableHead>{t('adminFiles.tableDate')}</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -140,13 +142,13 @@ export default function AdminFiles() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete file?</AlertDialogTitle>
-                          <AlertDialogDescription>"{f.originalName}" will be permanently deleted.</AlertDialogDescription>
+                          <AlertDialogTitle>{t('adminFiles.deleteFile')}</AlertDialogTitle>
+                          <AlertDialogDescription>{t('adminFiles.deleteFileDesc', { name: f.originalName })}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t('adminFiles.cancel')}</AlertDialogCancel>
                           <AlertDialogAction onClick={() => deleteFile(f.shortId, f.originalName)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Delete
+                            {t('adminFiles.delete')}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -155,7 +157,7 @@ export default function AdminFiles() {
                 </TableRow>
               ))}
               {files.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-12">No files found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-12">{t('adminFiles.noFiles')}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

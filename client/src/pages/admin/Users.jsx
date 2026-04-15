@@ -18,10 +18,12 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate, faTrash, faUserPlus, faPowerOff, faPencil, faCheck, faXmark, faKey } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
@@ -52,7 +54,7 @@ export default function AdminUsers() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
-      toast({ title: `User "${newUser.username}" created` });
+      toast({ title: t('adminUsers.created', { username: newUser.username }) });
       setNewUser({ username: '', password: '', role: 'user' });
       load();
     } catch (err) {
@@ -65,7 +67,7 @@ export default function AdminUsers() {
   async function toggleUser(id, username, isActive) {
     const r = await fetch(`/api/admin/users/${id}/toggle`, { method: 'PATCH' });
     if (r.ok) {
-      toast({ title: `${username} ${isActive ? 'deactivated' : 'activated'}` });
+      toast({ title: isActive ? t('adminUsers.deactivated', { username }) : t('adminUsers.activated', { username }) });
       load();
     }
   }
@@ -73,17 +75,17 @@ export default function AdminUsers() {
   async function deleteUser(id, username) {
     const r = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
     if (r.ok) {
-      toast({ title: `User "${username}" and their files deleted` });
+      toast({ title: t('adminUsers.deleted', { username }) });
       load();
     } else {
-      toast({ title: 'Delete failed', variant: 'destructive' });
+      toast({ title: t('adminUsers.deleteFailed'), variant: 'destructive' });
     }
   }
 
   async function regenKey(id, username) {
     const r = await fetch(`/api/admin/users/${id}/regen-key`, { method: 'POST' });
     if (r.ok) {
-      toast({ title: `API key regenerated for ${username}` });
+      toast({ title: t('adminUsers.keyRegenerated', { username }) });
       load();
     }
   }
@@ -104,7 +106,7 @@ export default function AdminUsers() {
 
   async function savePassword() {
     if (newPw.length < 6) {
-      toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
+      toast({ title: t('adminUsers.passwordTooShort'), variant: 'destructive' });
       return;
     }
     setSavingPw(true);
@@ -116,7 +118,7 @@ export default function AdminUsers() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
-      toast({ title: `Password changed for "${pwDialog.username}"` });
+      toast({ title: t('adminUsers.pwChanged', { username: pwDialog.username }) });
       setPwDialog(null);
     } catch (err) {
       toast({ title: err.message, variant: 'destructive' });
@@ -135,7 +137,7 @@ export default function AdminUsers() {
     });
     const data = await r.json();
     if (r.ok) {
-      toast({ title: `Folder renamed to "${data.folderName}"` });
+      toast({ title: t('adminUsers.folderRenamed', { name: data.folderName }) });
       setEditingFolder(null);
       load();
     } else {
@@ -145,20 +147,20 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">User Management</h1>
+      <h1 className="text-2xl font-bold">{t('adminUsers.title')}</h1>
 
       {/* Create user */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <FontAwesomeIcon icon={faUserPlus} className="h-4 w-4" />Create User
+            <FontAwesomeIcon icon={faUserPlus} className="h-4 w-4" />{t('adminUsers.createUser')}
           </CardTitle>
-          <CardDescription>New users are created with a random API key</CardDescription>
+          <CardDescription>{t('adminUsers.createUserDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={createUser} className="flex flex-wrap gap-3 items-end">
             <div className="space-y-1.5 flex-1 min-w-[140px]">
-              <Label>Username</Label>
+              <Label>{t('adminUsers.username')}</Label>
               <Input
                 value={newUser.username}
                 onChange={(e) => setNewUser((p) => ({ ...p, username: e.target.value }))}
@@ -166,7 +168,7 @@ export default function AdminUsers() {
               />
             </div>
             <div className="space-y-1.5 flex-1 min-w-[140px]">
-              <Label>Password</Label>
+              <Label>{t('adminUsers.password')}</Label>
               <Input
                 type="password"
                 value={newUser.password}
@@ -175,17 +177,17 @@ export default function AdminUsers() {
               />
             </div>
             <div className="space-y-1.5 w-32">
-              <Label>Role</Label>
+              <Label>{t('adminUsers.role')}</Label>
               <Select value={newUser.role} onValueChange={(v) => setNewUser((p) => ({ ...p, role: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">{t('adminUsers.roleUser')}</SelectItem>
+                  <SelectItem value="admin">{t('adminUsers.roleAdmin')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button type="submit" disabled={creating}>
-              {creating ? 'Creating…' : 'Create'}
+              {creating ? t('adminUsers.creating') : t('adminUsers.create')}
             </Button>
           </form>
         </CardContent>
@@ -197,15 +199,15 @@ export default function AdminUsers() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Folder</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Files</TableHead>
-                <TableHead>Storage</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>API Key</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('adminUsers.colUsername')}</TableHead>
+                <TableHead>{t('adminUsers.colFolder')}</TableHead>
+                <TableHead>{t('adminUsers.colRole')}</TableHead>
+                <TableHead>{t('adminUsers.colFiles')}</TableHead>
+                <TableHead>{t('adminUsers.colStorage')}</TableHead>
+                <TableHead>{t('adminUsers.colStatus')}</TableHead>
+                <TableHead>{t('adminUsers.colCreated')}</TableHead>
+                <TableHead>{t('adminUsers.colApiKey')}</TableHead>
+                <TableHead className="text-right">{t('adminUsers.colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -237,7 +239,7 @@ export default function AdminUsers() {
                         <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{u.folderName || u.username}</code>
                         <Button
                           variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Rename folder"
+                          title={t('adminUsers.titleRenameFolder')}
                           onClick={() => startEditFolder(u._id, u.folderName || u.username)}
                         >
                           <FontAwesomeIcon icon={faPencil} className="h-3 w-3" />
@@ -252,7 +254,7 @@ export default function AdminUsers() {
                   <TableCell className="text-muted-foreground">{fmtSize(u.storageUsed)}</TableCell>
                   <TableCell>
                     <Badge variant={u.isActive ? 'outline' : 'destructive'} className={u.isActive ? 'border-green-500/50 text-green-400' : ''}>
-                      {u.isActive ? 'Active' : 'Inactive'}
+                      {u.isActive ? t('adminUsers.statusActive') : t('adminUsers.statusInactive')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{fmtDate(u.createdAt)}</TableCell>
@@ -266,21 +268,21 @@ export default function AdminUsers() {
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
-                          title={u.isActive ? 'Deactivate' : 'Activate'}
+                          title={u.isActive ? t('adminUsers.titleDeactivate') : t('adminUsers.titleActivate')}
                           onClick={() => toggleUser(u._id, u.username, u.isActive)}
                         >
                           <FontAwesomeIcon icon={faPowerOff} className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
-                          title="Change password"
+                          title={t('adminUsers.titleChangePassword')}
                           onClick={() => openPwDialog(u._id, u.username)}
                         >
                           <FontAwesomeIcon icon={faKey} className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
-                          title="Regenerate API key"
+                          title={t('adminUsers.titleRegenKey')}
                           onClick={() => regenKey(u._id, u.username)}
                         >
                           <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />
@@ -293,22 +295,22 @@ export default function AdminUsers() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                              <AlertDialogTitle>{t('adminUsers.deleteUser')}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                User "{u.username}" and all their files ({u.fileCount}) will be permanently deleted.
+                                {t('adminUsers.deleteUserDesc', { username: u.username, count: u.fileCount })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>{t('adminUsers.cancel')}</AlertDialogCancel>
                               <AlertDialogAction onClick={() => deleteUser(u._id, u.username)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Delete
+                                {t('adminUsers.delete')}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
                     )}
-                    {u._id === me?.id && <span className="text-xs text-muted-foreground pr-2">(you)</span>}
+                    {u._id === me?.id && <span className="text-xs text-muted-foreground pr-2">{t('adminUsers.selfLabel')}</span>}
                   </TableCell>
                 </TableRow>
               ))}
@@ -320,10 +322,10 @@ export default function AdminUsers() {
       <Dialog open={!!pwDialog} onOpenChange={(open) => { if (!open) setPwDialog(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Change password for "{pwDialog?.username}"</DialogTitle>
+            <DialogTitle>{t('adminUsers.changePwTitle', { username: pwDialog?.username })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-1.5 py-2">
-            <Label>New password</Label>
+            <Label>{t('adminUsers.newPassword')}</Label>
             <Input
               type="password"
               value={newPw}
@@ -334,9 +336,9 @@ export default function AdminUsers() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPwDialog(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setPwDialog(null)}>{t('adminUsers.cancel')}</Button>
             <Button onClick={savePassword} disabled={savingPw}>
-              {savingPw ? 'Saving…' : 'Save'}
+              {savingPw ? t('adminUsers.saving') : t('adminUsers.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

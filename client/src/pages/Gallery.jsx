@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,21 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 
 function buildPageItems(page, pages) {
@@ -44,41 +56,119 @@ const TYPE_ICONS = {
   file: faFile,
 };
 
-function FileCard({ file }) {
+function FileCard({ file, user, onDelete }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const icon = TYPE_ICONS[file.displayType] || faFile;
+  const canDelete = user && (user.role === 'admin' || user.id === file.uploader?._id);
+
+  function copyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/f/${file.shortId}`);
+    toast({ title: t('fileView.urlCopied') });
+  }
+
+  async function handleDelete() {
+    const r = await fetch(`/api/file/${file.shortId}`, { method: 'DELETE' });
+    if (r.ok) {
+      toast({ title: t('fileView.fileDeleted') });
+      onDelete?.();
+    } else {
+      toast({ title: t('fileView.deleteFailed'), variant: 'destructive' });
+    }
+  }
+
   return (
-    <Link
-      to={`/f/${file.shortId}`}
-      className="group rounded-lg border bg-card overflow-hidden flex flex-col hover:border-primary/60 transition-colors"
-    >
-      <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
-        {file.displayType === 'image' ? (
-          <img
-            src={`/f/${file.shortId}/raw`}
-            alt={file.originalName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-            loading="lazy"
-          />
-        ) : (
-          <FontAwesomeIcon icon={icon} className="h-12 w-12 text-muted-foreground/50" />
-        )}
-      </div>
-      <div className="p-3 space-y-1">
-        <p className="text-sm font-medium truncate" title={file.originalName}>
-          {file.originalName}
-        </p>
-        <div className="flex items-center justify-between">
-          <Badge variant="secondary" className="text-xs px-1.5 py-0">
-            {file.displayType}
-          </Badge>
-          <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
-        </div>
-        {file.uploader && (
-          <p className="text-xs text-muted-foreground truncate">{t('gallery.by')} {file.uploader.username}</p>
-        )}
-      </div>
-    </Link>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <Link
+            to={`/f/${file.shortId}`}
+            className="group rounded-lg border bg-card overflow-hidden flex flex-col hover:border-primary/60 transition-colors"
+          >
+            <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
+              {file.displayType === 'image' ? (
+                <img
+                  src={`/f/${file.shortId}/raw`}
+                  alt={file.originalName}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  loading="lazy"
+                />
+              ) : (
+                <FontAwesomeIcon icon={icon} className="h-12 w-12 text-muted-foreground/50" />
+              )}
+            </div>
+            <div className="p-3 space-y-1">
+              <p className="text-sm font-medium truncate" title={file.originalName}>
+                {file.originalName}
+              </p>
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                  {file.displayType}
+                </Badge>
+                <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
+              </div>
+              {file.uploader && (
+                <p className="text-xs text-muted-foreground truncate">{t('gallery.by')} {file.uploader.username}</p>
+              )}
+            </div>
+          </Link>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          <ContextMenuItem onSelect={() => navigate(`/f/${file.shortId}`)}>
+            <FontAwesomeIcon icon={faFile} className="h-4 w-4" />
+            {t('gallery.contextOpen')}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={copyLink}>
+            <FontAwesomeIcon icon={faLink} className="h-4 w-4" />
+            {t('gallery.contextCopyLink')}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => window.open(`/f/${file.shortId}/raw`, '_blank')}>
+            <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-4 w-4" />
+            {t('gallery.contextOpenRaw')}
+          </ContextMenuItem>
+          <ContextMenuItem asChild>
+            <a href={`/f/${file.shortId}/download`} download>
+              <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />
+              {t('gallery.contextDownload')}
+            </a>
+          </ContextMenuItem>
+          {canDelete && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onSelect={() => setConfirmDelete(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
+                {t('fileView.delete')}
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('fileView.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('fileView.deleteDescription', { name: file.originalName })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('fileView.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('fileView.confirmDelete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -196,7 +286,7 @@ export default function Gallery() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {files.map((f) => <FileCard key={f._id} file={f} />)}
+          {files.map((f) => <FileCard key={f._id} file={f} user={user} onDelete={fetchFiles} />)}
         </div>
       )}
 
