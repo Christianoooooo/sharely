@@ -7,11 +7,19 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { Upload as UploadIcon, X, Download, RefreshCw, Copy } from 'lucide-react';
 
-const CHUNK_THRESHOLD = 100 * 1024 * 1024; // 100 MB
-const CHUNK_SIZE = 99 * 1024 * 1024;       // 99 MB per chunk
+const MB = 1024 * 1024;
+
+// Returns { chunkSize, parallelism } for files that need chunking, null otherwise.
+function getChunkConfig(size) {
+  if (size <  100 * MB) return null;                           // < 100 MB  → single request
+  if (size <  250 * MB) return { chunkSize: 10 * MB, parallelism: 3 }; // 100–250 MB
+  if (size < 1000 * MB) return { chunkSize: 15 * MB, parallelism: 4 }; // 250 MB–1 GB
+  return                       { chunkSize: 20 * MB, parallelism: 5 }; // 1–2 GB
+}
 
 async function uploadChunked(file, onProgress) {
-  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const { chunkSize, parallelism } = getChunkConfig(file.size);
+  const totalChunks = Math.ceil(file.size / chunkSize);
 
   // 1. Init session
   const initRes = await fetch('/api/chunk/init', {
@@ -28,25 +36,33 @@ async function uploadChunked(file, onProgress) {
   if (!initRes.ok) throw new Error(initData.error || 'Failed to init upload');
   const { uploadId } = initData;
 
-  // 2. Upload chunks sequentially
+  // 2. Upload chunks in parallel batches
+  let completed = 0;
+
+  async function sendChunk(i) {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, file.size);
+    const fd = new FormData();
+    fd.append('chunk', file.slice(start, end));
+    fd.append('chunkIndex', i);
+    fd.append('totalChunks', totalChunks);
+
+    const r = await fetch(`/api/chunk/${uploadId}`, { method: 'POST', body: fd });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || `Failed to upload chunk ${i}`);
+    }
+    completed++;
+    onProgress(Math.round((completed / totalChunks) * 100));
+  }
+
   try {
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = file.slice(start, end);
-
-      const fd = new FormData();
-      fd.append('chunk', chunk);
-      fd.append('chunkIndex', i);
-      fd.append('totalChunks', totalChunks);
-
-      const r = await fetch(`/api/chunk/${uploadId}`, { method: 'POST', body: fd });
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to upload chunk ${i}`);
+    for (let i = 0; i < totalChunks; i += parallelism) {
+      const batch = [];
+      for (let j = i; j < Math.min(i + parallelism, totalChunks); j++) {
+        batch.push(sendChunk(j));
       }
-
-      onProgress(Math.round(((i + 1) / totalChunks) * 100));
+      await Promise.all(batch);
     }
 
     // 3. Assemble
@@ -94,8 +110,8 @@ export default function Upload() {
     setUploading(true);
     setProgress({});
 
-    const smallFiles = files.filter((f) => f.size < CHUNK_THRESHOLD);
-    const largeFiles = files.filter((f) => f.size >= CHUNK_THRESHOLD);
+    const smallFiles = files.filter((f) => getChunkConfig(f.size) === null);
+    const largeFiles = files.filter((f) => getChunkConfig(f.size) !== null);
     const allResults = [];
 
     try {
@@ -189,7 +205,7 @@ export default function Upload() {
             {files.map((f, i) => {
               const key = f.name + f.size;
               const pct = progress[key];
-              const isLarge = f.size >= CHUNK_THRESHOLD;
+              const isLarge = getChunkConfig(f.size) !== null;
               const isUploading = uploading && isLarge && pct !== undefined;
 
               return (
