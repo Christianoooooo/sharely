@@ -108,8 +108,13 @@ function FileViewer({ file }) {
 
   if (displayType === 'image') {
     return (
-      <div className="flex items-center justify-center p-4 min-h-[40vh]">
-        <img src={`/f/${shortId}/raw`} alt={file.originalName} className="max-w-full max-h-[80vh] object-contain rounded" />
+      <div className="flex items-center justify-center p-4 min-h-[60vh]">
+        <img
+          src={`/f/${shortId}/raw`}
+          alt={file.originalName}
+          className="max-w-full max-h-[90vh] object-contain rounded cursor-zoom-in"
+          onDoubleClick={() => window.open(`/f/${shortId}/raw`, '_blank')}
+        />
       </div>
     );
   }
