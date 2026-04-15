@@ -1,7 +1,8 @@
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva } from "class-variance-authority";
-import { X } from "lucide-react"
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faXmark } from '@fortawesome/free-solid-svg-icons'
 
 import { cn } from "@/lib/utils"
 
@@ -64,7 +65,7 @@ const ToastClose = React.forwardRef(({ className, ...props }, ref) => (
     )}
     toast-close=""
     {...props}>
-    <X className="h-4 w-4" />
+    <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
   </ToastPrimitives.Close>
 ))
 ToastClose.displayName = ToastPrimitives.Close.displayName

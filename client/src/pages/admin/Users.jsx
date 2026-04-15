@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
-import { RefreshCw, Trash2, UserPlus, Power, Pencil, Check, X, KeyRound } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRotate, faTrash, faUserPlus, faPowerOff, faPencil, faCheck, faXmark, faKey } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
@@ -150,7 +151,7 @@ export default function AdminUsers() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />Create User
+            <FontAwesomeIcon icon={faUserPlus} className="h-4 w-4" />Create User
           </CardTitle>
           <CardDescription>New users are created with a random API key</CardDescription>
         </CardHeader>
@@ -225,10 +226,10 @@ export default function AdminUsers() {
                           }}
                         />
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => saveFolder(u._id)}>
-                          <Check className="h-3.5 w-3.5 text-green-500" />
+                          <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5 text-green-500" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditFolder}>
-                          <X className="h-3.5 w-3.5" />
+                          <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     ) : (
@@ -239,7 +240,7 @@ export default function AdminUsers() {
                           title="Rename folder"
                           onClick={() => startEditFolder(u._id, u.folderName || u.username)}
                         >
-                          <Pencil className="h-3 w-3" />
+                          <FontAwesomeIcon icon={faPencil} className="h-3 w-3" />
                         </Button>
                       </div>
                     )}
@@ -268,26 +269,26 @@ export default function AdminUsers() {
                           title={u.isActive ? 'Deactivate' : 'Activate'}
                           onClick={() => toggleUser(u._id, u.username, u.isActive)}
                         >
-                          <Power className="h-3.5 w-3.5" />
+                          <FontAwesomeIcon icon={faPowerOff} className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
                           title="Change password"
                           onClick={() => openPwDialog(u._id, u.username)}
                         >
-                          <KeyRound className="h-3.5 w-3.5" />
+                          <FontAwesomeIcon icon={faKey} className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost" size="icon" className="h-8 w-8"
                           title="Regenerate API key"
                           onClick={() => regenKey(u._id, u.username)}
                         >
-                          <RefreshCw className="h-3.5 w-3.5" />
+                          <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>

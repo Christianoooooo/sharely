@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { fmtSize, fmtDate } from '@/lib/utils';
-import { Users, Files, HardDrive, Trash2 } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUsers, faFolderOpen, faHardDrive, faTrash } from '@fortawesome/free-solid-svg-icons';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -38,9 +39,9 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
-    { label: 'Users', value: stats.userCount, icon: Users },
-    { label: 'Files', value: stats.fileCount, icon: Files },
-    { label: 'Storage', value: fmtSize(stats.totalSize), icon: HardDrive },
+    { label: 'Users', value: stats.userCount, icon: faUsers },
+    { label: 'Files', value: stats.fileCount, icon: faFolderOpen },
+    { label: 'Storage', value: fmtSize(stats.totalSize), icon: faHardDrive },
   ];
 
   return (
@@ -55,11 +56,11 @@ export default function AdminDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {statCards.map(({ label, value, icon: Icon }) => (
+        {statCards.map(({ label, value, icon }) => (
           <Card key={label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
+              <FontAwesomeIcon icon={icon} className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{value}</div>
@@ -103,7 +104,7 @@ export default function AdminDashboard() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
+                          <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

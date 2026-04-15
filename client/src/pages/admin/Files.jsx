@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
-import { Search, X, Trash2 } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMagnifyingGlass, faXmark, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -86,7 +87,7 @@ export default function AdminFiles() {
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search by filename…"
             value={searchInput}
@@ -96,7 +97,7 @@ export default function AdminFiles() {
           {searchInput && (
             <button type="button" onClick={() => { setSearchInput(''); setSearchParams({ page: 1 }); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
+              <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -134,7 +135,7 @@ export default function AdminFiles() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
+                          <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

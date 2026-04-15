@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faKey } from '@fortawesome/free-solid-svg-icons';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -49,7 +50,7 @@ export default function Settings() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <KeyRound className="h-4 w-4" />Change Password
+            <FontAwesomeIcon icon={faKey} className="h-4 w-4" />Change Password
           </CardTitle>
           <CardDescription>Update your account password</CardDescription>
         </CardHeader>

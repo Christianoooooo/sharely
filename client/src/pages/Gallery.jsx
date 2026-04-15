@@ -15,7 +15,8 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { fmtSize } from '@/lib/utils';
-import { Upload, Search, X, Image, Video, Music, FileText, Code2, FileIcon } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile } from '@fortawesome/free-solid-svg-icons';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -33,17 +34,17 @@ function buildPageItems(page, pages) {
 }
 
 const TYPE_ICONS = {
-  image: Image,
-  video: Video,
-  audio: Music,
-  pdf: FileText,
-  code: Code2,
-  text: FileText,
-  file: FileIcon,
+  image: faImage,
+  video: faVideo,
+  audio: faMusic,
+  pdf: faFileLines,
+  code: faCode,
+  text: faFileLines,
+  file: faFile,
 };
 
 function FileCard({ file }) {
-  const Icon = TYPE_ICONS[file.displayType] || FileIcon;
+  const icon = TYPE_ICONS[file.displayType] || faFile;
   return (
     <Link
       to={`/f/${file.shortId}`}
@@ -58,7 +59,7 @@ function FileCard({ file }) {
             loading="lazy"
           />
         ) : (
-          <Icon className="h-12 w-12 text-muted-foreground/50" />
+          <FontAwesomeIcon icon={icon} className="h-12 w-12 text-muted-foreground/50" />
         )}
       </div>
       <div className="p-3 space-y-1">
@@ -133,14 +134,14 @@ export default function Gallery() {
           </p>
         </div>
         <Button asChild>
-          <Link to="/upload"><Upload className="h-4 w-4 mr-2" />Upload</Link>
+          <Link to="/upload"><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />Upload</Link>
         </Button>
       </div>
 
       {/* Search & filter */}
       <form onSubmit={handleSearch} className="flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search files…"
             value={searchInput}
@@ -149,7 +150,7 @@ export default function Gallery() {
           />
           {searchInput && (
             <button type="button" onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
+              <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -184,7 +185,7 @@ export default function Gallery() {
         </div>
       ) : files.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 text-muted-foreground">
-          <FileIcon className="h-16 w-16 opacity-20" />
+          <FontAwesomeIcon icon={faFile} className="h-16 w-16 opacity-20" />
           <p className="text-lg">No files found</p>
           <Button asChild variant="outline">
             <Link to="/upload">Upload your first file</Link>
