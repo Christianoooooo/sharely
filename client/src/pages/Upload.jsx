@@ -7,6 +7,60 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { Upload as UploadIcon, X, Download, RefreshCw, Copy } from 'lucide-react';
 
+const CHUNK_THRESHOLD = 100 * 1024 * 1024; // 100 MB
+const CHUNK_SIZE = 10 * 1024 * 1024;       // 10 MB per chunk
+
+async function uploadChunked(file, onProgress) {
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+  // 1. Init session
+  const initRes = await fetch('/api/chunk/init', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      totalSize: file.size,
+      totalChunks,
+    }),
+  });
+  const initData = await initRes.json();
+  if (!initRes.ok) throw new Error(initData.error || 'Failed to init upload');
+  const { uploadId } = initData;
+
+  // 2. Upload chunks sequentially
+  try {
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+
+      const fd = new FormData();
+      fd.append('chunk', chunk);
+      fd.append('chunkIndex', i);
+      fd.append('totalChunks', totalChunks);
+
+      const r = await fetch(`/api/chunk/${uploadId}`, { method: 'POST', body: fd });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to upload chunk ${i}`);
+      }
+
+      onProgress(Math.round(((i + 1) / totalChunks) * 100));
+    }
+
+    // 3. Assemble
+    const completeRes = await fetch(`/api/chunk/${uploadId}/complete`, { method: 'POST' });
+    const completeData = await completeRes.json();
+    if (!completeRes.ok) throw new Error(completeData.error || 'Failed to complete upload');
+    return completeData;
+  } catch (err) {
+    // Best-effort cleanup
+    fetch(`/api/chunk/${uploadId}`, { method: 'DELETE' }).catch(() => {});
+    throw err;
+  }
+}
+
 export default function Upload() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -14,6 +68,7 @@ export default function Upload() {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [progress, setProgress] = useState({}); // key: name+size → 0-100
   const fileInputRef = useRef(null);
 
   const addFiles = useCallback((incoming) => {
@@ -37,19 +92,41 @@ export default function Upload() {
   async function handleUpload() {
     if (files.length === 0) return;
     setUploading(true);
-    const fd = new FormData();
-    files.forEach((f) => fd.append('files', f));
+    setProgress({});
+
+    const smallFiles = files.filter((f) => f.size < CHUNK_THRESHOLD);
+    const largeFiles = files.filter((f) => f.size >= CHUNK_THRESHOLD);
+    const allResults = [];
 
     try {
-      const r = await fetch('/api/web-upload', { method: 'POST', body: fd });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || 'Upload failed');
+      // Upload small files in one batch (existing behaviour)
+      if (smallFiles.length > 0) {
+        const fd = new FormData();
+        smallFiles.forEach((f) => fd.append('files', f));
+        const r = await fetch('/api/web-upload', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Upload failed');
+        allResults.push(...data.files);
+      }
 
-      toast({ title: `Uploaded ${data.files.length} file${data.files.length !== 1 ? 's' : ''}` });
+      // Upload large files one by one via chunked API
+      for (const file of largeFiles) {
+        const key = file.name + file.size;
+        setProgress((prev) => ({ ...prev, [key]: 0 }));
+
+        const data = await uploadChunked(file, (pct) => {
+          setProgress((prev) => ({ ...prev, [key]: pct }));
+        });
+
+        allResults.push(...data.files);
+      }
+
+      toast({ title: `Uploaded ${allResults.length} file${allResults.length !== 1 ? 's' : ''}` });
       setFiles([]);
+      setProgress({});
 
-      if (data.files.length === 1) {
-        navigate(`/f/${data.files[0].shortId}`);
+      if (allResults.length === 1) {
+        navigate(`/f/${allResults[0].shortId}`);
       } else {
         navigate('/gallery');
       }
@@ -109,17 +186,39 @@ export default function Upload() {
             <CardTitle className="text-base">{files.length} file{files.length !== 1 ? 's' : ''} selected</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {files.map((f, i) => (
-              <div key={i} className="flex items-center justify-between text-sm border rounded-md px-3 py-2">
-                <span className="truncate max-w-[70%]">{f.name}</span>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-muted-foreground">{fmtSize(f.size)}</span>
-                  <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
-                    <X className="h-4 w-4" />
-                  </button>
+            {files.map((f, i) => {
+              const key = f.name + f.size;
+              const pct = progress[key];
+              const isLarge = f.size >= CHUNK_THRESHOLD;
+              const isUploading = uploading && isLarge && pct !== undefined;
+
+              return (
+                <div key={i} className="border rounded-md px-3 py-2 text-sm space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate max-w-[70%]">{f.name}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-muted-foreground">{fmtSize(f.size)}</span>
+                      {!uploading && (
+                        <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isUploading && (
+                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                  {isUploading && (
+                    <p className="text-xs text-muted-foreground">{pct}%</p>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <Button className="w-full mt-2" onClick={handleUpload} disabled={uploading}>
               {uploading ? 'Uploading…' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
             </Button>
