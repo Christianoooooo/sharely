@@ -44,7 +44,7 @@ export function Layout({ children }) {
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 flex h-14 items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <Link to="/" className="font-bold text-primary text-sm tracking-widest uppercase">IST</Link>
+            <Link to="/" className="font-bold text-primary text-sm tracking-widest uppercase">sharely</Link>
             <Separator orientation="vertical" className="h-5" />
             <nav className="flex items-center gap-1">
               <NavLink to="/gallery" icon={faImages}>Gallery</NavLink>
