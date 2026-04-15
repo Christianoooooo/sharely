@@ -102,8 +102,19 @@ export function Layout({ children }) {
         {children}
       </main>
 
-      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-        instant-sharing-tool
+      <footer className="border-t py-4 text-center text-xs text-muted-foreground space-y-1">
+        <div>
+          Powered by{' '}
+          <a
+            href="https://github.com/Christianoooooo/instant-sharing-tool"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            Christian
+          </a>
+        </div>
+        <div>Licensed under the MIT License</div>
       </footer>
     </div>
   );
