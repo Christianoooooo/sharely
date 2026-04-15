@@ -1,5 +1,5 @@
 {
-  "name": "instant-sharing-tool",
+  "name": "sharely",
   "version": "1.0.0",
   "description": "Lightweight file manager with ShareX and *NIX support",
   "main": "app.js",

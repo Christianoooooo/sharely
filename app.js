@@ -81,6 +81,6 @@ const PORT = process.env.PORT || 3000;
   await connectDB();
   await migrateUserFolders();
   app.listen(PORT, () => {
-    console.log(`instant-sharing-tool running on http://localhost:${PORT}`);
+    console.log(`sharely running on http://localhost:${PORT}`);
   });
 })();

@@ -136,7 +136,7 @@ Users are matched by username. Files without a matching user are assigned to a f
 ## Project Structure
 
 ```
-instant-sharing-tool/
+sharely/
 ├── app.js                  # Express entry point
 ├── src/
 │   ├── config/db.js        # MongoDB connection

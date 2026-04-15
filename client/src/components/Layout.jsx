@@ -106,7 +106,7 @@ export function Layout({ children }) {
         <div>
           Powered by{' '}
           <a
-            href="https://github.com/Christianoooooo/instant-sharing-tool"
+            href="https://github.com/Christianoooooo/sharely"
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-2 hover:text-foreground transition-colors"
