@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -15,10 +16,32 @@ import AdminFiles from '@/pages/admin/Files';
 import AdminImport from '@/pages/admin/Import';
 import Settings from '@/pages/Settings';
 
+const PAGE_TITLES = {
+  '/gallery': 'Gallery',
+  '/upload': 'Upload',
+  '/settings': 'Settings',
+  '/admin': 'Dashboard',
+  '/admin/users': 'Users',
+  '/admin/files': 'Files',
+  '/admin/import': 'Import',
+  '/auth/login': 'Login',
+  '/auth/register': 'Register',
+};
+
+function TitleUpdater() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const page = PAGE_TITLES[pathname];
+    document.title = page ? `SHARELY | ${page}` : 'SHARELY';
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <TitleUpdater />
         <Routes>
           {/* Public */}
           <Route path="/auth/login" element={<Login />} />
