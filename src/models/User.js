@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: 64,
   },
+  avatarExt: {
+    type: String,
+    default: null,
+  },
   isActive: {
     type: Boolean,
     default: true,

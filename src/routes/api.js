@@ -19,6 +19,21 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many uploads, please try again later.' },
 });
 
+// ── Avatar helpers ──────────────────────────────────────────────────────────
+const AVATAR_DIR = path.resolve(__dirname, '../../uploads/.avatars');
+fs.mkdirSync(AVATAR_DIR, { recursive: true });
+
+const avatarMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
 // ── Chunk upload helpers ────────────────────────────────────────────────────
 const CHUNK_DIR = path.resolve(__dirname, '../../uploads/.chunks');
 fs.mkdirSync(CHUNK_DIR, { recursive: true });
@@ -521,6 +536,58 @@ router.delete('/chunk/:uploadId', requireLogin, (req, res) => {
     }
   } catch { /* ignore invalid IDs */ }
   res.json({ success: true });
+});
+
+// ── Avatar: upload ──────────────────────────────────────────────────────────
+router.post('/user/avatar', requireLogin, avatarMulter.single('avatar'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+  const mimeToExt = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp' };
+  const ext = path.extname(req.file.originalname).toLowerCase() || mimeToExt[req.file.mimetype] || '.jpg';
+
+  const userId = req.session.user.id;
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+
+  if (user.avatarExt) {
+    try { fs.unlinkSync(path.join(AVATAR_DIR, `${userId}${user.avatarExt}`)); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  }
+
+  fs.writeFileSync(path.join(AVATAR_DIR, `${userId}${ext}`), req.file.buffer);
+  user.avatarExt = ext;
+  await user.save();
+
+  res.json({ avatarUrl: `/api/user/avatar/${userId}` });
+});
+
+// ── Avatar: delete ──────────────────────────────────────────────────────────
+router.delete('/user/avatar', requireLogin, async (req, res) => {
+  const userId = req.session.user.id;
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+
+  if (user.avatarExt) {
+    try { fs.unlinkSync(path.join(AVATAR_DIR, `${userId}${user.avatarExt}`)); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+    user.avatarExt = null;
+    await user.save();
+  }
+
+  res.json({ success: true });
+});
+
+// ── Avatar: serve ───────────────────────────────────────────────────────────
+router.get('/user/avatar/:userId', async (req, res) => {
+  if (!/^[a-f0-9]{24}$/i.test(req.params.userId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  const user = await User.findById(req.params.userId).select('avatarExt');
+  if (!user || !user.avatarExt) return res.status(404).json({ error: 'No avatar' });
+
+  const avatarPath = path.join(AVATAR_DIR, `${req.params.userId}${user.avatarExt}`);
+  if (!fs.existsSync(avatarPath)) return res.status(404).json({ error: 'Avatar not found' });
+
+  res.sendFile(avatarPath);
 });
 
 // ── Admin: all files ────────────────────────────────────────────────────────

@@ -5,9 +5,18 @@ const User = require('../models/User');
 const allowRegistration = () => process.env.ALLOW_REGISTRATION !== 'false';
 
 // GET /api/auth/me
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
-  res.json({ user: req.session.user });
+  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt');
+  if (!dbUser) return res.status(401).json({ error: 'Not authenticated' });
+  res.json({
+    user: {
+      id: dbUser._id,
+      username: dbUser.username,
+      role: dbUser.role,
+      avatarUrl: dbUser.avatarExt ? `/api/user/avatar/${dbUser._id}` : null,
+    },
+  });
 });
 
 // POST /api/auth/login

@@ -1,18 +1,26 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faKey } from '@fortawesome/free-solid-svg-icons';
+import { faKey, faUser, faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
 
 export default function Settings() {
   const { toast } = useToast();
+  const { user, refreshUser } = useAuth();
+
+  // Password form
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [saving, setSaving] = useState(false);
 
-  async function handleSubmit(e) {
+  // Avatar
+  const avatarInputRef = useRef(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  async function handlePasswordSubmit(e) {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) {
       toast({ title: 'New passwords do not match', variant: 'destructive' });
@@ -43,10 +51,104 @@ export default function Settings() {
     }
   }
 
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setUploadingAvatar(true);
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const r = await fetch('/api/user/avatar', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: 'Profile picture updated' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function handleAvatarRemove() {
+    setUploadingAvatar(true);
+    try {
+      const r = await fetch('/api/user/avatar', { method: 'DELETE' });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: 'Profile picture removed' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   return (
     <div className="max-w-md space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
 
+      {/* Profile Picture */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faUser} className="h-4 w-4" />Profile Picture
+          </CardTitle>
+          <CardDescription>Visible in the navigation bar</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0 border">
+              {user?.avatarUrl ? (
+                <img
+                  src={`${user.avatarUrl}?t=${Date.now()}`}
+                  alt="Profile picture"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <FontAwesomeIcon icon={faUser} className="h-7 w-7 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleAvatarUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+              >
+                <FontAwesomeIcon icon={faUpload} className="h-3.5 w-3.5" />
+                {uploadingAvatar ? 'Uploading…' : 'Upload picture'}
+              </Button>
+              {user?.avatarUrl && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-destructive hover:text-destructive"
+                  onClick={handleAvatarRemove}
+                  disabled={uploadingAvatar}
+                >
+                  <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                  Remove picture
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">Max 2 MB · Images only</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Change Password */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -55,7 +157,7 @@ export default function Settings() {
           <CardDescription>Update your account password</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="currentPassword">Current password</Label>
               <Input
