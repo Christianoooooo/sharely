@@ -5,10 +5,10 @@
  *   mongosh < scripts/setup-db.js
  *
  * After running, set MONGODB_URI in your .env to:
- *   mongodb://appuser:<password>@localhost:27017/instant-sharing-tool?authSource=instant-sharing-tool
+ *   mongodb://appuser:<password>@localhost:27017/sharely?authSource=sharely
  */
 
-const DB_NAME = 'instant-sharing-tool';
+const DB_NAME = 'sharely';
 const APP_USER = 'appuser';
 
 // Change this before running!

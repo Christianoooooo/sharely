@@ -4,7 +4,7 @@ services:
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      MONGODB_URI: "mongodb://${MONGO_APP_USER:-appuser}:${MONGO_APP_PASSWORD}@mongo:27017/instant-sharing-tool?authSource=instant-sharing-tool"
+      MONGODB_URI: "mongodb://${MONGO_APP_USER:-appuser}:${MONGO_APP_PASSWORD}@mongo:27017/sharely?authSource=sharely"
       SESSION_SECRET: "${SESSION_SECRET}"
       BASE_URL: "${BASE_URL:-http://localhost:3000}"
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-100}"
@@ -23,7 +23,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: "${MONGO_ROOT_PASSWORD}"
-      MONGO_INITDB_DATABASE: instant-sharing-tool
+      MONGO_INITDB_DATABASE: sharely
       MONGO_APP_USER: "${MONGO_APP_USER:-appuser}"
       MONGO_APP_PASSWORD: "${MONGO_APP_PASSWORD}"
     volumes:

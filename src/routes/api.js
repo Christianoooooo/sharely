@@ -153,7 +153,7 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
   };
 
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Content-Disposition', 'attachment; filename="instant-sharing-tool.sxcu"');
+  res.setHeader('Content-Disposition', 'attachment; filename="sharely.sxcu"');
   res.send(JSON.stringify(config, null, 2));
 });
 

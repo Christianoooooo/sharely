@@ -10,10 +10,10 @@ if (!appPass) {
   throw new Error('MONGO_APP_PASSWORD is not set – cannot create app user.');
 }
 
-db.getSiblingDB('instant-sharing-tool').createUser({
+db.getSiblingDB('sharely').createUser({
   user: appUser,
   pwd: appPass,
-  roles: [{ role: 'readWrite', db: 'instant-sharing-tool' }],
+  roles: [{ role: 'readWrite', db: 'sharely' }],
 });
 
-print(`MongoDB: created user '${appUser}' on database 'instant-sharing-tool'.`);
+print(`MongoDB: created user '${appUser}' on database 'sharely'.`);
