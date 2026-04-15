@@ -172,7 +172,7 @@ function FileViewInner() {
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data) => setFile(data.file))
       .catch((code) => setError(code === 404 ? t('fileView.fileNotFound') : t('fileView.loadFailed')));
-  }, [shortId, t]);
+  }, [shortId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDelete() {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
