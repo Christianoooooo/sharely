@@ -2,9 +2,12 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 const { rateLimit } = require('express-rate-limit');
 const { requireLogin, requireAdmin, requireApiKey } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { isBlockedFile } = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
 
@@ -15,6 +18,23 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many uploads, please try again later.' },
 });
+
+// ── Chunk upload helpers ────────────────────────────────────────────────────
+const CHUNK_DIR = path.resolve(__dirname, '../../uploads/.chunks');
+fs.mkdirSync(CHUNK_DIR, { recursive: true });
+
+// Multer for individual chunks (memory storage, max 11 MB to accommodate 10 MB chunks)
+const chunkMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 11 * 1024 * 1024 },
+});
+
+function resolveChunkDir(uploadId) {
+  if (!/^[a-f0-9]{32}$/.test(uploadId)) {
+    throw new Error('Invalid upload ID');
+  }
+  return path.join(CHUNK_DIR, uploadId);
+}
 
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
@@ -326,6 +346,177 @@ router.patch('/user/password', requireLogin, async (req, res) => {
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
   user.password = newPassword;
   await user.save();
+  res.json({ success: true });
+});
+
+// ── Chunked upload: init session ───────────────────────────────────────────
+router.post('/chunk/init', requireLogin, (req, res) => {
+  const { filename, mimeType, totalSize, totalChunks } = req.body;
+
+  if (!filename || !mimeType || !totalSize || !totalChunks) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const totalChunksInt = parseInt(totalChunks, 10);
+  if (!Number.isInteger(totalChunksInt) || totalChunksInt < 1 || totalChunksInt > 10000) {
+    return res.status(400).json({ error: 'Invalid totalChunks' });
+  }
+
+  const totalSizeInt = parseInt(totalSize, 10);
+  if (!Number.isInteger(totalSizeInt) || totalSizeInt < 1) {
+    return res.status(400).json({ error: 'Invalid totalSize' });
+  }
+
+  if (isBlockedFile(mimeType, filename)) {
+    return res.status(400).json({ error: 'File type not allowed' });
+  }
+
+  const uploadId = crypto.randomBytes(16).toString('hex');
+  const sessionDir = resolveChunkDir(uploadId);
+  fs.mkdirSync(sessionDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(sessionDir, 'meta.json'),
+    JSON.stringify({
+      filename,
+      mimeType,
+      totalSize: totalSizeInt,
+      totalChunks: totalChunksInt,
+      userId: req.session.user.id,
+      createdAt: Date.now(),
+    }),
+  );
+
+  res.json({ uploadId });
+});
+
+// ── Chunked upload: receive one chunk ──────────────────────────────────────
+router.post('/chunk/:uploadId', requireLogin, chunkMulter.single('chunk'), (req, res) => {
+  let sessionDir;
+  try {
+    sessionDir = resolveChunkDir(req.params.uploadId);
+  } catch {
+    return res.status(400).json({ error: 'Invalid upload ID' });
+  }
+
+  if (!fs.existsSync(sessionDir)) {
+    return res.status(404).json({ error: 'Upload session not found' });
+  }
+
+  let meta;
+  try {
+    meta = JSON.parse(fs.readFileSync(path.join(sessionDir, 'meta.json'), 'utf8'));
+  } catch {
+    return res.status(500).json({ error: 'Failed to read session metadata' });
+  }
+
+  if (meta.userId !== req.session.user.id.toString()) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const chunkIndex = parseInt(req.body.chunkIndex, 10);
+  if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= meta.totalChunks) {
+    return res.status(400).json({ error: 'Invalid chunkIndex' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No chunk data' });
+  }
+
+  fs.writeFileSync(path.join(sessionDir, `chunk-${chunkIndex}`), req.file.buffer);
+  res.json({ received: chunkIndex });
+});
+
+// ── Chunked upload: assemble final file ────────────────────────────────────
+router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
+  let sessionDir;
+  try {
+    sessionDir = resolveChunkDir(req.params.uploadId);
+  } catch {
+    return res.status(400).json({ error: 'Invalid upload ID' });
+  }
+
+  if (!fs.existsSync(sessionDir)) {
+    return res.status(404).json({ error: 'Upload session not found' });
+  }
+
+  let meta;
+  try {
+    meta = JSON.parse(fs.readFileSync(path.join(sessionDir, 'meta.json'), 'utf8'));
+  } catch {
+    return res.status(500).json({ error: 'Failed to read session metadata' });
+  }
+
+  if (meta.userId !== req.session.user.id.toString()) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  for (let i = 0; i < meta.totalChunks; i++) {
+    if (!fs.existsSync(path.join(sessionDir, `chunk-${i}`))) {
+      return res.status(400).json({ error: `Missing chunk ${i}` });
+    }
+  }
+
+  const user = await User.findById(meta.userId).select('folderName username');
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const folder = user.folderName || user.username;
+  const userDir = path.join(UPLOAD_DIR, folder);
+  fs.mkdirSync(userDir, { recursive: true });
+
+  const ext = path.extname(meta.filename);
+  const fileId = crypto.randomBytes(4).toString('hex');
+  const finalPath = path.join(userDir, `${fileId}${ext}`);
+
+  if (!finalPath.startsWith(UPLOAD_DIR + path.sep)) {
+    return res.status(400).json({ error: 'Invalid file path' });
+  }
+
+  // Stream-assemble chunks into the final file
+  await new Promise((resolve, reject) => {
+    const writeStream = fs.createWriteStream(finalPath);
+    writeStream.on('error', reject);
+    writeStream.on('finish', resolve);
+
+    let i = 0;
+    function writeNext() {
+      if (i >= meta.totalChunks) { writeStream.end(); return; }
+      const readStream = fs.createReadStream(path.join(sessionDir, `chunk-${i}`));
+      readStream.on('error', reject);
+      readStream.on('end', () => { i++; writeNext(); });
+      readStream.pipe(writeStream, { end: false });
+    }
+    writeNext();
+  });
+
+  try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
+
+  const storedName = path.relative(UPLOAD_DIR, finalPath);
+  const doc = await File.create({
+    originalName: meta.filename,
+    storedName,
+    mimeType: meta.mimeType,
+    size: meta.totalSize,
+    uploader: meta.userId,
+  });
+
+  res.json({ files: [doc.toObject()] });
+});
+
+// ── Chunked upload: cancel / cleanup ───────────────────────────────────────
+router.delete('/chunk/:uploadId', requireLogin, (req, res) => {
+  try {
+    const sessionDir = resolveChunkDir(req.params.uploadId);
+    if (fs.existsSync(sessionDir)) {
+      const metaPath = path.join(sessionDir, 'meta.json');
+      if (fs.existsSync(metaPath)) {
+        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        if (meta.userId === req.session.user.id.toString()) {
+          fs.rmSync(sessionDir, { recursive: true, force: true });
+        }
+      }
+    }
+  } catch { /* ignore invalid IDs */ }
   res.json({ success: true });
 });
 

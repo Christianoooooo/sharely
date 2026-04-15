@@ -70,4 +70,10 @@ const upload = multer({
   fileFilter,
 });
 
+function isBlockedFile(mimeType, filename) {
+  const ext = path.extname(filename).toLowerCase();
+  return BLOCKED_MIME_TYPES.has(mimeType) || BLOCKED_EXTENSIONS.has(ext);
+}
+
 module.exports = upload;
+module.exports.isBlockedFile = isBlockedFile;
