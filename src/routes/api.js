@@ -20,7 +20,6 @@ const uploadLimiter = rateLimit({
 });
 
 // ── Avatar helpers ──────────────────────────────────────────────────────────
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 const AVATAR_DIR = path.resolve(__dirname, '../../uploads/.avatars');
 fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
