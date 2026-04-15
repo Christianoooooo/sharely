@@ -37,13 +37,21 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
+  async function refreshUser() {
+    const r = await fetch('/api/auth/me');
+    if (r.ok) {
+      const data = await r.json();
+      setUser(data.user ?? null);
+    }
+  }
+
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
