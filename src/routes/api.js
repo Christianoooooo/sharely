@@ -182,7 +182,7 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
 
   const config = {
     Version: '16.1.0',
-    Name: 'sharly',
+    Name: 'sharely',
     DestinationType: 'ImageUploader, TextUploader, FileUploader',
     RequestMethod: 'POST',
     RequestURL: `${BASE_URL()}/upload`,
