@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80">
+  <!-- Body -->
+  <rect x="4" y="38" width="92" height="36" rx="18" fill="#1e3060"/>
+  <!-- Left bump -->
+  <circle cx="26" cy="38" r="20" fill="#1e3060"/>
+  <!-- Center bump (largest) -->
+  <circle cx="50" cy="24" r="26" fill="#1e3060"/>
+  <!-- Right bump -->
+  <circle cx="70" cy="40" r="16" fill="#1e3060"/>
+</svg>
