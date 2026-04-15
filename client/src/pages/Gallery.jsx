@@ -17,6 +17,7 @@ import {
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -44,6 +45,7 @@ const TYPE_ICONS = {
 };
 
 function FileCard({ file }) {
+  const { t } = useTranslation();
   const icon = TYPE_ICONS[file.displayType] || faFile;
   return (
     <Link
@@ -73,7 +75,7 @@ function FileCard({ file }) {
           <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
         </div>
         {file.uploader && (
-          <p className="text-xs text-muted-foreground truncate">by {file.uploader.username}</p>
+          <p className="text-xs text-muted-foreground truncate">{t('gallery.by')} {file.uploader.username}</p>
         )}
       </div>
     </Link>
@@ -82,6 +84,7 @@ function FileCard({ file }) {
 
 export default function Gallery() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState([]);
   const [total, setTotal] = useState(0);
@@ -127,14 +130,14 @@ export default function Gallery() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Gallery</h1>
+          <h1 className="text-2xl font-bold">{t('gallery.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {total} file{total !== 1 ? 's' : ''}
-            {user?.role !== 'admin' ? ' (yours)' : ''}
+            {t('gallery.filesCount', { count: total })}
+            {user?.role !== 'admin' ? ` ${t('gallery.filesOwned')}` : ''}
           </p>
         </div>
         <Button asChild>
-          <Link to="/upload"><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />Upload</Link>
+          <Link to="/upload"><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />{t('gallery.upload')}</Link>
         </Button>
       </div>
 
@@ -143,7 +146,7 @@ export default function Gallery() {
         <div className="relative flex-1 min-w-[200px]">
           <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search files…"
+            placeholder={t('gallery.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9 pr-9"
@@ -159,15 +162,15 @@ export default function Gallery() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            <SelectItem value="image">Images</SelectItem>
-            <SelectItem value="video">Videos</SelectItem>
-            <SelectItem value="audio">Audio</SelectItem>
+            <SelectItem value="all">{t('gallery.allTypes')}</SelectItem>
+            <SelectItem value="image">{t('gallery.images')}</SelectItem>
+            <SelectItem value="video">{t('gallery.videos')}</SelectItem>
+            <SelectItem value="audio">{t('gallery.audio')}</SelectItem>
             <SelectItem value="pdf">PDF</SelectItem>
-            <SelectItem value="code">Code / Text</SelectItem>
+            <SelectItem value="code">{t('gallery.code')}</SelectItem>
           </SelectContent>
         </Select>
-        <Button type="submit" variant="secondary">Search</Button>
+        <Button type="submit" variant="secondary">{t('gallery.search')}</Button>
       </form>
 
       {/* Grid */}
@@ -186,9 +189,9 @@ export default function Gallery() {
       ) : files.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 text-muted-foreground">
           <FontAwesomeIcon icon={faFile} className="h-16 w-16 opacity-20" />
-          <p className="text-lg">No files found</p>
+          <p className="text-lg">{t('gallery.noFiles')}</p>
           <Button asChild variant="outline">
-            <Link to="/upload">Upload your first file</Link>
+            <Link to="/upload">{t('gallery.uploadFirst')}</Link>
           </Button>
         </div>
       ) : (

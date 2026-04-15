@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faXmark, faDownload, faRotate, faCopy, faFolder } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 const MB = 1024 * 1024;
 
@@ -147,6 +148,7 @@ async function collectFilesFromEntry(entry, prefix = '') {
 export default function Upload() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   // Each entry: { file: File, path: string }
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -244,7 +246,7 @@ export default function Upload() {
         allResults.push(...data.files);
       }
 
-      toast({ title: `Uploaded ${allResults.length} file${allResults.length !== 1 ? 's' : ''}` });
+      toast({ title: t('upload.uploadSuccess', { count: allResults.length }) });
       setFiles([]);
       setProgress({});
 
@@ -254,7 +256,7 @@ export default function Upload() {
         navigate('/gallery');
       }
     } catch (err) {
-      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+      toast({ title: t('upload.uploadFailed'), description: err.message, variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -264,19 +266,19 @@ export default function Upload() {
     const r = await fetch('/api/regen-key', { method: 'POST' });
     const data = await r.json();
     setApiKey(data.apiKey);
-    toast({ title: 'API key regenerated' });
+    toast({ title: t('common.apiKeyRegenerated') });
   }
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
-    toast({ title: 'Copied to clipboard' });
+    toast({ title: t('common.copiedToClipboard') });
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Upload</h1>
-        <p className="text-muted-foreground text-sm mt-1">Drop files or folders, or browse to upload</p>
+        <h1 className="text-2xl font-bold">{t('upload.title')}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t('upload.subtitle')}</p>
       </div>
 
       {/* Drop zone */}
@@ -291,8 +293,8 @@ export default function Upload() {
         `}
       >
         <FontAwesomeIcon icon={faUpload} className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
-        <p className="font-medium">Drop files or folders here or click to browse</p>
-        <p className="text-sm text-muted-foreground mt-1">Images, GIF, video, code, PDF and more</p>
+        <p className="font-medium">{t('upload.dropHint')}</p>
+        <p className="text-sm text-muted-foreground mt-1">{t('upload.supportedTypes')}</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -316,7 +318,7 @@ export default function Upload() {
             onClick={() => folderInputRef.current?.click()}
           >
             <FontAwesomeIcon icon={faFolder} className="h-3.5 w-3.5" />
-            Select folder
+            {t('upload.selectFolder')}
           </Button>
         </div>
       </div>
@@ -325,7 +327,7 @@ export default function Upload() {
       {files.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">{files.length} file{files.length !== 1 ? 's' : ''} selected</CardTitle>
+            <CardTitle className="text-base">{t('upload.filesSelected', { count: files.length })}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {files.map((item, i) => {
@@ -361,7 +363,7 @@ export default function Upload() {
               );
             })}
             <Button className="w-full mt-2" onClick={handleUpload} disabled={uploading}>
-              {uploading ? 'Uploading…' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
+              {uploading ? t('upload.uploading') : t('upload.uploadBtn', { count: files.length })}
             </Button>
           </CardContent>
         </Card>
@@ -373,13 +375,13 @@ export default function Upload() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />ShareX Integration
+            <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />{t('upload.sharex')}
           </CardTitle>
-          <CardDescription>Download the .sxcu config and import it into ShareX</CardDescription>
+          <CardDescription>{t('upload.sharexDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-2 flex-wrap">
           <Button variant="outline" asChild>
-            <a href="/api/sharex-config" download>Download .sxcu</a>
+            <a href="/api/sharex-config" download>{t('upload.downloadSxcu')}</a>
           </Button>
         </CardContent>
       </Card>
@@ -387,8 +389,8 @@ export default function Upload() {
       {/* API */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">API Upload</CardTitle>
-          <CardDescription>Use curl or any HTTP client</CardDescription>
+          <CardTitle className="text-base">{t('upload.apiUpload')}</CardTitle>
+          <CardDescription>{t('upload.apiDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <pre className="rounded-md bg-muted p-4 text-xs overflow-x-auto whitespace-pre-wrap break-all">
@@ -400,7 +402,7 @@ export default function Upload() {
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={regenKey} className="gap-2 shrink-0">
-              <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />Regenerate key
+              <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />{t('upload.regenKey')}
             </Button>
             {apiKey && (
               <div className="flex items-center gap-2 flex-1 min-w-0">

@@ -6,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 function SignupForm({ className, ...props }) {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -31,9 +34,9 @@ function SignupForm({ className, ...props }) {
   return (
     <Card className={cn(className)} {...props}>
       <CardHeader>
-        <CardTitle className="text-2xl">Create an account</CardTitle>
+        <CardTitle className="text-2xl">{t('register.title')}</CardTitle>
         <CardDescription>
-          Enter your information below to create your account
+          {t('register.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -45,7 +48,7 @@ function SignupForm({ className, ...props }) {
               </div>
             )}
             <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t('register.username')}</Label>
               <Input
                 id="username"
                 name="username"
@@ -59,7 +62,7 @@ function SignupForm({ className, ...props }) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('register.password')}</Label>
               <Input
                 id="password"
                 name="password"
@@ -69,11 +72,11 @@ function SignupForm({ className, ...props }) {
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Must be at least 6 characters long.
+                {t('register.passwordHint')}
               </p>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -83,17 +86,17 @@ function SignupForm({ className, ...props }) {
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Please confirm your password.
+                {t('register.confirmPasswordHint')}
               </p>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account…' : 'Create account'}
+              {loading ? t('register.submitting') : t('register.submit')}
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
+            {t('register.hasAccount')}{' '}
             <Link to="/auth/login" className="underline underline-offset-4">
-              Login
+              {t('register.login')}
             </Link>
           </div>
         </form>
@@ -106,6 +109,9 @@ export default function Register() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
+        <div className="flex justify-end mb-4">
+          <LanguageSelector />
+        </div>
         <SignupForm />
       </div>
     </div>
