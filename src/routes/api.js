@@ -419,6 +419,21 @@ router.patch('/user/password', requireLogin, async (req, res) => {
   res.json({ success: true });
 });
 
+// ── User: set embed mode ────────────────────────────────────────────────────
+router.patch('/user/embed-mode', requireLogin, async (req, res) => {
+  const { embedMode } = req.body;
+  if (!['embed', 'raw'].includes(embedMode)) {
+    return res.status(400).json({ error: 'Invalid embed mode' });
+  }
+  const user = await User.findByIdAndUpdate(
+    req.session.user.id,
+    { embedMode },
+    { new: true },
+  );
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json({ embedMode: user.embedMode });
+});
+
 // ── Chunked upload: init session ───────────────────────────────────────────
 router.post('/chunk/init', requireLogin, (req, res) => {
   const { filename, mimeType, totalSize, totalChunks } = req.body;

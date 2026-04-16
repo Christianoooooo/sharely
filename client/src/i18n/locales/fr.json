@@ -98,7 +98,12 @@
     "profileUpdated": "Photo de profil mise à jour",
     "profileRemoved": "Photo de profil supprimée",
     "language": "Langue",
-    "languageDescription": "Choisissez votre langue préférée"
+    "languageDescription": "Choisissez votre langue préférée",
+    "embedMode": "Mode d'intégration Discord",
+    "embedModeDescription": "Contrôle l'affichage de vos fichiers partagés sur Discord ou d'autres plateformes",
+    "embedModeEmbed": "Intégration riche (titre + aperçu image)",
+    "embedModeRaw": "Fichier direct (image / vidéo inline)",
+    "embedModeSaved": "Mode d'intégration mis à jour"
   },
   "fileView": {
     "copyUrl": "Copier l'URL",

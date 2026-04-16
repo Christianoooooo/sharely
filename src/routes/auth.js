@@ -7,7 +7,7 @@ const allowRegistration = () => process.env.ALLOW_REGISTRATION !== 'false';
 // GET /api/auth/me
 router.get('/me', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
-  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt');
+  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt embedMode');
   if (!dbUser) return res.status(401).json({ error: 'Not authenticated' });
   res.json({
     user: {
@@ -15,6 +15,7 @@ router.get('/me', async (req, res) => {
       username: dbUser.username,
       role: dbUser.role,
       avatarUrl: dbUser.avatarExt ? `/api/user/avatar/${dbUser._id}` : null,
+      embedMode: dbUser.embedMode || 'embed',
     },
   });
 });

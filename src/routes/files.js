@@ -1,4 +1,3 @@
-// Raw file serving only — HTML rendering is handled by the React SPA
 const express = require('express');
 const router = express.Router();
 const path = require('path');
@@ -6,6 +5,18 @@ const fs = require('fs');
 const File = require('../models/File');
 
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
+
+/** Regex matching known social-media / link-preview crawlers. */
+const BOT_UA = /discord|twitterbot|facebookexternalhit|telegram|slack|whatsapp|linkedinbot|skype|vkshare|pinterest|tumblr|mastodon/i;
+
+/** Minimal HTML escaping to prevent XSS in meta-tag attribute values. */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 /** Resolve storedName to an absolute path and guard against path traversal. */
 function resolveUploadPath(storedName) {
@@ -60,6 +71,68 @@ function serveFile(req, res, filePath, file, forceDownload = false) {
   res.status(206);
   fs.createReadStream(filePath, { start, end }).pipe(res);
 }
+
+// GET /f/:shortId — embed handler for social-media bots; fall through for browsers
+router.get('/:shortId', async (req, res, next) => {
+  const ua = req.headers['user-agent'] || '';
+  if (!BOT_UA.test(ua)) return next();
+
+  const file = await File.findOne({ shortId: req.params.shortId }).populate('uploader', 'username embedMode');
+  if (!file) return next();
+
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const rawUrl = `${base}/f/${file.shortId}/raw`;
+  const fileUrl = `${base}/f/${file.shortId}`;
+  const embedMode = file.uploader?.embedMode || 'embed';
+
+  // Raw mode: redirect bot directly to the file so the platform embeds it natively
+  if (embedMode === 'raw' && ['image', 'video', 'audio'].includes(file.displayType)) {
+    return res.redirect(302, rawUrl);
+  }
+
+  // Embed mode: serve a thin HTML page with Open Graph / Twitter Card meta tags
+  const title = escapeHtml(file.originalName);
+  const siteName = process.env.SITE_NAME || 'sharely';
+  const isImage = file.displayType === 'image';
+  const isVideo = file.displayType === 'video';
+
+  const metaTags = [
+    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:url" content="${escapeHtml(fileUrl)}" />`,
+    `<meta property="og:site_name" content="${siteName}" />`,
+  ];
+
+  if (isImage) {
+    metaTags.push(`<meta property="og:type" content="website" />`);
+    metaTags.push(`<meta property="og:image" content="${escapeHtml(rawUrl)}" />`);
+    metaTags.push(`<meta name="twitter:card" content="summary_large_image" />`);
+    metaTags.push(`<meta name="twitter:image" content="${escapeHtml(rawUrl)}" />`);
+  } else if (isVideo) {
+    metaTags.push(`<meta property="og:type" content="video.other" />`);
+    metaTags.push(`<meta property="og:video" content="${escapeHtml(rawUrl)}" />`);
+    metaTags.push(`<meta property="og:video:type" content="${escapeHtml(file.mimeType)}" />`);
+    metaTags.push(`<meta property="og:image" content="${escapeHtml(rawUrl)}" />`);
+  } else {
+    metaTags.push(`<meta property="og:type" content="website" />`);
+    metaTags.push(`<meta property="og:description" content="${escapeHtml(file.originalName)}" />`);
+  }
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${title} – ${siteName}</title>
+  ${metaTags.join('\n  ')}
+  <meta http-equiv="refresh" content="0; url=${escapeHtml(fileUrl)}" />
+</head>
+<body>
+  <a href="${escapeHtml(fileUrl)}">View file</a>
+</body>
+</html>`;
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
 
 // GET /f/:shortId/raw — serve file inline
 router.get('/:shortId/raw', async (req, res) => {

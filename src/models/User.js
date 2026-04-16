@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  embedMode: {
+    type: String,
+    enum: ['embed', 'raw'],
+    default: 'embed',
+  },
   isActive: {
     type: Boolean,
     default: true,

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faKey, faUser, faTrash, faUpload, faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +23,30 @@ export default function Settings() {
   // Avatar
   const avatarInputRef = useRef(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Embed mode
+  const [embedMode, setEmbedMode] = useState(user?.embedMode || 'embed');
+  const [savingEmbed, setSavingEmbed] = useState(false);
+
+  async function handleEmbedModeChange(val) {
+    setEmbedMode(val);
+    setSavingEmbed(true);
+    try {
+      const r = await fetch('/api/user/embed-mode', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ embedMode: val }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.embedModeSaved') });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingEmbed(false);
+    }
+  }
 
   async function handlePasswordSubmit(e) {
     e.preventDefault();
@@ -172,6 +196,31 @@ export default function Settings() {
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Embed Mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faShareNodes} className="h-4 w-4" />{t('settings.embedMode')}
+          </CardTitle>
+          <CardDescription>{t('settings.embedModeDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={embedMode}
+            onValueChange={handleEmbedModeChange}
+            disabled={savingEmbed}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="embed">{t('settings.embedModeEmbed')}</SelectItem>
+              <SelectItem value="raw">{t('settings.embedModeRaw')}</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
