@@ -98,7 +98,12 @@
     "profileUpdated": "头像已更新",
     "profileRemoved": "头像已删除",
     "language": "语言",
-    "languageDescription": "选择您偏好的语言"
+    "languageDescription": "选择您偏好的语言",
+    "embedMode": "Discord 嵌入模式",
+    "embedModeDescription": "控制在 Discord 或其他平台分享文件时的显示方式",
+    "embedModeEmbed": "富嵌入（标题 + 图片预览）",
+    "embedModeRaw": "直接文件（图片 / 视频内联）",
+    "embedModeSaved": "嵌入模式已更新"
   },
   "fileView": {
     "copyUrl": "复制链接",

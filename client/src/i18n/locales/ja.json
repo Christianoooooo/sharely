@@ -98,7 +98,12 @@
     "profileUpdated": "プロフィール画像が更新されました",
     "profileRemoved": "プロフィール画像が削除されました",
     "language": "言語",
-    "languageDescription": "使用する言語を選択してください"
+    "languageDescription": "使用する言語を選択してください",
+    "embedMode": "Discord埋め込みモード",
+    "embedModeDescription": "Discordやその他のプラットフォームでファイルを共有した際の表示方法を設定します",
+    "embedModeEmbed": "リッチ埋め込み（タイトル＋画像プレビュー）",
+    "embedModeRaw": "ダイレクトファイル（画像・動画インライン）",
+    "embedModeSaved": "埋め込みモードが更新されました"
   },
   "fileView": {
     "copyUrl": "URLをコピー",

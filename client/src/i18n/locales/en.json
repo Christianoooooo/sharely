@@ -98,7 +98,12 @@
     "profileUpdated": "Profile picture updated",
     "profileRemoved": "Profile picture removed",
     "language": "Language",
-    "languageDescription": "Choose your preferred language"
+    "languageDescription": "Choose your preferred language",
+    "embedMode": "Discord Embed Mode",
+    "embedModeDescription": "Controls how your files appear when shared on Discord or other platforms",
+    "embedModeEmbed": "Rich embed (title + image preview)",
+    "embedModeRaw": "Direct file (image / video inline)",
+    "embedModeSaved": "Embed mode updated"
   },
   "fileView": {
     "copyUrl": "Copy URL",
