@@ -425,8 +425,13 @@ router.patch('/user/embed-mode', requireLogin, async (req, res) => {
   if (!['embed', 'raw'].includes(embedMode)) {
     return res.status(400).json({ error: 'Invalid embed mode' });
   }
-  await User.findByIdAndUpdate(req.session.user.id, { embedMode });
-  res.json({ embedMode });
+  const user = await User.findByIdAndUpdate(
+    req.session.user.id,
+    { embedMode },
+    { new: true },
+  );
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json({ embedMode: user.embedMode });
 });
 
 // ── Chunked upload: init session ───────────────────────────────────────────

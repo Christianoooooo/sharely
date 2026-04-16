@@ -92,7 +92,7 @@ router.get('/:shortId', async (req, res, next) => {
 
   // Embed mode: serve a thin HTML page with Open Graph / Twitter Card meta tags
   const title = escapeHtml(file.originalName);
-  const siteName = 'sharely';
+  const siteName = process.env.SITE_NAME || 'sharely';
   const isImage = file.displayType === 'image';
   const isVideo = file.displayType === 'video';
 
