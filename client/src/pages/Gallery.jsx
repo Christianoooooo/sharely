@@ -95,7 +95,7 @@ function FileThumbnail({ file, icon }) {
     );
   }
 
-  if ((file.displayType === 'video' || file.displayType === 'pdf') && !thumbError) {
+  if ((file.displayType === 'video' || file.displayType === 'pdf') && file.hasThumbnail && !thumbError) {
     return (
       <div className="relative w-full h-full">
         <img
