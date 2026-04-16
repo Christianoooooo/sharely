@@ -13,6 +13,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
+RUN apk add --no-cache ffmpeg ghostscript
+
 COPY app.js ./
 COPY src/ ./src/
 COPY --from=builder /app/client/dist ./client/dist/
