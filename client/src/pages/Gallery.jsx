@@ -56,6 +56,31 @@ const TYPE_ICONS = {
   file: faFile,
 };
 
+const TYPE_GRADIENTS = {
+  video:  'from-violet-900/80 to-violet-700/60',
+  pdf:    'from-red-900/80 to-red-700/60',
+  audio:  'from-emerald-900/80 to-emerald-700/60',
+  code:   'from-sky-900/80 to-sky-700/60',
+  text:   'from-slate-800/80 to-slate-600/60',
+  file:   'from-zinc-800/80 to-zinc-600/60',
+};
+
+function FilePlaceholder({ file, icon }) {
+  const gradient = TYPE_GRADIENTS[file.displayType] || TYPE_GRADIENTS.file;
+  const ext = file.originalName.includes('.')
+    ? file.originalName.split('.').pop().toUpperCase().slice(0, 4)
+    : null;
+
+  return (
+    <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center gap-2 group-hover:brightness-110 transition-all`}>
+      <FontAwesomeIcon icon={icon} className="h-10 w-10 text-white/70" />
+      {ext && (
+        <span className="text-[10px] font-bold tracking-widest text-white/50 uppercase">{ext}</span>
+      )}
+    </div>
+  );
+}
+
 function FileThumbnail({ file, icon }) {
   const [thumbError, setThumbError] = useState(false);
 
@@ -89,7 +114,7 @@ function FileThumbnail({ file, icon }) {
     );
   }
 
-  return <FontAwesomeIcon icon={icon} className="h-12 w-12 text-muted-foreground/50" />;
+  return <FilePlaceholder file={file} icon={icon} />;
 }
 
 function FileCard({ file, user, onDelete }) {
