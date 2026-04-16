@@ -56,6 +56,42 @@ const TYPE_ICONS = {
   file: faFile,
 };
 
+function FileThumbnail({ file, icon }) {
+  const [thumbError, setThumbError] = useState(false);
+
+  if (file.displayType === 'image') {
+    return (
+      <img
+        src={`/f/${file.shortId}/raw`}
+        alt={file.originalName}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+        loading="lazy"
+      />
+    );
+  }
+
+  if ((file.displayType === 'video' || file.displayType === 'pdf') && !thumbError) {
+    return (
+      <div className="relative w-full h-full">
+        <img
+          src={`/f/${file.shortId}/thumb`}
+          alt={file.originalName}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          loading="lazy"
+          onError={() => setThumbError(true)}
+        />
+        {file.displayType === 'video' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <FontAwesomeIcon icon={icon} className="h-8 w-8 text-white drop-shadow" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return <FontAwesomeIcon icon={icon} className="h-12 w-12 text-muted-foreground/50" />;
+}
+
 function FileCard({ file, user, onDelete }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -88,16 +124,7 @@ function FileCard({ file, user, onDelete }) {
             className="group rounded-lg border bg-card overflow-hidden flex flex-col hover:border-primary/60 transition-colors"
           >
             <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
-              {file.displayType === 'image' ? (
-                <img
-                  src={`/f/${file.shortId}/raw`}
-                  alt={file.originalName}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  loading="lazy"
-                />
-              ) : (
-                <FontAwesomeIcon icon={icon} className="h-12 w-12 text-muted-foreground/50" />
-              )}
+              <FileThumbnail file={file} icon={icon} />
             </div>
             <div className="p-3 space-y-1">
               <p className="text-sm font-medium truncate" title={file.originalName}>
