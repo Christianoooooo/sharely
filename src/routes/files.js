@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const File = require('../models/File');
+const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 
@@ -134,6 +135,15 @@ router.get('/:shortId', async (req, res, next) => {
   res.send(html);
 });
 
+// GET /f/:shortId/thumb — serve generated thumbnail (video / PDF)
+router.get('/:shortId/thumb', async (req, res) => {
+  const fp = thumbPath(req.params.shortId);
+  if (!fs.existsSync(fp)) return res.status(404).send('No thumbnail');
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  fs.createReadStream(fp).pipe(res);
+});
+
 // GET /f/:shortId/raw — serve file inline
 router.get('/:shortId/raw', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
@@ -156,6 +166,7 @@ router.get('/:shortId/delete/:token', async (req, res) => {
 
   const fp = resolveUploadPath(file.storedName);
   try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  deleteThumbnail(file.shortId);
   await file.deleteOne();
   res.json({ success: true });
 });

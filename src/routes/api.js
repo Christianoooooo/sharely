@@ -11,6 +11,7 @@ const { isBlockedFile } = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
 const sanitizeFilename = require('../utils/sanitizeFilename');
+const { generateThumbnail, deleteThumbnail } = require('../utils/generateThumbnail');
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -87,6 +88,8 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
     uploader: req.apiUser._id,
   });
 
+  generateThumbnail(req.file.path, req.file.mimetype, file.shortId).catch(() => {});
+
   const base = BASE_URL();
   res.json({
     url: `${base}/f/${file.shortId}`,
@@ -115,6 +118,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
       size: f.size,
       uploader: req.session.user.id,
     });
+    generateThumbnail(f.path, f.mimetype, doc.shortId).catch(() => {});
     created.push(doc.toObject());
   }
 
@@ -133,6 +137,7 @@ router.delete('/delete/:shortId', requireApiKey, async (req, res) => {
 
   const fp = resolveUploadPath(file.storedName);
   try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  deleteThumbnail(file.shortId);
   await file.deleteOne();
   res.json({ success: true });
 });
@@ -149,6 +154,7 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
 
   const fp = resolveUploadPath(file.storedName);
   try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  deleteThumbnail(file.shortId);
   await file.deleteOne();
   res.json({ success: true });
 });
@@ -584,6 +590,8 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
     size: meta.totalSize,
     uploader: meta.userId,
   });
+
+  generateThumbnail(finalPath, meta.mimeType, doc.shortId).catch(() => {});
 
   res.json({ files: [doc.toObject()] });
 });
