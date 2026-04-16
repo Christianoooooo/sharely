@@ -34,7 +34,14 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   req.session.user = { id: user._id, username: user.username, role: user.role };
-  res.json({ user: req.session.user });
+  res.json({
+    user: {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      avatarUrl: user.avatarExt ? `/api/user/avatar/${user._id}` : null,
+    },
+  });
 });
 
 // POST /api/auth/register
@@ -63,7 +70,14 @@ router.post('/register', async (req, res) => {
   const role = count === 0 ? 'admin' : 'user';
   const user = await User.create({ username, password, role });
   req.session.user = { id: user._id, username: user.username, role: user.role };
-  res.status(201).json({ user: req.session.user });
+  res.status(201).json({
+    user: {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      avatarUrl: null,
+    },
+  });
 });
 
 // POST /api/auth/logout
