@@ -62,5 +62,5 @@ function createSolidPNG(width, height, r, g, b) {
 
 const assetsDir = path.join(__dirname, '..', 'assets');
 fs.mkdirSync(assetsDir, { recursive: true });
-fs.writeFileSync(path.join(assetsDir, 'icon.png'), createSolidPNG(256, 256, 59, 130, 246));
+fs.writeFileSync(path.join(assetsDir, 'icon.png'), createSolidPNG(512, 512, 59, 130, 246));
 console.log('Sharely icon generated → assets/icon.png');
