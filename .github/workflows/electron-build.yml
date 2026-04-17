@@ -1,0 +1,72 @@
+name: Build Electron App
+
+on:
+  push:
+    branches: [main, master, claude/build-electron-app-Xq1mF]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows
+            artifact: "electron/dist/*.exe"
+          - os: ubuntu-latest
+            label: linux
+            artifact: "electron/dist/*.AppImage"
+          - os: macos-latest
+            label: macos
+            artifact: "electron/dist/*.dmg"
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.label }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: electron
+
+      - name: Build
+        run: npm run build
+        working-directory: electron
+        env:
+          # Skip code signing for unsigned builds
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sharely-${{ matrix.label }}
+          path: ${{ matrix.artifact }}
+          retention-days: 30
+
+  # Creates a GitHub Release when a tag like v1.0.0 is pushed
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+          generate_release_notes: true
