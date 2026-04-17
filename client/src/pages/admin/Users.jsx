@@ -30,6 +30,7 @@ export default function AdminUsers() {
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
   const [editingFolder, setEditingFolder] = useState(null); // { id, value }
   const folderInputRef = useRef(null);
+  const [editingRole, setEditingRole] = useState(null); // { id, value }
   const [pwDialog, setPwDialog] = useState(null); // { id, username }
   const [newPw, setNewPw] = useState('');
   const [savingPw, setSavingPw] = useState(false);
@@ -98,6 +99,23 @@ export default function AdminUsers() {
 
   function cancelEditFolder() {
     setEditingFolder(null);
+  }
+
+  async function saveRole(id) {
+    const { value } = editingRole;
+    const r = await fetch(`/api/admin/users/${id}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: value }),
+    });
+    const data = await r.json();
+    if (r.ok) {
+      toast({ title: t('adminUsers.roleChanged', { username: users.find((u) => u._id === id)?.username, role: value }) });
+      setEditingRole(null);
+      load();
+    } else {
+      toast({ title: data.error, variant: 'destructive' });
+    }
   }
 
   function openPwDialog(id, username) {
@@ -254,7 +272,36 @@ export default function AdminUsers() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge>
+                    {editingRole?.id === u._id ? (
+                      <div className="flex items-center gap-1">
+                        <Select value={editingRole.value} onValueChange={(v) => setEditingRole((p) => ({ ...p, value: v }))}>
+                          <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">{t('adminUsers.roleUser')}</SelectItem>
+                            <SelectItem value="admin">{t('adminUsers.roleAdmin')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => saveRole(u._id)}>
+                          <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5 text-green-500" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingRole(null)}>
+                          <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge>
+                        {u._id !== me?.id && (
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={t('adminUsers.titleChangeRole')}
+                            onClick={() => setEditingRole({ id: u._id, value: u.role })}
+                          >
+                            <FontAwesomeIcon icon={faPencil} className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{u.fileCount}</TableCell>
                   <TableCell className="text-muted-foreground">{fmtSize(u.storageUsed)}</TableCell>

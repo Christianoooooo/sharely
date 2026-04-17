@@ -200,6 +200,8 @@
     "titleChangePassword": "Change password",
     "titleRegenKey": "Regenerate API key",
     "titleRenameFolder": "Rename folder",
+    "titleChangeRole": "Change role",
+    "roleChanged": "Role of \"{{username}}\" changed to {{role}}",
     "selfLabel": "(you)",
     "deleteUser": "Delete user?",
     "deleteUserDesc": "User \"{{username}}\" and all their files ({{count}}) will be permanently deleted.",

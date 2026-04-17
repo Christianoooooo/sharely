@@ -200,6 +200,8 @@
     "titleChangePassword": "修改密码",
     "titleRegenKey": "重新生成 API 密钥",
     "titleRenameFolder": "重命名文件夹",
+    "titleChangeRole": "更改角色",
+    "roleChanged": "\"{{username}}\" 的角色已更改为 {{role}}",
     "selfLabel": "（您）",
     "deleteUser": "删除用户？",
     "deleteUserDesc": "用户 \"{{username}}\" 及其所有文件（{{count}} 个）将被永久删除。",

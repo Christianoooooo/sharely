@@ -200,6 +200,8 @@
     "titleChangePassword": "Changer le mot de passe",
     "titleRegenKey": "Régénérer la clé API",
     "titleRenameFolder": "Renommer le dossier",
+    "titleChangeRole": "Changer le rôle",
+    "roleChanged": "Rôle de \"{{username}}\" changé en {{role}}",
     "selfLabel": "(vous)",
     "deleteUser": "Supprimer l'utilisateur ?",
     "deleteUserDesc": "L'utilisateur \"{{username}}\" et tous ses fichiers ({{count}}) seront supprimés définitivement.",
