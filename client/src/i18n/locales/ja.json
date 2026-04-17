@@ -75,7 +75,9 @@
     "regenKey": "キーを再生成",
     "uploadSuccess_one": "{{count}} ファイルをアップロードしました",
     "uploadSuccess_other": "{{count}} ファイルをアップロードしました",
-    "uploadFailed": "アップロードに失敗しました"
+    "uploadFailed": "アップロードに失敗しました",
+    "selectFiles": "アップロード",
+    "openFolder": "開く"
   },
   "settings": {
     "title": "設定",
@@ -257,7 +259,8 @@
   },
   "common": {
     "copiedToClipboard": "クリップボードにコピーしました",
-    "apiKeyRegenerated": "APIキーを再生成しました"
+    "apiKeyRegenerated": "APIキーを再生成しました",
+    "or": "または"
   },
   "language": {
     "label": "言語",

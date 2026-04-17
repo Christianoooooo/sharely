@@ -75,7 +75,9 @@
     "regenKey": "Regenerate key",
     "uploadSuccess_one": "Uploaded {{count}} file",
     "uploadSuccess_other": "Uploaded {{count}} files",
-    "uploadFailed": "Upload failed"
+    "uploadFailed": "Upload failed",
+    "selectFiles": "Upload",
+    "openFolder": "Open folder"
   },
   "settings": {
     "title": "Settings",
@@ -257,7 +259,8 @@
   },
   "common": {
     "copiedToClipboard": "Copied to clipboard",
-    "apiKeyRegenerated": "API key regenerated"
+    "apiKeyRegenerated": "API key regenerated",
+    "or": "or"
   },
   "language": {
     "label": "Language",

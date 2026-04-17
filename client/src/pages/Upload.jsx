@@ -286,41 +286,39 @@ export default function Upload() {
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        onClick={() => fileInputRef.current?.click()}
         className={`
-          rounded-lg border-2 border-dashed cursor-pointer transition-all p-12 text-center
-          ${dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/20'}
+          rounded-lg border-2 border-dashed transition-all p-10 text-center
+          ${dragging ? 'border-primary bg-primary/5' : 'border-border'}
         `}
       >
         <FontAwesomeIcon icon={faUpload} className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
         <p className="font-medium">{t('upload.dropHint')}</p>
         <p className="text-sm text-muted-foreground mt-1">{t('upload.supportedTypes')}</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          hidden
-          onChange={handleFileSelect}
-        />
-        {/* Folder selection input — stops click from bubbling to the drop zone */}
-        <input
-          ref={folderInputRef}
-          type="file"
-          webkitdirectory=""
-          hidden
-          onChange={handleFolderSelect}
-        />
-        <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+
+        <div className="mt-6 flex items-center justify-center gap-3">
           <Button
             variant="outline"
-            size="sm"
+            className="gap-2"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <FontAwesomeIcon icon={faUpload} className="h-3.5 w-3.5" />
+            {t('upload.selectFiles')}
+          </Button>
+
+          <span className="text-muted-foreground text-sm">{t('common.or')}</span>
+
+          <Button
+            variant="outline"
             className="gap-2"
             onClick={() => folderInputRef.current?.click()}
           >
             <FontAwesomeIcon icon={faFolder} className="h-3.5 w-3.5" />
-            {t('upload.selectFolder')}
+            {t('upload.openFolder')}
           </Button>
         </div>
+
+        <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileSelect} />
+        <input ref={folderInputRef} type="file" webkitdirectory="" hidden onChange={handleFolderSelect} />
       </div>
 
       {/* File list */}

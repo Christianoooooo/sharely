@@ -75,7 +75,9 @@
     "regenKey": "Régénérer la clé",
     "uploadSuccess_one": "{{count}} fichier téléversé",
     "uploadSuccess_other": "{{count}} fichiers téléversés",
-    "uploadFailed": "Échec du téléversement"
+    "uploadFailed": "Échec du téléversement",
+    "selectFiles": "Télécharger",
+    "openFolder": "Ouvrir"
   },
   "settings": {
     "title": "Paramètres",
@@ -257,7 +259,8 @@
   },
   "common": {
     "copiedToClipboard": "Copié dans le presse-papiers",
-    "apiKeyRegenerated": "Clé API régénérée"
+    "apiKeyRegenerated": "Clé API régénérée",
+    "or": "ou"
   },
   "language": {
     "label": "Langue",

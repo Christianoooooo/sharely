@@ -75,7 +75,9 @@
     "regenKey": "重新生成密钥",
     "uploadSuccess_one": "已上传 {{count}} 个文件",
     "uploadSuccess_other": "已上传 {{count}} 个文件",
-    "uploadFailed": "上传失败"
+    "uploadFailed": "上传失败",
+    "selectFiles": "上传",
+    "openFolder": "打开"
   },
   "settings": {
     "title": "设置",
@@ -257,7 +259,8 @@
   },
   "common": {
     "copiedToClipboard": "已复制到剪贴板",
-    "apiKeyRegenerated": "API 密钥已重新生成"
+    "apiKeyRegenerated": "API 密钥已重新生成",
+    "or": "或"
   },
   "language": {
     "label": "语言",

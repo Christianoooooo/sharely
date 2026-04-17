@@ -75,7 +75,9 @@
     "regenKey": "Rigenera chiave",
     "uploadSuccess_one": "{{count}} file caricato",
     "uploadSuccess_other": "{{count}} file caricati",
-    "uploadFailed": "Caricamento fallito"
+    "uploadFailed": "Caricamento fallito",
+    "selectFiles": "Carica",
+    "openFolder": "Apri"
   },
   "settings": {
     "title": "Impostazioni",
@@ -257,7 +259,8 @@
   },
   "common": {
     "copiedToClipboard": "Copiato negli appunti",
-    "apiKeyRegenerated": "Chiave API rigenerata"
+    "apiKeyRegenerated": "Chiave API rigenerata",
+    "or": "o"
   },
   "language": {
     "label": "Lingua",
