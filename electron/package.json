@@ -1,0 +1,42 @@
+{
+  "name": "sharely-desktop",
+  "version": "1.0.0",
+  "description": "Sharely Desktop – upload files to your Sharely instance from the system tray",
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "node scripts/generate-icon.js",
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^29.4.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.sharely.desktop",
+    "productName": "Sharely",
+    "copyright": "Copyright © 2024",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "assets/**"
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.png"
+    }
+  }
+}
