@@ -11,7 +11,7 @@ const { isBlockedFile } = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
 const sanitizeFilename = require('../utils/sanitizeFilename');
-const { generateThumbnail, deleteThumbnail } = require('../utils/generateThumbnail');
+const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -215,7 +215,16 @@ router.get('/gallery', requireLogin, async (req, res) => {
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
 
-  res.json({ files: files.map((f) => f.toObject()), total, page, pages });
+  res.json({
+    files: files.map((f) => {
+      const obj = f.toObject();
+      obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+      return obj;
+    }),
+    total,
+    page,
+    pages,
+  });
 });
 
 // ── ShareX config ───────────────────────────────────────────────────────────
@@ -680,7 +689,16 @@ router.get('/admin/files', requireAdmin, async (req, res) => {
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
 
-  res.json({ files: files.map((f) => f.toObject()), total, page, pages });
+  res.json({
+    files: files.map((f) => {
+      const obj = f.toObject();
+      obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+      return obj;
+    }),
+    total,
+    page,
+    pages,
+  });
 });
 
 module.exports = router;
