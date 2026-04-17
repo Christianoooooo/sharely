@@ -2,6 +2,8 @@
 
 A self-hosted file sharing platform with a clean web interface, ShareX integration, and API access. Upload screenshots, files, and media — then instantly share them via short links.
 
+![Gallery](docs/assets/gallery.png)
+
 ## Features
 
 - **Web UI** — Drag-and-drop uploads, searchable gallery with type filters (images, video, audio, PDF, code)
@@ -14,6 +16,16 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **XBackBone migration** — Import your existing XBackBone installation including files and metadata
 - **Short links** — Every file gets an 8-character short ID (e.g. `/f/a1b2c3d4`)
 - **Docker-ready** — Single `docker compose up` gets you running
+
+### Screenshots
+
+| Gallery | File View |
+|---|---|
+| ![Gallery](docs/assets/gallery.png) | ![File View](docs/assets/fileview.png) |
+
+| Upload | Admin Dashboard |
+|---|---|
+| ![Upload](docs/assets/upload.png) | ![Admin](docs/assets/admin.png) |
 
 ## Quick Start
 
@@ -127,6 +139,8 @@ Make sure `BASE_URL` in `.env` matches your public domain.
 ## Thumbnails
 
 Video and PDF files get a JPEG thumbnail automatically on upload. Thumbnails are stored in `uploads/.thumbnails/` and served at `/f/<shortId>/thumb`.
+
+![Thumbnail Cards](docs/assets/thumbnails.png)
 
 The Docker image includes `ffmpeg` (video) and `ghostscript` (PDF), so no extra setup is needed there. For local development, install the tools manually:
 
