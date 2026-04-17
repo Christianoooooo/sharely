@@ -200,6 +200,8 @@
     "titleChangePassword": "パスワードを変更",
     "titleRegenKey": "APIキーを再生成",
     "titleRenameFolder": "フォルダーを名前変更",
+    "titleChangeRole": "ロールを変更",
+    "roleChanged": "「{{username}}」のロールを{{role}}に変更しました",
     "selfLabel": "(あなた)",
     "deleteUser": "ユーザーを削除しますか？",
     "deleteUserDesc": "ユーザー \"{{username}}\" とすべてのファイル ({{count}} 件) が完全に削除されます。",

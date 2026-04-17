@@ -200,6 +200,8 @@
     "titleChangePassword": "Alterar palavra-passe",
     "titleRegenKey": "Regenerar chave API",
     "titleRenameFolder": "Renomear pasta",
+    "titleChangeRole": "Alterar função",
+    "roleChanged": "Função de \"{{username}}\" alterada para {{role}}",
     "selfLabel": "(você)",
     "deleteUser": "Eliminar utilizador?",
     "deleteUserDesc": "O utilizador \"{{username}}\" e todos os seus ficheiros ({{count}}) serão eliminados permanentemente.",

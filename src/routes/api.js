@@ -329,6 +329,21 @@ router.patch('/admin/users/:id/toggle', requireAdmin, async (req, res) => {
   res.json({ isActive: user.isActive });
 });
 
+router.patch('/admin/users/:id/role', requireAdmin, async (req, res) => {
+  const { role } = req.body;
+  if (!['admin', 'user'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role' });
+  }
+  const user = await User.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  if (user._id.toString() === req.session.user.id.toString()) {
+    return res.status(400).json({ error: 'Cannot change your own role' });
+  }
+  user.role = role;
+  await user.save();
+  res.json({ role: user.role });
+});
+
 router.delete('/admin/users/:id', requireAdmin, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
