@@ -75,7 +75,10 @@
     "regenKey": "Schlüssel neu generieren",
     "uploadSuccess_one": "{{count}} Datei hochgeladen",
     "uploadSuccess_other": "{{count}} Dateien hochgeladen",
-    "uploadFailed": "Hochladen fehlgeschlagen"
+    "uploadFailed": "Hochladen fehlgeschlagen",
+    "selectFiles": "Hochladen",
+    "openFolder": "Öffnen",
+    "folderDropHint": "Ordner können per Drag & Drop hinzugefügt werden"
   },
   "settings": {
     "title": "Einstellungen",
@@ -257,7 +260,8 @@
   },
   "common": {
     "copiedToClipboard": "In Zwischenablage kopiert",
-    "apiKeyRegenerated": "API-Schlüssel neu generiert"
+    "apiKeyRegenerated": "API-Schlüssel neu generiert",
+    "or": "oder"
   },
   "language": {
     "label": "Sprache",

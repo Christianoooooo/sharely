@@ -75,7 +75,10 @@
     "regenKey": "Regenerar chave",
     "uploadSuccess_one": "{{count}} ficheiro enviado",
     "uploadSuccess_other": "{{count}} ficheiros enviados",
-    "uploadFailed": "Falha no envio"
+    "uploadFailed": "Falha no envio",
+    "selectFiles": "Carregar",
+    "openFolder": "Abrir",
+    "folderDropHint": "Pastas podem ser adicionadas via arrastar e soltar"
   },
   "settings": {
     "title": "Configurações",
@@ -257,7 +260,8 @@
   },
   "common": {
     "copiedToClipboard": "Copiado para a área de transferência",
-    "apiKeyRegenerated": "Chave API regenerada"
+    "apiKeyRegenerated": "Chave API regenerada",
+    "or": "ou"
   },
   "language": {
     "label": "Idioma",

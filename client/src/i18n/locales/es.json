@@ -75,7 +75,10 @@
     "regenKey": "Regenerar clave",
     "uploadSuccess_one": "{{count}} archivo subido",
     "uploadSuccess_other": "{{count}} archivos subidos",
-    "uploadFailed": "Error al subir"
+    "uploadFailed": "Error al subir",
+    "selectFiles": "Subir",
+    "openFolder": "Abrir",
+    "folderDropHint": "Las carpetas se pueden añadir arrastrando y soltando"
   },
   "settings": {
     "title": "Configuración",
@@ -257,7 +260,8 @@
   },
   "common": {
     "copiedToClipboard": "Copiado al portapapeles",
-    "apiKeyRegenerated": "Clave API regenerada"
+    "apiKeyRegenerated": "Clave API regenerada",
+    "or": "o"
   },
   "language": {
     "label": "Idioma",
