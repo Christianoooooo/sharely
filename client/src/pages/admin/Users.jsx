@@ -19,6 +19,7 @@ import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate, faTrash, faUserPlus, faPowerOff, faPencil, faCheck, faXmark, faKey } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
+import { UserAvatar } from '@/components/UserAvatar';
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
@@ -213,7 +214,12 @@ export default function AdminUsers() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u._id} className={!u.isActive ? 'opacity-50' : ''}>
-                  <TableCell className="font-medium">{u.username}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar userId={u._id} size="sm" />
+                      {u.username}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {editingFolder?.id === u._id ? (
                       <div className="flex items-center gap-1">

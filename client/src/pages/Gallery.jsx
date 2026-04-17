@@ -30,6 +30,7 @@ import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
+import { UserAvatar } from '@/components/UserAvatar';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -162,7 +163,10 @@ function FileCard({ file, user, onDelete }) {
                 <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
               </div>
               {file.uploader && (
-                <p className="text-xs text-muted-foreground truncate">{t('gallery.by')} {file.uploader.username}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <UserAvatar userId={file.uploader._id} size="xs" />
+                  <p className="text-xs text-muted-foreground truncate">{file.uploader.username}</p>
+                </div>
               )}
             </div>
           </Link>

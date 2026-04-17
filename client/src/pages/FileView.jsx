@@ -63,8 +63,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
+import { UserAvatar } from '@/components/UserAvatar';
 
 function CodeViewer({ shortId, lang }) {
   const [code, setCode] = useState('');
@@ -219,7 +220,7 @@ function FileViewInner() {
                 <Badge variant="secondary">{file.displayType}</Badge>
                 <span>{fmtSize(file.size)}</span>
                 <span className="flex items-center gap-1"><FontAwesomeIcon icon={faEye} className="h-3.5 w-3.5" />{file.views}</span>
-                {file.uploader && <span className="flex items-center gap-1"><FontAwesomeIcon icon={faUser} className="h-3.5 w-3.5" />{file.uploader.username}</span>}
+                {file.uploader && <span className="flex items-center gap-1"><UserAvatar userId={file.uploader._id} size="xs" />{file.uploader.username}</span>}
                 <span className="flex items-center gap-1"><FontAwesomeIcon icon={faCalendar} className="h-3.5 w-3.5" />{fmtDate(file.createdAt)}</span>
               </div>
             </div>

@@ -11,6 +11,7 @@ import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLar
 import { cn } from '@/lib/utils';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
+import { UserAvatar } from '@/components/UserAvatar';
 
 function NavLink({ to, children, icon }) {
   const { pathname } = useLocation();
@@ -31,18 +32,8 @@ function NavLink({ to, children, icon }) {
   );
 }
 
-function UserAvatar({ user, size = 'sm' }) {
-  const dim = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8';
-  const iconSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
-  return (
-    <div className={`${dim} rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0`}>
-      {user?.avatarUrl ? (
-        <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <FontAwesomeIcon icon={faUser} className={iconSize} />
-      )}
-    </div>
-  );
+function NavUserAvatar({ user, size = 'sm' }) {
+  return <UserAvatar avatarUrl={user?.avatarUrl} size={size} />;
 }
 
 export function Layout({ children }) {
@@ -78,7 +69,7 @@ export function Layout({ children }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <UserAvatar user={user} size="sm" />
+                  <NavUserAvatar user={user} size="sm" />
                   <span className="hidden sm:inline">{user?.username}</span>
                   <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 opacity-50" />
                 </Button>
@@ -86,7 +77,7 @@ export function Layout({ children }) {
               <DropdownMenuContent align="end" className="w-52">
                 {/* User header */}
                 <div className="flex items-center gap-3 px-2 py-2">
-                  <UserAvatar user={user} size="md" />
+                  <NavUserAvatar user={user} size="md" />
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium truncate">{user?.username}</span>
                     <span className="text-xs text-muted-foreground capitalize">{user?.role}</span>
