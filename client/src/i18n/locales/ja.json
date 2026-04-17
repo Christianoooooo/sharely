@@ -77,7 +77,8 @@
     "uploadSuccess_other": "{{count}} ファイルをアップロードしました",
     "uploadFailed": "アップロードに失敗しました",
     "selectFiles": "アップロード",
-    "openFolder": "開く"
+    "openFolder": "開く",
+    "folderDropHint": "フォルダはドラッグ＆ドロップで追加できます"
   },
   "settings": {
     "title": "設定",

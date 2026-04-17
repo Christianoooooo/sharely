@@ -77,7 +77,8 @@
     "uploadSuccess_other": "已上传 {{count}} 个文件",
     "uploadFailed": "上传失败",
     "selectFiles": "上传",
-    "openFolder": "打开"
+    "openFolder": "打开",
+    "folderDropHint": "文件夹可以通过拖放添加"
   },
   "settings": {
     "title": "设置",

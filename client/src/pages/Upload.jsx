@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faXmark, faDownload, faRotate, faCopy, faFolder } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faXmark, faDownload, faRotate, faCopy } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 
 const MB = 1024 * 1024;
@@ -156,7 +156,6 @@ export default function Upload() {
   const [apiKey, setApiKey] = useState('');
   const [progress, setProgress] = useState({}); // key: name+size → 0-100
   const fileInputRef = useRef(null);
-  const folderInputRef = useRef(null);
 
   const addFiles = useCallback((incoming) => {
     // incoming: { file: File, path: string }[]
@@ -295,7 +294,7 @@ export default function Upload() {
         <p className="font-medium">{t('upload.dropHint')}</p>
         <p className="text-sm text-muted-foreground mt-1">{t('upload.supportedTypes')}</p>
 
-        <div className="mt-6 flex items-center justify-center gap-3">
+        <div className="mt-6">
           <Button
             variant="outline"
             className="gap-2"
@@ -304,21 +303,10 @@ export default function Upload() {
             <FontAwesomeIcon icon={faUpload} className="h-3.5 w-3.5" />
             {t('upload.selectFiles')}
           </Button>
-
-          <span className="text-muted-foreground text-sm">{t('common.or')}</span>
-
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => folderInputRef.current?.click()}
-          >
-            <FontAwesomeIcon icon={faFolder} className="h-3.5 w-3.5" />
-            {t('upload.openFolder')}
-          </Button>
+          <p className="text-xs text-muted-foreground mt-3">{t('upload.folderDropHint')}</p>
         </div>
 
         <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileSelect} />
-        <input ref={folderInputRef} type="file" webkitdirectory="" hidden onChange={handleFolderSelect} />
       </div>
 
       {/* File list */}

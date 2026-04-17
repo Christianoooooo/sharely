@@ -77,7 +77,8 @@
     "uploadSuccess_other": "{{count}} ficheiros enviados",
     "uploadFailed": "Falha no envio",
     "selectFiles": "Carregar",
-    "openFolder": "Abrir"
+    "openFolder": "Abrir",
+    "folderDropHint": "Pastas podem ser adicionadas via arrastar e soltar"
   },
   "settings": {
     "title": "Configurações",

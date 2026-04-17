@@ -77,7 +77,8 @@
     "uploadSuccess_other": "{{count}} Dateien hochgeladen",
     "uploadFailed": "Hochladen fehlgeschlagen",
     "selectFiles": "Hochladen",
-    "openFolder": "Öffnen"
+    "openFolder": "Öffnen",
+    "folderDropHint": "Ordner können per Drag & Drop hinzugefügt werden"
   },
   "settings": {
     "title": "Einstellungen",
