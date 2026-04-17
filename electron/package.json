@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Sharely Desktop – upload files to your Sharely instance from the system tray",
   "main": "main.js",
+  "author": {
+    "name": "Sharely",
+    "email": "noreply@sharely.app"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Christianoooooo/sharely"
