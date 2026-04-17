@@ -8,6 +8,7 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **ShareX integration** — One-click `.sxcu` config download for automatic screenshot uploads from Windows
 - **API uploads** — Bearer token authentication, compatible with curl, wget, and any HTTP client
 - **File viewing** — Images zoom inline, videos/audio stream, PDFs render in-browser, code files syntax-highlighted
+- **Thumbnails** — Video and PDF files get auto-generated JPEG thumbnails (requires ffmpeg / ghostscript, bundled in the Docker image)
 - **User management** — Role-based access control (admin/user), account activation, custom folder names
 - **Admin dashboard** — Stats overview, manage all users and files
 - **XBackBone migration** — Import your existing XBackBone installation including files and metadata
@@ -64,6 +65,7 @@ Copy `.env.example` to `.env` and adjust the values:
 | `MONGO_APP_PASSWORD` | — | MongoDB application user password (required) |
 | `SESSION_SECRET` | — | Secret for session encryption — use a long random string (required) |
 | `BASE_URL` | `http://localhost:3000` | Public base URL for generated share links, no trailing slash |
+| `SITE_NAME` | `sharely` | Site name shown in Open Graph embeds |
 | `MAX_FILE_SIZE_MB` | `100` | Maximum upload file size in MB |
 | `ALLOW_REGISTRATION` | `true` | Set to `false` to disable public sign-up (admin-only user creation) |
 
@@ -122,6 +124,38 @@ server {
 
 Make sure `BASE_URL` in `.env` matches your public domain.
 
+## Thumbnails
+
+Video and PDF files get a JPEG thumbnail automatically on upload. Thumbnails are stored in `uploads/.thumbnails/` and served at `/f/<shortId>/thumb`.
+
+The Docker image includes `ffmpeg` (video) and `ghostscript` (PDF), so no extra setup is needed there. For local development, install the tools manually:
+
+```bash
+# Debian / Ubuntu
+sudo apt install ffmpeg ghostscript
+
+# macOS
+brew install ffmpeg ghostscript
+```
+
+If the tools are unavailable, thumbnail generation is silently skipped and the gallery shows a styled colour-coded placeholder instead.
+
+### Backfilling existing uploads
+
+To generate thumbnails for files that were uploaded before this feature was introduced, run the migration script once inside the container:
+
+```bash
+docker exec -it <container-name> npm run migrate:thumbnails
+```
+
+Or locally:
+
+```bash
+npm run migrate:thumbnails
+```
+
+The script is idempotent — already-generated thumbnails are skipped.
+
 ## XBackBone Migration
 
 If you're migrating from [XBackBone](https://github.com/SergiX44/XBackBone):
@@ -142,12 +176,19 @@ sharely/
 │   ├── config/db.js        # MongoDB connection
 │   ├── models/             # Mongoose schemas (User, File)
 │   ├── middleware/         # Auth, upload handling
+│   ├── utils/
+│   │   └── generateThumbnail.js  # ffmpeg/ghostscript thumbnail generation
 │   └── routes/             # API routes (auth, files, admin, import)
 ├── client/                 # React frontend (Vite + Tailwind)
 │   └── src/
 │       ├── pages/          # Upload, Gallery, FileView, Admin pages
 │       └── components/     # UI components
-├── scripts/                # DB setup and migration scripts
+├── scripts/
+│   ├── setup-db.js
+│   ├── migrate-uploads-to-user-folders.js
+│   └── generate-missing-thumbnails.js   # backfill thumbnails for old uploads
+├── uploads/
+│   └── .thumbnails/        # auto-generated JPEG thumbnails
 ├── docker-compose.yml
 └── .env.example
 ```
