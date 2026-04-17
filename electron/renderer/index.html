@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline';">
+  <title>Sharely</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <rect width="26" height="26" rx="7" fill="#3B82F6"/>
+        <path d="M13 6v14M6 13h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Sharely
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="upload">Upload</button>
+    <button class="tab" data-tab="history">History</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Upload Tab -->
+    <div id="tab-upload" class="tab-pane active">
+      <div id="drop-zone" class="drop-zone">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none"
+             stroke="#64748B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <p class="drop-label">Drop files here</p>
+        <span class="drop-or">or</span>
+        <button id="choose-files-btn" class="btn btn-primary">Choose Files</button>
+      </div>
+
+      <div id="upload-status" class="upload-status hidden"></div>
+      <div id="upload-results"></div>
+    </div>
+
+    <!-- History Tab -->
+    <div id="tab-history" class="tab-pane">
+      <div class="section-header">
+        <span id="history-count" class="section-label">0 uploads</span>
+        <button id="clear-history-btn" class="btn btn-ghost btn-sm">Clear all</button>
+      </div>
+      <div id="history-list">
+        <div class="empty-state">No uploads yet</div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="tab-settings" class="tab-pane">
+      <div class="settings-form">
+        <div class="form-group">
+          <label for="server-url">Server URL</label>
+          <input id="server-url" type="url" placeholder="http://localhost:3000" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="api-token">API Token</label>
+          <input id="api-token" type="password" placeholder="Paste your Sharely API token" autocomplete="off">
+          <p class="form-hint">Find it under Settings → API Key in the Sharely web app.</p>
+        </div>
+        <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+        <div id="settings-msg" class="settings-msg hidden"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
