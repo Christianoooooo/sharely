@@ -36,19 +36,14 @@ const storage = multer.diskStorage({
 });
 
 const BLOCKED_MIME_TYPES = new Set([
-  'application/x-msdownload',
   'application/x-executable',
-  'application/x-dosexec',
-  'application/x-msdos-program',
   'application/x-sh',
   'application/x-csh',
   'application/x-bat',
-  'application/x-msi',
-  'application/vnd.microsoft.portable-executable',
 ]);
 
 const BLOCKED_EXTENSIONS = new Set([
-  '.exe', '.bat', '.cmd', '.com', '.msi', '.ps1', '.psm1', '.psd1',
+  '.bat', '.cmd', '.com', '.ps1', '.psm1', '.psd1',
   '.sh', '.bash', '.csh', '.zsh', '.fish',
   '.vbs', '.vbe', '.js.exe', '.jse',
   '.scr', '.pif', '.application', '.gadget', '.hta',
