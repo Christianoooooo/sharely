@@ -262,6 +262,7 @@
   },
   "common": {
     "copiedToClipboard": "Copiato negli appunti",
+    "copyToClipboard": "Clicca per copiare",
     "apiKeyRegenerated": "Chiave API rigenerata",
     "or": "o"
   },

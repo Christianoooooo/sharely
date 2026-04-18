@@ -262,6 +262,7 @@
   },
   "common": {
     "copiedToClipboard": "In Zwischenablage kopiert",
+    "copyToClipboard": "Klicken zum Kopieren",
     "apiKeyRegenerated": "API-Schlüssel neu generiert",
     "or": "oder"
   },

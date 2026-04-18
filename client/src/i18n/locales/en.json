@@ -262,6 +262,7 @@
   },
   "common": {
     "copiedToClipboard": "Copied to clipboard",
+    "copyToClipboard": "Click to copy",
     "apiKeyRegenerated": "API key regenerated",
     "or": "or"
   },

@@ -262,6 +262,7 @@
   },
   "common": {
     "copiedToClipboard": "已复制到剪贴板",
+    "copyToClipboard": "点击复制",
     "apiKeyRegenerated": "API 密钥已重新生成",
     "or": "或"
   },
