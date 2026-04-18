@@ -38,9 +38,10 @@ function getRustTarget() {
 // Map platform to pkg target
 function getPkgTarget() {
   const p = os.platform();
-  if (p === 'darwin') return 'node18-macos-x64';
-  if (p === 'win32') return 'node18-win-x64';
-  return 'node18-linux-x64';
+  const a = os.arch() === 'arm64' ? 'arm64' : 'x64';
+  if (p === 'darwin') return `node22-macos-${a}`;
+  if (p === 'win32') return `node22-win-${a}`;
+  return `node22-linux-${a}`;
 }
 
 const rustTarget = getRustTarget();
