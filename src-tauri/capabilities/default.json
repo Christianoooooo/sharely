@@ -4,9 +4,6 @@
   "description": "Default capabilities for Sharely desktop app",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "shell:allow-execute",
-    "shell:allow-spawn",
-    "dialog:default"
+    "core:default"
   ]
 }

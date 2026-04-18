@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -16,7 +16,6 @@ import AdminUsers from '@/pages/admin/Users';
 import AdminFiles from '@/pages/admin/Files';
 import AdminImport from '@/pages/admin/Import';
 import Settings from '@/pages/Settings';
-import Setup from '@/pages/Setup';
 
 const PAGE_TITLES = {
   '/gallery': 'Gallery',
@@ -39,65 +38,33 @@ function TitleUpdater() {
   return null;
 }
 
-function AppRoutes() {
-  return (
-    <Routes>
-      {/* Public */}
-      <Route path="/auth/login" element={<Login />} />
-      <Route path="/auth/register" element={<Register />} />
-      <Route path="/f/:shortId" element={<FileView />} />
-
-      {/* Protected */}
-      <Route path="/gallery" element={<ProtectedRoute><Layout><Gallery /></Layout></ProtectedRoute>} />
-      <Route path="/upload" element={<ProtectedRoute><Layout><Upload /></Layout></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-
-      {/* Admin */}
-      <Route path="/admin" element={<ProtectedRoute adminOnly><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute adminOnly><Layout><AdminUsers /></Layout></ProtectedRoute>} />
-      <Route path="/admin/files" element={<ProtectedRoute adminOnly><Layout><AdminFiles /></Layout></ProtectedRoute>} />
-      <Route path="/admin/import" element={<ProtectedRoute adminOnly><Layout><AdminImport /></Layout></ProtectedRoute>} />
-
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/gallery" replace />} />
-    </Routes>
-  );
-}
-
 function App() {
-  // In the Tauri desktop context, check if the server needs first-run setup.
-  // In a regular browser context (Docker / web), this is a no-op.
-  const [setupChecked, setSetupChecked] = useState(false);
-  const [needsSetup, setNeedsSetup] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/setup/status')
-      .then(r => r.json())
-      .then(data => {
-        setNeedsSetup(!data.configured);
-        setSetupChecked(true);
-      })
-      .catch(() => {
-        // Server not reachable yet or non-desktop deployment — skip setup screen
-        setSetupChecked(true);
-      });
-  }, []);
-
-  if (!setupChecked) return null;
-
-  if (needsSetup) {
-    return (
-      <Setup onComplete={() => setNeedsSetup(false)} />
-    );
-  }
-
   return (
     <BrowserRouter>
       <AuthProvider>
         <TooltipProvider>
-          <TitleUpdater />
-          <AppRoutes />
-          <Toaster />
+        <TitleUpdater />
+        <Routes>
+          {/* Public */}
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
+          <Route path="/f/:shortId" element={<FileView />} />
+
+          {/* Protected */}
+          <Route path="/gallery" element={<ProtectedRoute><Layout><Gallery /></Layout></ProtectedRoute>} />
+          <Route path="/upload" element={<ProtectedRoute><Layout><Upload /></Layout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+
+          {/* Admin */}
+          <Route path="/admin" element={<ProtectedRoute adminOnly><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute adminOnly><Layout><AdminUsers /></Layout></ProtectedRoute>} />
+          <Route path="/admin/files" element={<ProtectedRoute adminOnly><Layout><AdminFiles /></Layout></ProtectedRoute>} />
+          <Route path="/admin/import" element={<ProtectedRoute adminOnly><Layout><AdminImport /></Layout></ProtectedRoute>} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/gallery" replace />} />
+        </Routes>
+        <Toaster />
         </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>

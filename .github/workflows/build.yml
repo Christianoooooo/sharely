@@ -7,53 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-sidecar:
-    name: Build Node.js sidecar (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            pkg_target: node22-linux-x64
-            rust_target: x86_64-unknown-linux-gnu
-            binary_ext: ''
-          - os: macos-latest
-            pkg_target: node22-macos-arm64
-            rust_target: aarch64-apple-darwin
-            binary_ext: ''
-          - os: windows-latest
-            pkg_target: node22-win-x64
-            rust_target: x86_64-pc-windows-msvc
-            binary_ext: '.exe'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Build frontend
-        run: npm run build
-
-      - name: Build sidecar binary
-        run: npx pkg server-entry.js --target ${{ matrix.pkg_target }} --output "src-tauri/binaries/sharely-server-${{ matrix.rust_target }}${{ matrix.binary_ext }}" --compress GZip
-
-      - name: Upload sidecar artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sidecar-${{ matrix.rust_target }}
-          path: src-tauri/binaries/sharely-server-${{ matrix.rust_target }}${{ matrix.binary_ext }}
-          retention-days: 1
-
-  build-tauri:
-    name: Build Tauri app (${{ matrix.os }})
-    needs: build-sidecar
+  build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -61,21 +16,13 @@ jobs:
         include:
           - os: ubuntu-22.04
             rust_target: x86_64-unknown-linux-gnu
-            binary_ext: ''
           - os: macos-latest
             rust_target: aarch64-apple-darwin
-            binary_ext: ''
           - os: windows-latest
             rust_target: x86_64-pc-windows-msvc
-            binary_ext: '.exe'
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -86,6 +33,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-22.04'
@@ -98,28 +54,11 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Build frontend
-        run: npm run build
-
-      - name: Download sidecar artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: sidecar-${{ matrix.rust_target }}
-          path: src-tauri/binaries/
-
-      - name: Make sidecar executable (Linux/macOS)
-        if: matrix.os != 'windows-latest'
-        run: chmod +x src-tauri/binaries/sharely-server-${{ matrix.rust_target }}
-
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: .
           tauriScript: npx tauri
           args: --target ${{ matrix.rust_target }}
 
@@ -139,7 +78,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: build-tauri
+    needs: build
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:

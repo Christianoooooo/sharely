@@ -4,16 +4,14 @@
   "version": "0.1.0",
   "identifier": "com.sharely.app",
   "build": {
-    "beforeDevCommand": "npm run dev --prefix ../client",
-    "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "npm run build --prefix ../client",
-    "frontendDist": "../client/dist"
+    "frontendDist": "https://sharely.christian.pizza/"
   },
   "app": {
     "withGlobalTauri": false,
     "windows": [
       {
         "title": "Sharely",
+        "url": "https://sharely.christian.pizza/",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
@@ -35,9 +33,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "externalBin": [
-      "binaries/sharely-server"
     ]
   }
 }
