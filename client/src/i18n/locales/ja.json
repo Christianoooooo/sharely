@@ -262,6 +262,7 @@
   },
   "common": {
     "copiedToClipboard": "クリップボードにコピーしました",
+    "copyToClipboard": "クリックしてコピー",
     "apiKeyRegenerated": "APIキーを再生成しました",
     "or": "または"
   },

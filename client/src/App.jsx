@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/Layout';
 
@@ -41,6 +42,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <TooltipProvider>
         <TitleUpdater />
         <Routes>
           {/* Public */}
@@ -63,6 +65,7 @@ function App() {
           <Route path="*" element={<Navigate to="/gallery" replace />} />
         </Routes>
         <Toaster />
+        </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>
   );

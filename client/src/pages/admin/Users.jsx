@@ -14,6 +14,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -312,9 +313,17 @@ export default function AdminUsers() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{fmtDate(u.createdAt)}</TableCell>
                   <TableCell>
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded" title={u.apiKey}>
-                      {u.apiKey?.slice(0, 8)}…
-                    </code>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <code
+                          className="text-xs bg-muted px-1.5 py-0.5 rounded cursor-pointer hover:bg-muted/70 transition-colors"
+                          onClick={() => { navigator.clipboard.writeText(u.apiKey); toast({ title: t('common.copiedToClipboard') }); }}
+                        >
+                          {u.apiKey?.slice(0, 8)}…
+                        </code>
+                      </TooltipTrigger>
+                      <TooltipContent>{u.apiKey}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell>
                     {u._id !== me?.id && (

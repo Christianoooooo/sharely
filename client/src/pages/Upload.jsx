@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faXmark, faDownload, faRotate, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faXmark, faDownload, faRotate } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 
 const MB = 1024 * 1024;
@@ -154,6 +155,7 @@ export default function Upload() {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [keyCopied, setKeyCopied] = useState(false);
   const [progress, setProgress] = useState({}); // key: name+size → 0-100
   const fileInputRef = useRef(null);
 
@@ -270,7 +272,8 @@ export default function Upload() {
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
-    toast({ title: t('common.copiedToClipboard') });
+    setKeyCopied(true);
+    setTimeout(() => setKeyCopied(false), 2000);
   }
 
   return (
@@ -391,12 +394,19 @@ export default function Upload() {
               <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />{t('upload.regenKey')}
             </Button>
             {apiKey && (
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <code className="text-xs bg-muted px-2 py-1 rounded truncate flex-1">{apiKey}</code>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => copyToClipboard(apiKey)}>
-                  <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+              <Tooltip open={keyCopied || undefined}>
+                <TooltipTrigger asChild>
+                  <code
+                    className="text-xs bg-muted px-2 py-1 rounded truncate flex-1 cursor-pointer hover:bg-muted/70 transition-colors"
+                    onClick={() => copyToClipboard(apiKey)}
+                  >
+                    {apiKey}
+                  </code>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {keyCopied ? t('common.copiedToClipboard') : t('common.copyToClipboard')}
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </CardContent>
