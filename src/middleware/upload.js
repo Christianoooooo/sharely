@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const User = require('../models/User');
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 const MAX_MB = parseInt(process.env.MAX_FILE_SIZE_MB || '100', 10);
 
 const storage = multer.diskStorage({

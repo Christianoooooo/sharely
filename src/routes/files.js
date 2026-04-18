@@ -5,7 +5,7 @@ const fs = require('fs');
 const File = require('../models/File');
 const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads');
 
 /** Regex matching known social-media / link-preview crawlers. */
 const BOT_UA = /discord|twitterbot|facebookexternalhit|telegram|slack|whatsapp|linkedinbot|skype|vkshare|pinterest|tumblr|mastodon/i;

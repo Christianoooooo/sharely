@@ -18,7 +18,7 @@ if (!process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 
 const app = express();
 

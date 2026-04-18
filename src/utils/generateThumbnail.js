@@ -2,7 +2,10 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-const THUMB_DIR = path.resolve(__dirname, '../../uploads/.thumbnails');
+const THUMB_DIR = path.join(
+  process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads'),
+  '.thumbnails',
+);
 fs.mkdirSync(THUMB_DIR, { recursive: true });
 
 function thumbPath(shortId) {

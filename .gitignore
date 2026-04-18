@@ -6,3 +6,5 @@ uploads/*
 !uploads/.gitkeep
 *.log
 .DS_Store
+/src-tauri/target/
+/src-tauri/binaries/*.exe
