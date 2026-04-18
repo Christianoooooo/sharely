@@ -18,7 +18,7 @@ if (!process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 
 const app = express();
 
@@ -114,6 +114,7 @@ function requireSameOrigin(req, res, next) {
 }
 
 // JSON API routes
+app.use('/api/setup', require('./src/routes/setup'));
 app.use('/api/auth', requireSameOrigin, require('./src/routes/auth'));
 app.use('/api/admin/import', require('./src/routes/import'));
 app.use('/api', requireSameOrigin, require('./src/routes/api'));

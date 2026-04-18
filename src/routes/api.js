@@ -22,7 +22,8 @@ const uploadLimiter = rateLimit({
 });
 
 // ── Avatar helpers ──────────────────────────────────────────────────────────
-const AVATAR_DIR = path.resolve(__dirname, '../../uploads/.avatars');
+const _BASE_UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads');
+const AVATAR_DIR = path.join(_BASE_UPLOAD_DIR, '.avatars');
 fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
 const avatarMulter = multer({
@@ -37,7 +38,7 @@ const avatarMulter = multer({
 });
 
 // ── Chunk upload helpers ────────────────────────────────────────────────────
-const CHUNK_DIR = path.resolve(__dirname, '../../uploads/.chunks');
+const CHUNK_DIR = path.join(_BASE_UPLOAD_DIR, '.chunks');
 fs.mkdirSync(CHUNK_DIR, { recursive: true });
 
 // Multer for individual chunks (memory storage).
@@ -56,7 +57,7 @@ function resolveChunkDir(uploadId) {
   return path.join(CHUNK_DIR, uploadId);
 }
 
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
+const UPLOAD_DIR = _BASE_UPLOAD_DIR;
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
 
 /** Escape special regex characters to prevent ReDoS via user-supplied search terms. */

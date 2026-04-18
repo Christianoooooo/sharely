@@ -8,7 +8,11 @@
     "dev": "nodemon app.js",
     "build": "cd client && npm install && npm run build",
     "migrate:user-folders": "node scripts/migrate-uploads-to-user-folders.js",
-    "migrate:thumbnails": "node scripts/generate-missing-thumbnails.js"
+    "migrate:thumbnails": "node scripts/generate-missing-thumbnails.js",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "npm run build:sidecar && tauri build",
+    "build:sidecar": "node scripts/build-sidecar.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,9 +27,27 @@
     "sql.js": "^1.14.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
+    "@yao-pkg/pkg": "^5.15.0",
     "nodemon": "^3.1.3"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "pkg": {
+    "scripts": [
+      "app.js",
+      "server-entry.js",
+      "src/**/*.js"
+    ],
+    "assets": [
+      "client/dist/**/*"
+    ],
+    "targets": [
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-x64"
+    ],
+    "outputPath": "src-tauri/binaries"
   }
 }
