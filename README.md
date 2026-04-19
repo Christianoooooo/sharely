@@ -1,6 +1,8 @@
 # Sharely
 
-![Logo](docs/assets/logo.png)
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Logo">
+</p>
 
 A self-hosted file sharing platform with a clean web interface, ShareX integration, and API access. Upload screenshots, files, and media — then instantly share them via short links.
 
