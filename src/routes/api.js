@@ -432,6 +432,73 @@ router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
   res.json({ folderName: user.folderName });
 });
 
+// ── User: export data (GDPR Art. 20) ───────────────────────────────────────
+router.get('/user/export', requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.user.id)
+    .select('username role createdAt embedMode');
+  if (!user) return res.status(404).json({ error: 'Not found' });
+
+  const files = await File.find({ uploader: user._id })
+    .select('originalName mimeType size views createdAt shortId')
+    .sort({ createdAt: -1 });
+
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    user: {
+      username: user.username,
+      role: user.role,
+      createdAt: user.createdAt,
+      embedMode: user.embedMode,
+    },
+    files: files.map((f) => ({
+      name: f.originalName,
+      type: f.mimeType,
+      size: f.size,
+      views: f.views,
+      uploadedAt: f.createdAt,
+      url: `${BASE_URL()}/f/${f.shortId}`,
+    })),
+  };
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="sharely-export-${user.username}.json"`,
+  );
+  res.send(JSON.stringify(exportData, null, 2));
+});
+
+// ── User: delete own account (GDPR Art. 17) ────────────────────────────────
+router.delete('/user/account', requireLogin, async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password required' });
+
+  const user = await User.findById(req.session.user.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+
+  const valid = await user.comparePassword(password);
+  if (!valid) return res.status(401).json({ error: 'Password is incorrect' });
+
+  const userFiles = await File.find({ uploader: user._id });
+  for (const f of userFiles) {
+    try {
+      const fp = resolveUploadPath(f.storedName);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    } catch { /* skip invalid paths */ }
+    deleteThumbnail(f.shortId);
+  }
+  await File.deleteMany({ uploader: user._id });
+
+  if (user.avatarExt) {
+    try {
+      fs.unlinkSync(path.join(AVATAR_DIR, `${user._id}${user.avatarExt}`));
+    } catch { /* ignore */ }
+  }
+
+  await user.deleteOne();
+  req.session.destroy(() => res.json({ success: true }));
+});
+
 // ── User: change own password ───────────────────────────────────────────────
 router.patch('/user/password', requireLogin, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
