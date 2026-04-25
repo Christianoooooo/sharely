@@ -345,9 +345,6 @@
   "privacy": {
     "backHome": "Back",
     "title": "Privacy Policy",
-    "lastUpdated": "Template – operators must customise before deployment",
-    "templateWarningTitle": "This is a template.",
-    "templateWarningBody": "Replace all [PLACEHOLDER] fields with your actual details before deploying. This document does not constitute legal advice. Consult a qualified lawyer for your jurisdiction.",
     "incompleteTitle": "Operator details missing.",
     "incompleteBody": "Some fields have not been configured yet. Admins can fill them in under Admin → Site Settings.",
     "notConfigured": "[not configured]",
