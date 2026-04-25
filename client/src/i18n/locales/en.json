@@ -6,6 +6,7 @@
     "settings": "Settings",
     "users": "Users",
     "xbackbone": "XBackBone Migration",
+    "siteSettings": "Site Settings",
     "logout": "Logout"
   },
   "footer": {
@@ -239,6 +240,21 @@
     "saving": "Saving…",
     "save": "Save"
   },
+  "adminSiteSettings": {
+    "title": "Site Settings",
+    "loading": "Loading…",
+    "privacySection": "Privacy Policy Details",
+    "privacyDescription": "These values appear in the public Privacy Policy page. All fields are required for GDPR compliance.",
+    "operatorName": "Operator Name",
+    "operatorAddress": "Operator Address",
+    "operatorEmail": "Contact Email",
+    "placeholderName": "e.g. Acme Corp",
+    "placeholderAddress": "e.g. 123 Main St, City, Country",
+    "placeholderEmail": "e.g. privacy@example.com",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Settings saved"
+  },
   "adminImport": {
     "title": "Migrate from XBackBone",
     "subtitle": "Migrate files and metadata from an existing XBackBone instance.",
@@ -284,6 +300,9 @@
     "lastUpdated": "Template – operators must customise before deployment",
     "templateWarningTitle": "This is a template.",
     "templateWarningBody": "Replace all [PLACEHOLDER] fields with your actual details before deploying. This document does not constitute legal advice. Consult a qualified lawyer for your jurisdiction.",
+    "incompleteTitle": "Operator details missing.",
+    "incompleteBody": "Some fields have not been configured yet. Admins can fill them in under Admin → Site Settings.",
+    "notConfigured": "[not configured]",
     "s1Title": "1. Controller",
     "s1Body": "The controller responsible for the processing of personal data on this instance of Sharely is:",
     "s1Operator": "Name / Organisation:",

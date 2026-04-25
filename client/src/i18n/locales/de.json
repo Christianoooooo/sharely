@@ -6,6 +6,7 @@
     "settings": "Einstellungen",
     "users": "Benutzer",
     "xbackbone": "XBackBone Migration",
+    "siteSettings": "Website-Einstellungen",
     "logout": "Abmelden"
   },
   "footer": {
@@ -239,6 +240,21 @@
     "saving": "Speichern…",
     "save": "Speichern"
   },
+  "adminSiteSettings": {
+    "title": "Website-Einstellungen",
+    "loading": "Laden…",
+    "privacySection": "Angaben zur Datenschutzerklärung",
+    "privacyDescription": "Diese Werte erscheinen auf der öffentlichen Datenschutzerklärungsseite. Alle Felder sind für die DSGVO-Konformität erforderlich.",
+    "operatorName": "Betreibername",
+    "operatorAddress": "Betreiberadresse",
+    "operatorEmail": "Kontakt-E-Mail",
+    "placeholderName": "z. B. Max Mustermann",
+    "placeholderAddress": "z. B. Musterstraße 1, 12345 Stadt",
+    "placeholderEmail": "z. B. datenschutz@beispiel.de",
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "saved": "Einstellungen gespeichert"
+  },
   "adminImport": {
     "title": "Von XBackBone migrieren",
     "subtitle": "Dateien und Metadaten aus einer bestehenden XBackBone-Instanz migrieren.",
@@ -284,6 +300,9 @@
     "lastUpdated": "Vorlage – Betreiber müssen diese vor dem Einsatz anpassen",
     "templateWarningTitle": "Dies ist eine Vorlage.",
     "templateWarningBody": "Ersetze alle [PLATZHALTER]-Felder durch deine tatsächlichen Angaben, bevor du die Instanz veröffentlichst. Dieses Dokument stellt keine Rechtsberatung dar. Wende dich für deine Jurisdiktion an einen qualifizierten Anwalt.",
+    "incompleteTitle": "Betreiberdaten fehlen.",
+    "incompleteBody": "Einige Felder wurden noch nicht konfiguriert. Admins können diese unter Admin → Website-Einstellungen ausfüllen.",
+    "notConfigured": "[nicht konfiguriert]",
     "s1Title": "1. Verantwortlicher",
     "s1Body": "Verantwortlich für die Verarbeitung personenbezogener Daten auf dieser Sharely-Instanz ist:",
     "s1Operator": "Name / Organisation:",

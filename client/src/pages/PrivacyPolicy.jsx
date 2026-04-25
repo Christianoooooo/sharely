@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -5,6 +6,21 @@ import { faArrowLeft, faTriangleExclamation } from '@fortawesome/free-solid-svg-
 
 export default function PrivacyPolicy() {
   const { t } = useTranslation();
+  const [ops, setOps] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/site-settings')
+      .then((r) => r.ok ? r.json() : {})
+      .then(setOps)
+      .catch(() => setOps({}));
+  }, []);
+
+  function val(key) {
+    if (!ops) return '…';
+    return ops[key] || t('privacy.notConfigured');
+  }
+
+  const isIncomplete = ops && (!ops.operatorName || !ops.operatorAddress || !ops.operatorEmail);
 
   return (
     <div className="min-h-screen bg-background">
@@ -25,21 +41,23 @@ export default function PrivacyPolicy() {
           <p className="text-sm text-muted-foreground mt-1">{t('privacy.lastUpdated')}</p>
         </div>
 
-        {/* Template warning */}
-        <div className="flex gap-3 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
-          <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4 mt-0.5 shrink-0" />
-          <div>
-            <strong>{t('privacy.templateWarningTitle')}</strong>{' '}
-            {t('privacy.templateWarningBody')}
+        {/* Incomplete warning – only shown when fields are missing */}
+        {isIncomplete && (
+          <div className="flex gap-3 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <strong>{t('privacy.incompleteTitle')}</strong>{' '}
+              {t('privacy.incompleteBody')}
+            </div>
           </div>
-        </div>
+        )}
 
         <Section title={t('privacy.s1Title')}>
           <p>{t('privacy.s1Body')}</p>
           <ul className="list-disc pl-5 space-y-1 mt-2">
-            <li><strong>{t('privacy.s1Operator')}</strong> <code className="text-xs bg-muted px-1 rounded">[OPERATOR_NAME]</code></li>
-            <li><strong>{t('privacy.s1Address')}</strong> <code className="text-xs bg-muted px-1 rounded">[OPERATOR_ADDRESS]</code></li>
-            <li><strong>{t('privacy.s1Email')}</strong> <code className="text-xs bg-muted px-1 rounded">[OPERATOR_EMAIL]</code></li>
+            <li><strong>{t('privacy.s1Operator')}</strong> <span className="font-mono text-xs bg-muted px-1 rounded">{val('operatorName')}</span></li>
+            <li><strong>{t('privacy.s1Address')}</strong> <span className="font-mono text-xs bg-muted px-1 rounded">{val('operatorAddress')}</span></li>
+            <li><strong>{t('privacy.s1Email')}</strong> <span className="font-mono text-xs bg-muted px-1 rounded">{val('operatorEmail')}</span></li>
           </ul>
         </Section>
 
@@ -103,7 +121,7 @@ export default function PrivacyPolicy() {
               {t('privacy.rightsSettingsLink')}
             </Link>
             {' '}{t('privacy.rightsOrContact')}{' '}
-            <code className="text-xs bg-muted px-1 rounded">[OPERATOR_EMAIL]</code>.
+            <span className="font-mono text-xs bg-muted px-1 rounded">{val('operatorEmail')}</span>.
           </p>
           <p className="mt-2 text-sm">{t('privacy.rightsSupervisory')}</p>
         </Section>

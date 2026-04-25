@@ -107,6 +107,11 @@ export function Layout({ children }) {
                         <FontAwesomeIcon icon={faBoxOpen} className="h-4 w-4" />{t('nav.xbackbone')}
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/settings" className="flex items-center gap-2 cursor-pointer">
+                        <FontAwesomeIcon icon={faGear} className="h-4 w-4" />{t('nav.siteSettings')}
+                      </Link>
+                    </DropdownMenuItem>
                   </>
                 )}
 
