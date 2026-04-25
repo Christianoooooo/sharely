@@ -13,6 +13,8 @@ const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
 const sanitizeFilename = require('../utils/sanitizeFilename');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
+const { logAudit } = require('../utils/audit');
+const AuditLog = require('../models/AuditLog');
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -92,6 +94,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 
   generateThumbnail(req.file.path, req.file.mimetype, file.shortId).catch(() => {});
 
+  await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const base = BASE_URL();
   res.json({
     url: `${base}/f/${file.shortId}`,
@@ -122,6 +125,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
     });
     generateThumbnail(f.path, f.mimetype, doc.shortId).catch(() => {});
     created.push(doc.toObject());
+    await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
   }
 
   res.json({ files: created });
@@ -140,6 +144,7 @@ router.delete('/delete/:shortId', requireApiKey, async (req, res) => {
   const fp = resolveUploadPath(file.storedName);
   try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   deleteThumbnail(file.shortId);
+  await logAudit(req, 'delete_file', { fileName: file.originalName, shortId: file.shortId });
   await file.deleteOne();
   res.json({ success: true });
 });
@@ -157,6 +162,7 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
   const fp = resolveUploadPath(file.storedName);
   try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   deleteThumbnail(file.shortId);
+  await logAudit(req, 'delete_file', { fileName: file.originalName, shortId: file.shortId });
   await file.deleteOne();
   res.json({ success: true });
 });
@@ -237,6 +243,7 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   const plaintext = await user.regenerateApiKey();
+  await logAudit(req, 'sharex_config');
 
   const config = {
     Version: '16.1.0',
@@ -273,6 +280,7 @@ router.post('/regen-key', requireLogin, async (req, res) => {
   const user = await User.findById(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
   const plaintext = await user.regenerateApiKey();
+  await logAudit(req, 'regen_api_key');
   res.json({ apiKey: plaintext, prefix: user.apiKeyPrefix });
 });
 
@@ -361,6 +369,7 @@ router.post('/admin/users', requireAdmin, async (req, res) => {
   const exists = await User.findOne({ username });
   if (exists) return res.status(409).json({ error: 'Username already taken' });
   const user = await User.create({ username, password, role: role === 'admin' ? 'admin' : 'user' });
+  await logAudit(req, 'admin_create_user', { targetUsername: username, role: user.role });
   res.status(201).json({ user: { id: user._id, username: user.username, role: user.role } });
 });
 
@@ -372,6 +381,7 @@ router.patch('/admin/users/:id/toggle', requireAdmin, async (req, res) => {
   }
   user.isActive = !user.isActive;
   await user.save();
+  await logAudit(req, 'admin_toggle_user', { targetUsername: user.username, isActive: user.isActive });
   res.json({ isActive: user.isActive });
 });
 
@@ -387,6 +397,7 @@ router.patch('/admin/users/:id/role', requireAdmin, async (req, res) => {
   }
   user.role = role;
   await user.save();
+  await logAudit(req, 'admin_change_role', { targetUsername: user.username, role });
   res.json({ role: user.role });
 });
 
@@ -404,6 +415,7 @@ router.delete('/admin/users/:id', requireAdmin, async (req, res) => {
     } catch { /* skip invalid paths */ }
   }
   await File.deleteMany({ uploader: user._id });
+  await logAudit(req, 'admin_delete_user', { targetUsername: user.username });
   await user.deleteOne();
   res.json({ success: true });
 });
@@ -412,6 +424,7 @@ router.post('/admin/users/:id/regen-key', requireAdmin, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
   const plaintext = await user.regenerateApiKey();
+  await logAudit(req, 'admin_regen_key', { targetUsername: user.username });
   res.json({ apiKey: plaintext, prefix: user.apiKeyPrefix });
 });
 
@@ -427,6 +440,7 @@ router.patch('/admin/users/:id/password', requireAdmin, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Not found' });
   user.password = password;
   await user.save();
+  await logAudit(req, 'admin_change_password', { targetUsername: user.username });
   res.json({ success: true });
 });
 
@@ -505,6 +519,7 @@ router.get('/user/export', requireLogin, async (req, res) => {
     })),
   };
 
+  await logAudit(req, 'export_data');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader(
     'Content-Disposition',
@@ -540,6 +555,7 @@ router.delete('/user/account', requireLogin, async (req, res) => {
     } catch { /* ignore */ }
   }
 
+  await logAudit(req, 'delete_account');
   await user.deleteOne();
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -559,6 +575,7 @@ router.patch('/user/password', requireLogin, async (req, res) => {
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
   user.password = newPassword;
   await user.save();
+  await logAudit(req, 'change_password');
   res.json({ success: true });
 });
 
@@ -729,6 +746,7 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   });
 
   generateThumbnail(finalPath, meta.mimeType, doc.shortId).catch(() => {});
+  await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
 
   res.json({ files: [doc.toObject()] });
 });
@@ -800,6 +818,26 @@ router.get('/user/avatar/:userId', async (req, res) => {
   if (!fs.existsSync(avatarPath)) return res.status(404).json({ error: 'Avatar not found' });
 
   res.sendFile(avatarPath);
+});
+
+// ── Admin: audit log ────────────────────────────────────────────────────────
+router.get('/admin/audit-log', requireAdmin, async (req, res) => {
+  const { user: userFilter, action: actionFilter, page: pageStr } = req.query;
+  const page = Math.max(1, parseInt(pageStr || '1', 10));
+  const PAGE_SIZE = 50;
+
+  const filter = {};
+  if (userFilter) filter.username = { $regex: escapeRegex(userFilter), $options: 'i' };
+  if (actionFilter) filter.action = actionFilter;
+
+  const total = await AuditLog.countDocuments(filter);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const logs = await AuditLog.find(filter)
+    .sort({ timestamp: -1 })
+    .skip((page - 1) * PAGE_SIZE)
+    .limit(PAGE_SIZE);
+
+  res.json({ logs: logs.map((l) => l.toObject()), total, page, pages });
 });
 
 // ── Admin: all files ────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ const File = require('./src/models/File');
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
+const { logAudit } = require('./src/utils/audit');
 
 if (!process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET environment variable is not set.');
@@ -92,6 +93,7 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
     size: req.file.size,
     uploader: user._id,
   });
+  await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const base = process.env.BASE_URL || 'http://localhost:3000';
   res.json({
     url: `${base}/f/${file.shortId}`,

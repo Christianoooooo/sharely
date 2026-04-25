@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen } from '@fortawesome/free-solid-svg-icons';
+import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -110,6 +110,11 @@ export function Layout({ children }) {
                     <DropdownMenuItem asChild>
                       <Link to="/admin/settings" className="flex items-center gap-2 cursor-pointer">
                         <FontAwesomeIcon icon={faGear} className="h-4 w-4" />{t('nav.siteSettings')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/audit-log" className="flex items-center gap-2 cursor-pointer">
+                        <FontAwesomeIcon icon={faClockRotateLeft} className="h-4 w-4" />{t('nav.auditLog')}
                       </Link>
                     </DropdownMenuItem>
                   </>
