@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -154,7 +154,8 @@ export default function Upload() {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('');      // plaintext, shown once after regen
+  const [apiKeyPrefix, setApiKeyPrefix] = useState('');
   const [keyCopied, setKeyCopied] = useState(false);
   const [progress, setProgress] = useState({}); // key: name+size → 0-100
   const fileInputRef = useRef(null);
@@ -263,11 +264,34 @@ export default function Upload() {
     }
   }
 
+  useEffect(() => {
+    fetch('/api/my-key')
+      .then((r) => r.ok ? r.json() : {})
+      .then((d) => { if (d.prefix) setApiKeyPrefix(d.prefix); })
+      .catch(() => {});
+  }, []);
+
   async function regenKey() {
     const r = await fetch('/api/regen-key', { method: 'POST' });
     const data = await r.json();
     setApiKey(data.apiKey);
+    setApiKeyPrefix(data.prefix);
     toast({ title: t('common.apiKeyRegenerated') });
+  }
+
+  async function downloadSxcu() {
+    const r = await fetch('/api/sharex-config');
+    if (!r.ok) return;
+    const prefix = r.headers.get('X-Sharely-Api-Prefix');
+    if (prefix) setApiKeyPrefix(prefix);
+    setApiKey(''); // plaintext is embedded in the file, not shown in UI
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sharely.sxcu';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function copyToClipboard(text) {
@@ -368,10 +392,12 @@ export default function Upload() {
           </CardTitle>
           <CardDescription>{t('upload.sharexDescription')}</CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-2 flex-wrap">
-          <Button variant="outline" asChild>
-            <a href="/api/sharex-config" download>{t('upload.downloadSxcu')}</a>
+        <CardContent className="space-y-2">
+          <Button variant="outline" className="gap-2" onClick={downloadSxcu}>
+            <FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />
+            {t('upload.downloadSxcu')}
           </Button>
+          <p className="text-xs text-muted-foreground">{t('upload.sharexKeyNote')}</p>
         </CardContent>
       </Card>
 
@@ -389,24 +415,34 @@ export default function Upload() {
   /api/upload`}
           </pre>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={regenKey} className="gap-2 shrink-0">
-              <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />{t('upload.regenKey')}
-            </Button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={regenKey} className="gap-2 shrink-0">
+                <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />{t('upload.regenKey')}
+              </Button>
+              {apiKeyPrefix && !apiKey && (
+                <code className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
+                  {apiKeyPrefix}…
+                </code>
+              )}
+            </div>
             {apiKey && (
-              <Tooltip open={keyCopied || undefined}>
-                <TooltipTrigger asChild>
-                  <code
-                    className="text-xs bg-muted px-2 py-1 rounded truncate flex-1 cursor-pointer hover:bg-muted/70 transition-colors"
-                    onClick={() => copyToClipboard(apiKey)}
-                  >
-                    {apiKey}
-                  </code>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {keyCopied ? t('common.copiedToClipboard') : t('common.copyToClipboard')}
-                </TooltipContent>
-              </Tooltip>
+              <div className="space-y-1">
+                <p className="text-xs text-amber-600 dark:text-amber-400">{t('upload.keyShownOnce')}</p>
+                <Tooltip open={keyCopied || undefined}>
+                  <TooltipTrigger asChild>
+                    <code
+                      className="text-xs bg-muted px-2 py-1 rounded block truncate cursor-pointer hover:bg-muted/70 transition-colors"
+                      onClick={() => copyToClipboard(apiKey)}
+                    >
+                      {apiKey}
+                    </code>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {keyCopied ? t('common.copiedToClipboard') : t('common.copyToClipboard')}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             )}
           </div>
         </CardContent>

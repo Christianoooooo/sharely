@@ -72,6 +72,8 @@
     "sharex": "ShareX-Integration",
     "sharexDescription": "Lade die .sxcu-Konfiguration herunter und importiere sie in ShareX",
     "downloadSxcu": ".sxcu herunterladen",
+    "sharexKeyNote": "Der Download generiert einen neuen API-Key – zuvor konfigurierte Tools benötigen den neuen Key.",
+    "keyShownOnce": "Kopiere diesen Key jetzt – er wird nicht erneut angezeigt.",
     "apiUpload": "API-Upload",
     "apiDescription": "Mit curl oder einem beliebigen HTTP-Client verwenden",
     "regenKey": "Schlüssel neu generieren",
@@ -237,6 +239,9 @@
     "changePwTitle": "Passwort ändern für \"{{username}}\"",
     "newPassword": "Neues Passwort",
     "pwChanged": "Passwort für \"{{username}}\" geändert",
+    "newKeyTitle": "Neuer API-Key für \"{{username}}\"",
+    "newKeyDesc": "Kopiere diesen Key jetzt – er wird nicht erneut angezeigt.",
+    "newKeyClose": "Fertig",
     "saving": "Speichern…",
     "save": "Speichern"
   },

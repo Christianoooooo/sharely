@@ -1,6 +1,5 @@
 const User = require('../models/User');
 
-// Require session-based login
 function requireLogin(req, res, next) {
   if (!req.session.user) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -8,7 +7,6 @@ function requireLogin(req, res, next) {
   next();
 }
 
-// Require admin role
 function requireAdmin(req, res, next) {
   if (!req.session.user) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -19,7 +17,6 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Require API key (Authorization: Bearer <key>, ?api_key=<key>, x-api-key header, or body token field)
 async function requireApiKey(req, res, next) {
   let key = null;
 
@@ -38,7 +35,7 @@ async function requireApiKey(req, res, next) {
     return res.status(401).json({ error: 'API key required' });
   }
 
-  const user = await User.findOne({ apiKey: key, isActive: true });
+  const user = await User.findByApiKey(key);
   if (!user) {
     return res.status(401).json({ error: 'Invalid or inactive API key' });
   }

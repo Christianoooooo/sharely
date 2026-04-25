@@ -11,6 +11,7 @@ const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
 
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
+const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
 
 if (!process.env.SESSION_SECRET) {
@@ -138,6 +139,7 @@ const PORT = process.env.PORT || 3000;
 (async () => {
   await connectDB();
   await migrateUserFolders();
+  await migrateApiKeyHashes();
   app.listen(PORT, () => {
     console.log(`sharely running on http://localhost:${PORT}`);
   });

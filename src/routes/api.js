@@ -230,9 +230,13 @@ router.get('/gallery', requireLogin, async (req, res) => {
 });
 
 // ── ShareX config ───────────────────────────────────────────────────────────
+// Regenerates the API key and embeds the new plaintext into the .sxcu file.
+// The plaintext is never persisted — this is the only moment it is visible.
 router.get('/sharex-config', requireLogin, async (req, res) => {
   const user = await User.findById(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const plaintext = await user.regenerateApiKey();
 
   const config = {
     Version: '16.1.0',
@@ -244,7 +248,7 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
     Arguments: {
       file: '{filename}',
       text: '{input}',
-      token: user.apiKey,
+      token: plaintext,
     },
     FileFormName: 'upload',
     URL: '{json:url}',
@@ -254,21 +258,22 @@ router.get('/sharex-config', requireLogin, async (req, res) => {
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', 'attachment; filename="sharely.sxcu"');
+  res.setHeader('X-Sharely-Api-Prefix', user.apiKeyPrefix);
   res.send(JSON.stringify(config, null, 2));
 });
 
 // ── API key management ──────────────────────────────────────────────────────
 router.get('/my-key', requireLogin, async (req, res) => {
-  const user = await User.findById(req.session.user.id);
+  const user = await User.findById(req.session.user.id).select('apiKeyPrefix');
   if (!user) return res.status(404).json({ error: 'Not found' });
-  res.json({ apiKey: user.apiKey });
+  res.json({ prefix: user.apiKeyPrefix });
 });
 
 router.post('/regen-key', requireLogin, async (req, res) => {
   const user = await User.findById(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
-  await user.regenerateApiKey();
-  res.json({ apiKey: user.apiKey });
+  const plaintext = await user.regenerateApiKey();
+  res.json({ apiKey: plaintext, prefix: user.apiKeyPrefix });
 });
 
 // ── Site settings: public read (used by privacy policy page + cookie banner) ─
@@ -337,7 +342,8 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
   const result = users.map((u) => ({
     ...u.toObject(),
     password: undefined,
-    apiKey: u.apiKey,
+    apiKey: undefined,
+    apiKeyHash: undefined,
     fileCount: statsMap[u._id.toString()]?.count || 0,
     storageUsed: statsMap[u._id.toString()]?.size || 0,
   }));
@@ -405,8 +411,8 @@ router.delete('/admin/users/:id', requireAdmin, async (req, res) => {
 router.post('/admin/users/:id/regen-key', requireAdmin, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
-  await user.regenerateApiKey();
-  res.json({ apiKey: user.apiKey });
+  const plaintext = await user.regenerateApiKey();
+  res.json({ apiKey: plaintext, prefix: user.apiKeyPrefix });
 });
 
 router.patch('/admin/users/:id/password', requireAdmin, async (req, res) => {

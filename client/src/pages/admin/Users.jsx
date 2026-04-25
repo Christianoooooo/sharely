@@ -35,6 +35,7 @@ export default function AdminUsers() {
   const [pwDialog, setPwDialog] = useState(null); // { id, username }
   const [newPw, setNewPw] = useState('');
   const [savingPw, setSavingPw] = useState(false);
+  const [newKeyDialog, setNewKeyDialog] = useState(null); // { username, apiKey }
 
   async function load() {
     const r = await fetch('/api/admin/users');
@@ -88,7 +89,8 @@ export default function AdminUsers() {
   async function regenKey(id, username) {
     const r = await fetch(`/api/admin/users/${id}/regen-key`, { method: 'POST' });
     if (r.ok) {
-      toast({ title: t('adminUsers.keyRegenerated', { username }) });
+      const data = await r.json();
+      setNewKeyDialog({ username, apiKey: data.apiKey });
       load();
     }
   }
@@ -313,17 +315,9 @@ export default function AdminUsers() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{fmtDate(u.createdAt)}</TableCell>
                   <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <code
-                          className="text-xs bg-muted px-1.5 py-0.5 rounded cursor-pointer hover:bg-muted/70 transition-colors"
-                          onClick={() => { navigator.clipboard.writeText(u.apiKey); toast({ title: t('common.copiedToClipboard') }); }}
-                        >
-                          {u.apiKey?.slice(0, 8)}…
-                        </code>
-                      </TooltipTrigger>
-                      <TooltipContent>{u.apiKey}</TooltipContent>
-                    </Tooltip>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                      {u.apiKeyPrefix || '—'}…
+                    </code>
                   </TableCell>
                   <TableCell>
                     {u._id !== me?.id && (
@@ -380,6 +374,25 @@ export default function AdminUsers() {
           </Table>
         </CardContent>
       </Card>
+      {/* New API key dialog */}
+      <Dialog open={!!newKeyDialog} onOpenChange={(open) => { if (!open) setNewKeyDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('adminUsers.newKeyTitle', { username: newKeyDialog?.username })}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('adminUsers.newKeyDesc')}</p>
+          <code
+            className="text-xs bg-muted px-3 py-2 rounded block break-all cursor-pointer hover:bg-muted/70 transition-colors"
+            onClick={() => { navigator.clipboard.writeText(newKeyDialog?.apiKey || ''); toast({ title: t('common.copiedToClipboard') }); }}
+          >
+            {newKeyDialog?.apiKey}
+          </code>
+          <DialogFooter>
+            <Button onClick={() => setNewKeyDialog(null)}>{t('adminUsers.newKeyClose')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Change password dialog */}
       <Dialog open={!!pwDialog} onOpenChange={(open) => { if (!open) setPwDialog(null); }}>
         <DialogContent className="sm:max-w-sm">
