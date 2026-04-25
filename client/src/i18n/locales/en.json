@@ -253,7 +253,11 @@
     "placeholderEmail": "e.g. privacy@example.com",
     "save": "Save",
     "saving": "Saving…",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "analyticsSection": "Analytics",
+    "analyticsDescription": "Enable the cookie consent notice when Cloudflare Web Analytics is active on this instance.",
+    "analyticsLabel": "Cloudflare Web Analytics is enabled on this instance",
+    "analyticsHint": "Cloudflare Web Analytics is cookie-free. Enabling this shows an informational banner to users so they are aware of the data collection, as required by GDPR Art. 13."
   },
   "adminImport": {
     "title": "Migrate from XBackBone",
@@ -353,6 +357,11 @@
     "s7Title": "7. Changes to this Policy",
     "s7Body": "The operator may update this policy at any time. The date of the latest revision will be noted above. Continued use of the service after changes constitutes acceptance of the updated policy.",
     "version": "Sharely – open-source file sharing · Template privacy policy"
+  },
+  "cookieBanner": {
+    "text": "This site uses Cloudflare Web Analytics (cookie-free) to understand traffic.",
+    "privacyLink": "Privacy Policy",
+    "accept": "OK"
   },
   "common": {
     "copiedToClipboard": "Copied to clipboard",

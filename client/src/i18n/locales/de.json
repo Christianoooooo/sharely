@@ -253,7 +253,11 @@
     "placeholderEmail": "z. B. datenschutz@beispiel.de",
     "save": "Speichern",
     "saving": "Speichern…",
-    "saved": "Einstellungen gespeichert"
+    "saved": "Einstellungen gespeichert",
+    "analyticsSection": "Analyse",
+    "analyticsDescription": "Aktiviere den Cookie-Hinweis, wenn Cloudflare Web Analytics auf dieser Instanz aktiv ist.",
+    "analyticsLabel": "Cloudflare Web Analytics ist auf dieser Instanz aktiv",
+    "analyticsHint": "Cloudflare Web Analytics verwendet keine Cookies. Wenn diese Option aktiviert ist, wird Benutzern ein Informationsbanner angezeigt, das sie über die Datenerhebung informiert (gem. DSGVO Art. 13)."
   },
   "adminImport": {
     "title": "Von XBackBone migrieren",
@@ -353,6 +357,11 @@
     "s7Title": "7. Änderungen dieser Erklärung",
     "s7Body": "Der Betreiber kann diese Erklärung jederzeit aktualisieren. Das Datum der letzten Überarbeitung wird oben vermerkt. Die weitere Nutzung des Dienstes nach Änderungen gilt als Zustimmung zur aktualisierten Erklärung.",
     "version": "Sharely – Open-Source-Dateifreigabe · Vorlage Datenschutzerklärung"
+  },
+  "cookieBanner": {
+    "text": "Diese Website verwendet Cloudflare Web Analytics (ohne Cookies) zur Analyse des Datenverkehrs.",
+    "privacyLink": "Datenschutzerklärung",
+    "accept": "OK"
   },
   "common": {
     "copiedToClipboard": "In Zwischenablage kopiert",
