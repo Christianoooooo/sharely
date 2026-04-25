@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,10 +18,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes, faShield, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes, faShield, faDownload, faPencil } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { STORAGE_KEY as COOKIE_CONSENT_KEY } from '@/components/CookieBanner';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -32,6 +33,10 @@ export default function Settings() {
   // Password form
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [saving, setSaving] = useState(false);
+
+  // Username change
+  const [usernameForm, setUsernameForm] = useState({ newUsername: '', password: '' });
+  const [savingUsername, setSavingUsername] = useState(false);
 
   // Avatar
   const avatarInputRef = useRef(null);
@@ -48,6 +53,29 @@ export default function Settings() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // GDPR: cookie consent
+  const [consentStatus, setConsentStatus] = useState(() => localStorage.getItem(COOKIE_CONSENT_KEY) || 'none');
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+
+  // GDPR: objection
+  const [operatorEmail, setOperatorEmail] = useState('');
+
+  useEffect(() => {
+    fetch('/api/site-settings')
+      .then((r) => r.ok ? r.json() : {})
+      .then((data) => {
+        setAnalyticsEnabled(!!data.cloudflareAnalytics);
+        setOperatorEmail(data.operatorEmail || '');
+      })
+      .catch(() => {});
+  }, []);
+
+  function handleConsentChange(value) {
+    localStorage.setItem(COOKIE_CONSENT_KEY, value);
+    setConsentStatus(value);
+    toast({ title: t('settings.consentUpdated') });
+  }
 
   async function handleEmbedModeChange(val) {
     setEmbedMode(val);
@@ -66,6 +94,29 @@ export default function Settings() {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
       setSavingEmbed(false);
+    }
+  }
+
+  async function handleUsernameSubmit(e) {
+    e.preventDefault();
+    const trimmed = usernameForm.newUsername.trim();
+    if (!trimmed || !usernameForm.password) return;
+    setSavingUsername(true);
+    try {
+      const r = await fetch('/api/user/username', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newUsername: trimmed, password: usernameForm.password }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.usernameChanged') });
+      setUsernameForm({ newUsername: '', password: '' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingUsername(false);
     }
   }
 
@@ -292,6 +343,49 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Change Username (GDPR Art. 16) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faPencil} className="h-4 w-4" />{t('settings.changeUsername')}
+          </CardTitle>
+          <CardDescription>{t('settings.changeUsernameDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUsernameSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>{t('settings.currentUsername')}</Label>
+              <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{user?.username}</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newUsername">{t('settings.newUsername')}</Label>
+              <Input
+                id="newUsername"
+                type="text"
+                value={usernameForm.newUsername}
+                onChange={(e) => setUsernameForm((p) => ({ ...p, newUsername: e.target.value }))}
+                minLength={3}
+                maxLength={32}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="usernamePassword">{t('settings.currentPasswordConfirm')}</Label>
+              <Input
+                id="usernamePassword"
+                type="password"
+                value={usernameForm.password}
+                onChange={(e) => setUsernameForm((p) => ({ ...p, password: e.target.value }))}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={savingUsername}>
+              {savingUsername ? t('settings.saving') : t('settings.saveUsername')}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       {/* Change Password */}
       <Card>
         <CardHeader>
@@ -365,6 +459,55 @@ export default function Settings() {
               {exporting ? t('settings.exporting') : t('settings.exportDataBtn')}
             </Button>
           </div>
+
+          {/* Cookie consent withdrawal */}
+          {analyticsEnabled && (
+            <div className="border-t pt-4 space-y-1.5">
+              <p className="text-sm font-medium">{t('settings.cookieConsent')}</p>
+              <p className="text-xs text-muted-foreground">{t('settings.cookieConsentDescription')}</p>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant={consentStatus === 'accepted' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleConsentChange('accepted')}
+                >
+                  {t('settings.consentAccept')}
+                </Button>
+                <Button
+                  variant={consentStatus === 'declined' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleConsentChange('declined')}
+                >
+                  {t('settings.consentDecline')}
+                </Button>
+              </div>
+              {consentStatus !== 'none' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {consentStatus === 'accepted' ? t('settings.consentCurrentAccepted') : t('settings.consentCurrentDeclined')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Objection to processing (Art. 21) */}
+          {operatorEmail && (
+            <div className="border-t pt-4 space-y-1.5">
+              <p className="text-sm font-medium">{t('settings.objection')}</p>
+              <p className="text-xs text-muted-foreground">{t('settings.objectionDescription')}</p>
+              <a
+                href={`mailto:${operatorEmail}?subject=${encodeURIComponent(t('settings.objectionEmailSubject'))}&body=${encodeURIComponent(t('settings.objectionEmailBody', { username: user?.username }))}`}
+                className="inline-block mt-2"
+              >
+                <Button variant="outline" size="sm">
+                  {t('settings.objectionBtn')}
+                </Button>
+              </a>
+              <p className="text-xs text-muted-foreground">
+                {t('settings.objectionContact')}{' '}
+                <span className="font-mono">{operatorEmail}</span>
+              </p>
+            </div>
+          )}
 
           <div className="border-t pt-4 space-y-1.5">
             <p className="text-sm font-medium text-destructive">{t('settings.deleteAccount')}</p>

@@ -135,7 +135,56 @@ export default function PrivacyPolicy() {
         <Section title={t('privacy.s5Title')}>
           <p>{t('privacy.s5Session')}</p>
           <p className="mt-2">{t('privacy.s5NoTracking')}</p>
-          <p className="mt-2">{t('privacy.s5Cloudflare')}</p>
+          {ops?.cloudflareAnalytics && (
+            <p className="mt-2">{t('privacy.s5CloudflareActive')}</p>
+          )}
+          {!ops?.cloudflareAnalytics && (
+            <p className="mt-2">{t('privacy.s5CloudflareInactive')}</p>
+          )}
+        </Section>
+
+        <Section title={t('privacy.s5bTitle')}>
+          <p>{t('privacy.s5bIntro')}</p>
+          {ops?.cloudflareAnalytics ? (
+            <table className="w-full mt-3 text-sm border rounded-md overflow-hidden">
+              <thead className="bg-muted">
+                <tr>
+                  <Th>{t('privacy.s5bColProcessor')}</Th>
+                  <Th>{t('privacy.s5bColPurpose')}</Th>
+                  <Th>{t('privacy.s5bColLocation')}</Th>
+                  <Th>{t('privacy.s5bColSafeguard')}</Th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <Td>Cloudflare, Inc.</Td>
+                  <Td>{t('privacy.s5bCloudflarePurpose')}</Td>
+                  <Td>USA / Global</Td>
+                  <Td>
+                    <a
+                      href="https://www.cloudflare.com/privacypolicy/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 hover:text-foreground"
+                    >
+                      {t('privacy.s5bPrivacyPolicy')}
+                    </a>
+                    {' · '}
+                    <a
+                      href="https://www.cloudflare.com/gdpr/introduction/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 hover:text-foreground"
+                    >
+                      DPA / SCCs
+                    </a>
+                  </Td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">{t('privacy.s5bNoProcessors')}</p>
+          )}
         </Section>
 
         <Section title={t('privacy.s6Title')}>
