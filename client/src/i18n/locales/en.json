@@ -36,7 +36,9 @@
     "submit": "Create account",
     "submitting": "Creating account…",
     "hasAccount": "Already have an account?",
-    "login": "Login"
+    "login": "Login",
+    "privacyNotice": "By registering you accept our",
+    "privacyLink": "Privacy Policy"
   },
   "gallery": {
     "title": "Gallery",
@@ -391,7 +393,7 @@
     "basisContract": "Art. 6(1)(b) – performance of a contract",
     "basisLegitimate": "Art. 6(1)(f) – legitimate interest",
     "basisConsent": "Art. 6(1)(a) – consent",
-    "s2NoEmail": "We do not collect email addresses, IP addresses, real names, phone numbers, or location data.",
+    "s2NoEmail": "We do not collect email addresses, real names, phone numbers, or location data.",
     "s3Title": "3. Retention",
     "s3Body": "Account data (username, profile picture) is retained for as long as your account exists. You may delete your account at any time in Settings, which permanently removes all associated files and personal data. Session data expires after 7 days of inactivity.",
     "s3BodyRetention": "Uploaded files are automatically deleted after {{days}} days, even if your account remains active.",
@@ -415,7 +417,7 @@
     "s5Title": "5. Cookies & Tracking",
     "s5Session": "We use a single technically-necessary session cookie to keep you logged in. No consent is required for this cookie as it is essential for the service to function.",
     "s5NoTracking": "We do not use any analytics, advertising, or fingerprinting cookies.",
-    "s5CloudflareActive": "This instance uses Cloudflare Web Analytics (cookie-free) to measure site traffic. No personal data is stored by Cloudflare Web Analytics; only anonymised metrics are collected. You can manage your consent in Settings.",
+    "s5CloudflareActive": "This instance uses Cloudflare Web Analytics to measure site traffic. The analytics beacon is injected by the Cloudflare reverse proxy at network level and cannot be suppressed by this application. Cloudflare Web Analytics is cookieless and collects no personal data — only anonymised aggregate metrics. As it neither sets cookies nor processes personal data, most legal interpretations consider it consent-free under the ePrivacy Directive / TTDSG. This is documented here for transparency.",
     "s5CloudflareInactive": "No third-party analytics or tracking tools are active on this instance.",
     "s5bTitle": "5a. Data Processors",
     "s5bIntro": "We use the following data processors (Art. 28 GDPR). A Data Processing Agreement (DPA) is in place with each processor:",
@@ -432,7 +434,10 @@
     "s6NoEncryption": "Uploaded files are not encrypted at the application level. Encryption at rest depends on the operator's server and storage configuration.",
     "s7Title": "7. Changes to this Policy",
     "s7Body": "The operator may update this policy at any time. The date of the latest revision will be noted above. Continued use of the service after changes constitutes acceptance of the updated policy.",
-    "version": "Sharely – open-source file sharing · Privacy Policy"
+    "version": "Sharely – open-source file sharing · Privacy Policy",
+    "dataAuditLog": "IP address, action type, timestamp (Audit Log)",
+    "purposeAuditLog": "Security monitoring & abuse prevention",
+    "s3BodyAuditLog": "Audit log entries (IP address, action, timestamp) are automatically deleted after 90 days."
   },
   "cookieBanner": {
     "text": "This site uses Cloudflare Web Analytics (cookie-free) to understand traffic.",

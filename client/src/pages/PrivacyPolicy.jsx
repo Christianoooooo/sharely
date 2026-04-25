@@ -98,6 +98,11 @@ export default function PrivacyPolicy() {
                 <Td>{t('privacy.purposeProfile')}</Td>
                 <Td>{t('privacy.basisConsent')}</Td>
               </tr>
+              <tr>
+                <Td>{t('privacy.dataAuditLog')}</Td>
+                <Td>{t('privacy.purposeAuditLog')}</Td>
+                <Td>{t('privacy.basisLegitimate')}</Td>
+              </tr>
             </tbody>
           </table>
           <p className="text-sm text-muted-foreground mt-3">{t('privacy.s2NoEmail')}</p>
@@ -110,6 +115,7 @@ export default function PrivacyPolicy() {
           ) : (
             <p>{t('privacy.s3BodyNoRetention')}</p>
           )}
+          <p>{t('privacy.s3BodyAuditLog')}</p>
         </Section>
 
         <Section title={t('privacy.s4Title')}>

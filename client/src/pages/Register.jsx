@@ -99,6 +99,12 @@ function SignupForm({ className, ...props }) {
               {t('register.login')}
             </Link>
           </div>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            {t('register.privacyNotice')}{' '}
+            <Link to="/privacy" className="underline underline-offset-4 hover:text-foreground">
+              {t('register.privacyLink')}
+            </Link>.
+          </p>
         </form>
       </CardContent>
     </Card>

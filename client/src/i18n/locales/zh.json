@@ -36,7 +36,9 @@
     "submit": "创建账户",
     "submitting": "创建账户中…",
     "hasAccount": "已有账户？",
-    "login": "登录"
+    "login": "登录",
+    "privacyNotice": "注册即表示您接受我们的",
+    "privacyLink": "隐私政策"
   },
   "gallery": {
     "title": "图库",
@@ -391,7 +393,7 @@
     "basisContract": "第 6(1)(b) 条 – 合同履行",
     "basisLegitimate": "第 6(1)(f) 条 – 合法利益",
     "basisConsent": "第 6(1)(a) 条 – 同意",
-    "s2NoEmail": "我们不收集电子邮件地址、IP 地址、真实姓名、电话号码或位置数据。",
+    "s2NoEmail": "我们不收集电子邮件地址、真实姓名、电话号码或位置数据。",
     "s3Title": "3. 数据保留",
     "s3Body": "账户数据（用户名、头像）在您的账户存在期间保留。您可以随时在设置中删除账户，这将永久删除所有相关文件和个人数据。会话数据在 7 天不活跃后过期。",
     "s3BodyRetention": "上传的文件将在 {{days}} 天后自动删除，即使您的账户仍处于活跃状态。",
@@ -415,7 +417,7 @@
     "s5Title": "5. Cookie 与追踪",
     "s5Session": "我们使用一个技术上必要的会话 Cookie 以保持您的登录状态。此 Cookie 对服务运行至关重要，无需征得同意。",
     "s5NoTracking": "我们不使用任何分析、广告或指纹识别 Cookie。",
-    "s5CloudflareActive": "本实例使用 Cloudflare Web Analytics（无 Cookie）来衡量网站流量。Cloudflare Web Analytics 不存储任何个人数据，仅收集匿名化指标。您可以在设置中管理您的同意。",
+    "s5CloudflareActive": "本实例使用 Cloudflare Web Analytics 衡量网站流量。分析信标由 Cloudflare 反向代理在网络层注入，本应用程序无法屏蔽它。Cloudflare Web Analytics 不使用 Cookie，不收集任何个人数据——仅收集匿名化的汇总指标。由于既不设置 Cookie 也不处理个人数据，大多数法律解释认为其在 ePrivacy 指令 / TTDSG 下无需明确同意。此处记录以示透明。",
     "s5CloudflareInactive": "本实例当前未启用任何第三方分析或跟踪工具。",
     "s5bTitle": "5a. 数据处理者",
     "s5bIntro": "我们使用以下数据处理者（GDPR 第28条）。我们与每个处理者均签订了数据处理协议（DPA）：",
@@ -432,7 +434,10 @@
     "s6NoEncryption": "上传的文件在应用层面未加密。静态加密取决于运营者的服务器和存储配置。",
     "s7Title": "7. 本政策的变更",
     "s7Body": "运营者可随时更新本政策。最新修订日期将在上方注明。变更后继续使用本服务即表示接受更新后的政策。",
-    "version": "Sharely – 开源文件共享 · 隐私政策"
+    "version": "Sharely – 开源文件共享 · 隐私政策",
+    "dataAuditLog": "IP 地址、操作类型、时间戳（审计日志）",
+    "purposeAuditLog": "安全监控与滥用预防",
+    "s3BodyAuditLog": "审计日志条目（IP 地址、操作、时间戳）在 90 天后自动删除。"
   },
   "cookieBanner": {
     "text": "本站使用 Cloudflare Web Analytics（无 Cookie）了解流量情况。",
