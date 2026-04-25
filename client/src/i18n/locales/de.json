@@ -345,9 +345,6 @@
   "privacy": {
     "backHome": "Zurück",
     "title": "Datenschutzerklärung",
-    "lastUpdated": "Vorlage – Betreiber müssen diese vor dem Einsatz anpassen",
-    "templateWarningTitle": "Dies ist eine Vorlage.",
-    "templateWarningBody": "Ersetze alle [PLATZHALTER]-Felder durch deine tatsächlichen Angaben, bevor du die Instanz veröffentlichst. Dieses Dokument stellt keine Rechtsberatung dar. Wende dich für deine Jurisdiktion an einen qualifizierten Anwalt.",
     "incompleteTitle": "Betreiberdaten fehlen.",
     "incompleteBody": "Einige Felder wurden noch nicht konfiguriert. Admins können diese unter Admin → Website-Einstellungen ausfüllen.",
     "notConfigured": "[nicht konfiguriert]",
