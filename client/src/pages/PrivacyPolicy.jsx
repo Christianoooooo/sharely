@@ -22,6 +22,8 @@ export default function PrivacyPolicy() {
   }
 
   const isIncomplete = ops && (!ops.operatorName || !ops.operatorAddress || !ops.operatorEmail);
+  const retentionDays = ops?.fileRetentionDays || 0;
+  const encryptionAtRest = ops?.encryptionAtRest || false;
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,6 +105,11 @@ export default function PrivacyPolicy() {
 
         <Section title={t('privacy.s3Title')}>
           <p>{t('privacy.s3Body')}</p>
+          {retentionDays > 0 ? (
+            <p>{t('privacy.s3BodyRetention', { days: retentionDays })}</p>
+          ) : (
+            <p>{t('privacy.s3BodyNoRetention')}</p>
+          )}
         </Section>
 
         <Section title={t('privacy.s4Title')}>
@@ -133,6 +140,11 @@ export default function PrivacyPolicy() {
 
         <Section title={t('privacy.s6Title')}>
           <p>{t('privacy.s6Body')}</p>
+          {encryptionAtRest ? (
+            <p>{t('privacy.s6Encryption')}</p>
+          ) : (
+            <p>{t('privacy.s6NoEncryption')}</p>
+          )}
         </Section>
 
         <Section title={t('privacy.s7Title')}>

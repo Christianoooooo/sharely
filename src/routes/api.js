@@ -292,6 +292,8 @@ router.get('/site-settings', async (req, res) => {
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
     cloudflareAnalytics: s.cloudflareAnalytics,
+    fileRetentionDays: s.fileRetentionDays,
+    encryptionAtRest: s.encryptionAtRest,
   });
 });
 
@@ -303,22 +305,28 @@ router.get('/admin/site-settings', requireAdmin, async (req, res) => {
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
     cloudflareAnalytics: s.cloudflareAnalytics,
+    fileRetentionDays: s.fileRetentionDays,
+    encryptionAtRest: s.encryptionAtRest,
   });
 });
 
 router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
-  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics } = req.body;
+  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest } = req.body;
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
   if (typeof operatorEmail === 'string') s.operatorEmail = operatorEmail.trim();
   if (typeof cloudflareAnalytics === 'boolean') s.cloudflareAnalytics = cloudflareAnalytics;
+  if (typeof fileRetentionDays === 'number' && fileRetentionDays >= 0) s.fileRetentionDays = Math.floor(fileRetentionDays);
+  if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
   await s.save();
   res.json({
     operatorName: s.operatorName,
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
     cloudflareAnalytics: s.cloudflareAnalytics,
+    fileRetentionDays: s.fileRetentionDays,
+    encryptionAtRest: s.encryptionAtRest,
   });
 });
 

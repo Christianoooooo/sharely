@@ -6,6 +6,8 @@ const siteSettingsSchema = new mongoose.Schema({
   operatorAddress: { type: String, default: '' },
   operatorEmail: { type: String, default: '' },
   cloudflareAnalytics: { type: Boolean, default: false },
+  fileRetentionDays: { type: Number, default: 0 },
+  encryptionAtRest: { type: Boolean, default: false },
 });
 
 siteSettingsSchema.statics.get = async function () {
