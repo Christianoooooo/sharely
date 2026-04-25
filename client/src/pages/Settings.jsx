@@ -1,20 +1,33 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes } from '@fortawesome/free-solid-svg-icons';
+import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes, faShield, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Settings() {
   const { toast } = useToast();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   // Password form
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -27,6 +40,14 @@ export default function Settings() {
   // Embed mode
   const [embedMode, setEmbedMode] = useState(user?.embedMode || 'embed');
   const [savingEmbed, setSavingEmbed] = useState(false);
+
+  // GDPR: export
+  const [exporting, setExporting] = useState(false);
+
+  // GDPR: delete account
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   async function handleEmbedModeChange(val) {
     setEmbedMode(val);
@@ -112,6 +133,51 @@ export default function Settings() {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
       setUploadingAvatar(false);
+    }
+  }
+
+  async function handleExportData() {
+    setExporting(true);
+    try {
+      const r = await fetch('/api/user/export');
+      if (!r.ok) throw new Error('Export failed');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cd = r.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match ? match[1] : 'sharely-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!deletePassword) return;
+    setDeleting(true);
+    try {
+      const r = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        throw new Error(
+          r.status === 401 ? t('settings.deleteAccountWrongPassword') : data.error,
+        );
+      }
+      toast({ title: t('settings.deleteAccountSuccess') });
+      await logout();
+      navigate('/auth/login');
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+      setDeleting(false);
     }
   }
 
@@ -272,6 +338,83 @@ export default function Settings() {
               {saving ? t('settings.saving') : t('settings.savePassword')}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* GDPR: Your Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faShield} className="h-4 w-4" />{t('settings.gdpr')}
+          </CardTitle>
+          <CardDescription>{t('settings.gdprDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Export */}
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium">{t('settings.exportData')}</p>
+            <p className="text-xs text-muted-foreground">{t('settings.exportDataDescription')}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 mt-2"
+              onClick={handleExportData}
+              disabled={exporting}
+            >
+              <FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />
+              {exporting ? t('settings.exporting') : t('settings.exportDataBtn')}
+            </Button>
+          </div>
+
+          <div className="border-t pt-4 space-y-1.5">
+            <p className="text-sm font-medium text-destructive">{t('settings.deleteAccount')}</p>
+            <p className="text-xs text-muted-foreground">{t('settings.deleteAccountDescription')}</p>
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+              setDeleteDialogOpen(open);
+              if (!open) setDeletePassword('');
+            }}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-2 mt-2">
+                  <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                  {t('settings.deleteAccountBtn')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('settings.deleteAccountConfirmTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('settings.deleteAccountConfirmDesc')}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-1.5 py-2">
+                  <Label htmlFor="deletePassword">{t('settings.deleteAccountPasswordLabel')}</Label>
+                  <Input
+                    id="deletePassword"
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>
+                    {t('settings.deleteAccountCancel')}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDeleteAccount();
+                    }}
+                    disabled={!deletePassword || deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? t('settings.deleteAccountDeleting') : t('settings.deleteAccountConfirm')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardContent>
       </Card>
     </div>
