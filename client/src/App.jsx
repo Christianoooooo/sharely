@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/Layout';
+import { CookieBanner } from '@/components/CookieBanner';
 
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -68,6 +69,7 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/gallery" replace />} />
         </Routes>
+        <CookieBanner />
         <Toaster />
         </TooltipProvider>
       </AuthProvider>

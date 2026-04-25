@@ -6,13 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShield } from '@fortawesome/free-solid-svg-icons';
+import { faShield, faCloud } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminSiteSettings() {
   const { t } = useTranslation();
   const { toast } = useToast();
 
-  const [form, setForm] = useState({ operatorName: '', operatorAddress: '', operatorEmail: '' });
+  const [form, setForm] = useState({ operatorName: '', operatorAddress: '', operatorEmail: '', cloudflareAnalytics: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -24,6 +24,7 @@ export default function AdminSiteSettings() {
           operatorName: data.operatorName ?? '',
           operatorAddress: data.operatorAddress ?? '',
           operatorEmail: data.operatorEmail ?? '',
+          cloudflareAnalytics: data.cloudflareAnalytics ?? false,
         });
       })
       .finally(() => setLoading(false));
@@ -98,6 +99,30 @@ export default function AdminSiteSettings() {
               {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faCloud} className="h-4 w-4" />
+            {t('adminSiteSettings.analyticsSection')}
+          </CardTitle>
+          <CardDescription>{t('adminSiteSettings.analyticsDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+              checked={form.cloudflareAnalytics}
+              onChange={(e) => setForm((p) => ({ ...p, cloudflareAnalytics: e.target.checked }))}
+            />
+            <span className="text-sm">{t('adminSiteSettings.analyticsLabel')}</span>
+          </label>
+          <p className="text-xs text-muted-foreground mt-2">{t('adminSiteSettings.analyticsHint')}</p>
+          <Button className="mt-4" disabled={saving} onClick={handleSubmit}>
+            {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}
+          </Button>
         </CardContent>
       </Card>
     </div>

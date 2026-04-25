@@ -271,13 +271,14 @@ router.post('/regen-key', requireLogin, async (req, res) => {
   res.json({ apiKey: user.apiKey });
 });
 
-// ── Site settings: public read (used by privacy policy page) ───────────────
+// ── Site settings: public read (used by privacy policy page + cookie banner) ─
 router.get('/site-settings', async (req, res) => {
   const s = await SiteSettings.get();
   res.json({
     operatorName: s.operatorName,
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
+    cloudflareAnalytics: s.cloudflareAnalytics,
   });
 });
 
@@ -288,20 +289,23 @@ router.get('/admin/site-settings', requireAdmin, async (req, res) => {
     operatorName: s.operatorName,
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
+    cloudflareAnalytics: s.cloudflareAnalytics,
   });
 });
 
 router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
-  const { operatorName, operatorAddress, operatorEmail } = req.body;
+  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics } = req.body;
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
   if (typeof operatorEmail === 'string') s.operatorEmail = operatorEmail.trim();
+  if (typeof cloudflareAnalytics === 'boolean') s.cloudflareAnalytics = cloudflareAnalytics;
   await s.save();
   res.json({
     operatorName: s.operatorName,
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
+    cloudflareAnalytics: s.cloudflareAnalytics,
   });
 });
 
