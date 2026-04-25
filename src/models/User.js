@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
+function hashApiKey(plaintext) {
+  return crypto.createHash('sha256').update(plaintext).digest('hex');
+}
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -20,11 +24,11 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'user'],
     default: 'user',
   },
-  apiKey: {
-    type: String,
-    unique: true,
-    default: () => crypto.randomBytes(24).toString('hex'),
-  },
+  // Legacy plaintext field – kept only so the startup migration can read and
+  // hash it. Cleared immediately after migration; never written again.
+  apiKey: { type: String },
+  apiKeyHash: { type: String, unique: true, sparse: true },
+  apiKeyPrefix: { type: String, default: '' },
   folderName: {
     type: String,
     unique: true,
@@ -51,10 +55,16 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving; auto-assign folderName on new users
 userSchema.pre('save', async function (next) {
-  if (this.isNew && !this.folderName) {
-    this.folderName = crypto.randomBytes(8).toString('hex');
+  if (this.isNew) {
+    if (!this.folderName) {
+      this.folderName = crypto.randomBytes(8).toString('hex');
+    }
+    if (!this.apiKeyHash) {
+      const plaintext = crypto.randomBytes(24).toString('hex');
+      this.apiKeyHash = hashApiKey(plaintext);
+      this.apiKeyPrefix = plaintext.slice(0, 8);
+    }
   }
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
@@ -65,9 +75,18 @@ userSchema.methods.comparePassword = function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-userSchema.methods.regenerateApiKey = function () {
-  this.apiKey = crypto.randomBytes(24).toString('hex');
-  return this.save();
+// Regenerates the API key. Returns the plaintext key exactly once.
+userSchema.methods.regenerateApiKey = async function () {
+  const plaintext = crypto.randomBytes(24).toString('hex');
+  this.apiKeyHash = hashApiKey(plaintext);
+  this.apiKeyPrefix = plaintext.slice(0, 8);
+  this.apiKey = undefined;
+  await this.save();
+  return plaintext;
+};
+
+userSchema.statics.findByApiKey = function (plaintext) {
+  return this.findOne({ apiKeyHash: hashApiKey(plaintext), isActive: true });
 };
 
 module.exports = mongoose.model('User', userSchema);
