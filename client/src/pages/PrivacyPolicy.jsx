@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 export default function PrivacyPolicy() {
   const { t } = useTranslation();
@@ -26,7 +27,7 @@ export default function PrivacyPolicy() {
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between">
           <Link
             to="/"
             className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
@@ -34,12 +35,10 @@ export default function PrivacyPolicy() {
             <FontAwesomeIcon icon={faArrowLeft} className="h-3.5 w-3.5" />
             {t('privacy.backHome')}
           </Link>
+          <LanguageSelector />
         </div>
 
-        <div>
-          <h1 className="text-3xl font-bold">{t('privacy.title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t('privacy.lastUpdated')}</p>
-        </div>
+        <h1 className="text-3xl font-bold">{t('privacy.title')}</h1>
 
         {/* Incomplete warning – only shown when fields are missing */}
         {isIncomplete && (
