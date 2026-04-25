@@ -15,7 +15,9 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminUsers from '@/pages/admin/Users';
 import AdminFiles from '@/pages/admin/Files';
 import AdminImport from '@/pages/admin/Import';
+import AdminSiteSettings from '@/pages/admin/SiteSettings';
 import Settings from '@/pages/Settings';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 
 const PAGE_TITLES = {
   '/gallery': 'Gallery',
@@ -48,6 +50,7 @@ function App() {
           {/* Public */}
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/f/:shortId" element={<FileView />} />
 
           {/* Protected */}
@@ -60,6 +63,7 @@ function App() {
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><Layout><AdminUsers /></Layout></ProtectedRoute>} />
           <Route path="/admin/files" element={<ProtectedRoute adminOnly><Layout><AdminFiles /></Layout></ProtectedRoute>} />
           <Route path="/admin/import" element={<ProtectedRoute adminOnly><Layout><AdminImport /></Layout></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute adminOnly><Layout><AdminSiteSettings /></Layout></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/gallery" replace />} />

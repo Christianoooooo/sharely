@@ -10,6 +10,7 @@ const upload = require('../middleware/upload');
 const { isBlockedFile } = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
+const SiteSettings = require('../models/SiteSettings');
 const sanitizeFilename = require('../utils/sanitizeFilename');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 
@@ -268,6 +269,40 @@ router.post('/regen-key', requireLogin, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Not found' });
   await user.regenerateApiKey();
   res.json({ apiKey: user.apiKey });
+});
+
+// ── Site settings: public read (used by privacy policy page) ───────────────
+router.get('/site-settings', async (req, res) => {
+  const s = await SiteSettings.get();
+  res.json({
+    operatorName: s.operatorName,
+    operatorAddress: s.operatorAddress,
+    operatorEmail: s.operatorEmail,
+  });
+});
+
+// ── Admin: site settings read / write ──────────────────────────────────────
+router.get('/admin/site-settings', requireAdmin, async (req, res) => {
+  const s = await SiteSettings.get();
+  res.json({
+    operatorName: s.operatorName,
+    operatorAddress: s.operatorAddress,
+    operatorEmail: s.operatorEmail,
+  });
+});
+
+router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
+  const { operatorName, operatorAddress, operatorEmail } = req.body;
+  const s = await SiteSettings.get();
+  if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
+  if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
+  if (typeof operatorEmail === 'string') s.operatorEmail = operatorEmail.trim();
+  await s.save();
+  res.json({
+    operatorName: s.operatorName,
+    operatorAddress: s.operatorAddress,
+    operatorEmail: s.operatorEmail,
+  });
 });
 
 // ── Admin: stats ────────────────────────────────────────────────────────────
