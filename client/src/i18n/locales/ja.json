@@ -38,7 +38,10 @@
     "hasAccount": "すでにアカウントをお持ちですか？",
     "login": "ログイン",
     "privacyNotice": "登録することで、当社の",
-    "privacyLink": "プライバシーポリシー"
+    "privacyLink": "プライバシーポリシー",
+    "acceptPrivacy": "私は",
+    "acceptPrivacySuffix": "を読み、個人データの処理に同意します。",
+    "ageConfirm": "私は16歳以上であることを確認します。"
   },
   "gallery": {
     "title": "ギャラリー",

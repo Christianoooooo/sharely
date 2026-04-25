@@ -15,6 +15,8 @@ function SignupForm({ className, ...props }) {
   const { t } = useTranslation();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -89,7 +91,37 @@ function SignupForm({ className, ...props }) {
                 {t('register.confirmPasswordHint')}
               </p>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="flex items-start gap-2.5">
+              <input
+                id="acceptPrivacy"
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              />
+              <label htmlFor="acceptPrivacy" className="text-sm leading-snug cursor-pointer select-none">
+                {t('register.acceptPrivacy')}{' '}
+                <Link to="/privacy" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+                  {t('register.privacyLink')}
+                </Link>
+                {' '}{t('register.acceptPrivacySuffix')}
+              </label>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <input
+                id="ageConfirm"
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              />
+              <label htmlFor="ageConfirm" className="text-sm leading-snug cursor-pointer select-none">
+                {t('register.ageConfirm')}
+              </label>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading || !privacyAccepted || !ageConfirmed}>
               {loading ? t('register.submitting') : t('register.submit')}
             </Button>
           </div>
@@ -99,12 +131,6 @@ function SignupForm({ className, ...props }) {
               {t('register.login')}
             </Link>
           </div>
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            {t('register.privacyNotice')}{' '}
-            <Link to="/privacy" className="underline underline-offset-4 hover:text-foreground">
-              {t('register.privacyLink')}
-            </Link>.
-          </p>
         </form>
       </CardContent>
     </Card>

@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const { rateLimit } = require('express-rate-limit');
 const User = require('../models/User');
 const { logAudit } = require('../utils/audit');
 
 const allowRegistration = () => process.env.ALLOW_REGISTRATION !== 'false';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later.' },
+});
 
 // GET /api/auth/me
 router.get('/me', async (req, res) => {
@@ -22,7 +31,7 @@ router.get('/me', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
@@ -48,7 +57,7 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   if (!allowRegistration()) {
     return res.status(403).json({ error: 'Registration is disabled' });
   }
