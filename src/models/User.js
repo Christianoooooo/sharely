@@ -78,10 +78,18 @@ userSchema.methods.comparePassword = function (candidate) {
 // Regenerates the API key. Returns the plaintext key exactly once.
 userSchema.methods.regenerateApiKey = async function () {
   const plaintext = crypto.randomBytes(24).toString('hex');
-  this.apiKeyHash = hashApiKey(plaintext);
-  this.apiKeyPrefix = plaintext.slice(0, 8);
-  this.apiKey = undefined;
-  await this.save();
+  const hash = hashApiKey(plaintext);
+  const prefix = plaintext.slice(0, 8);
+  // Use raw updateOne to avoid Mongoose triggering the legacy apiKey_1 index
+  await this.constructor.collection.updateOne(
+    { _id: this._id },
+    {
+      $set: { apiKeyHash: hash, apiKeyPrefix: prefix },
+      $unset: { apiKey: '' },
+    },
+  );
+  this.apiKeyHash = hash;
+  this.apiKeyPrefix = prefix;
   return plaintext;
 };
 
