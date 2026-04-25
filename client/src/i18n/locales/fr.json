@@ -13,7 +13,8 @@
   "footer": {
     "poweredBy": "Propulsé par",
     "license": "Sous licence MIT",
-    "privacy": "Politique de confidentialité"
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation"
   },
   "login": {
     "title": "Connexion",
@@ -41,7 +42,9 @@
     "privacyLink": "Politique de confidentialité",
     "acceptPrivacy": "J'ai lu et j'accepte la",
     "acceptPrivacySuffix": "et j'accepte le traitement de mes données personnelles.",
-    "ageConfirm": "Je confirme avoir au moins 16 ans."
+    "ageConfirm": "Je confirme avoir au moins 16 ans.",
+    "acceptPrivacyAnd": "et les",
+    "termsLink": "Conditions d'utilisation"
   },
   "gallery": {
     "title": "Galerie",
@@ -296,7 +299,11 @@
     "analyticsSection": "Analytique",
     "analyticsDescription": "Activez l'avis de consentement aux cookies lorsque Cloudflare Web Analytics est actif sur cette instance.",
     "analyticsLabel": "Cloudflare Web Analytics est activé sur cette instance",
-    "analyticsHint": "Cloudflare Web Analytics est sans cookies. L'activation affiche une bannière d'information aux utilisateurs conformément à l'Art. 13 du RGPD."
+    "analyticsHint": "Cloudflare Web Analytics est sans cookies. L'activation affiche une bannière d'information aux utilisateurs conformément à l'Art. 13 du RGPD.",
+    "sessionSection": "Durée de session",
+    "sessionDescription": "Configurez la durée d'activité des sessions utilisateur avant la déconnexion automatique.",
+    "sessionLabel": "Durée de session (jours)",
+    "sessionHint": "Après ce nombre de jours d'inactivité, les utilisateurs sont automatiquement déconnectés. Minimum : 1 jour. Prend effet en 60 secondes sans redémarrage."
   },
   "adminAuditLog": {
     "title": "Journal d'audit",
@@ -327,7 +334,9 @@
     "action_admin_toggle_user": "Basculer un utilisateur",
     "action_admin_change_role": "Modifier le rôle",
     "action_admin_regen_key": "Régénération de clé (admin)",
-    "action_admin_change_password": "Modification du mot de passe (admin)"
+    "action_admin_change_password": "Modification du mot de passe (admin)",
+    "exportCsv": "Exporter CSV",
+    "exporting": "Exportation..."
   },
   "adminImport": {
     "title": "Migrer depuis XBackBone",
@@ -398,7 +407,7 @@
     "basisConsent": "Art. 6(1)(a) – consentement",
     "s2NoEmail": "Nous ne collectons pas d'adresses e-mail, de noms réels, de numéros de téléphone ni de données de localisation.",
     "s3Title": "3. Conservation",
-    "s3Body": "Les données de compte (nom d'utilisateur, photo de profil) sont conservées tant que votre compte existe. Vous pouvez supprimer votre compte à tout moment dans les Paramètres, ce qui supprime définitivement tous les fichiers et données personnelles associés. Les données de session expirent après 7 jours d'inactivité.",
+    "s3Body": "Les données de compte (nom d'utilisateur, photo de profil) sont conservées aussi longtemps que votre compte existe. Vous pouvez supprimer votre compte à tout moment dans les Paramètres; toutes les données associées seront définitivement supprimées. Les données de session expirent après {{sessionDays}} jours d'inactivité.",
     "s3BodyRetention": "Les fichiers téléversés sont automatiquement supprimés après {{days}} jours, même si votre compte reste actif.",
     "s3BodyNoRetention": "Les fichiers téléversés sont conservés jusqu'à ce que vous les supprimiez manuellement ou que vous supprimiez votre compte.",
     "s4Title": "4. Vos droits",
@@ -464,5 +473,38 @@
     "pt": "Português",
     "ja": "日本語",
     "zh": "中文"
+  },
+  "terms": {
+    "backHome": "Retour",
+    "title": "Conditions d'utilisation",
+    "notConfigured": "[non configuré]",
+    "incompleteTitle": "Informations de l'opérateur manquantes.",
+    "incompleteBody": "Certains champs n'ont pas encore été configurés. Les administrateurs peuvent les remplir sous Admin -> Paramètres du site.",
+    "s1Title": "1. Opérateur",
+    "s1Body": "Cette instance Sharely est exploitée par :",
+    "s1Operator": "Nom / Organisation :",
+    "s1Address": "Adresse :",
+    "s1Email": "E-mail de contact :",
+    "s2Title": "2. Conditions d'accès",
+    "s2Body": "Vous devez avoir au moins 16 ans pour utiliser ce service. En vous inscrivant, vous confirmez remplir cette condition.",
+    "s3Title": "3. Utilisation acceptable",
+    "s3Body": "Vous ne pouvez utiliser ce service qu'à des fins licites. Vous êtes seul responsable de tout contenu que vous téléchargez et partagez via le service.",
+    "s4Title": "4. Contenu interdit",
+    "s4Intro": "Le contenu suivant est strictement interdit :",
+    "s4Item1": "Tout contenu illégal, y compris les abus sexuels sur enfants (CSAM)",
+    "s4Item2": "Les logiciels malveillants, rançongiciels ou tout autre logiciel nuisible",
+    "s4Item3": "Le contenu portant atteinte aux droits de propriété intellectuelle de tiers",
+    "s4Item4": "Le contenu constituant du harcèlement, de la diffamation ou des discours haineux",
+    "s4Item5": "Le spam ou les messages en masse non sollicités",
+    "s5Title": "5. Suspension et résiliation de compte",
+    "s5Body": "L'opérateur se réserve le droit de suspendre ou de supprimer définitivement les comptes qui enfreignent ces conditions, sans préavis et sans responsabilité.",
+    "s6Title": "6. Exclusion de garantie",
+    "s6Body": "Ce service est fourni sans aucune garantie. L'opérateur ne garantit pas un fonctionnement ininterrompu, sécurisé ou sans erreur.",
+    "s7Title": "7. Modifications des présentes conditions",
+    "s7Body": "L'opérateur peut mettre à jour ces conditions à tout moment. La poursuite de l'utilisation du service après publication des modifications vaut acceptation des conditions mises à jour.",
+    "s8Title": "8. Droit applicable et contact",
+    "s8Body": "Ces conditions sont régies par le droit du pays où l'opérateur est établi. Pour toute question, veuillez contacter :",
+    "s8Contact": "Contact :",
+    "version": "Sharely - Partage de fichiers open source - Conditions d'utilisation"
   }
 }

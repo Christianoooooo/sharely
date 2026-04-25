@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShield, faCloud, faClock, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faShield, faCloud, faClock, faLock, faHourglass } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminSiteSettings() {
   const { t } = useTranslation();
@@ -19,6 +19,7 @@ export default function AdminSiteSettings() {
     cloudflareAnalytics: false,
     fileRetentionDays: 0,
     encryptionAtRest: false,
+    sessionDurationDays: 7,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +35,7 @@ export default function AdminSiteSettings() {
           cloudflareAnalytics: data.cloudflareAnalytics ?? false,
           fileRetentionDays: data.fileRetentionDays ?? 0,
           encryptionAtRest: data.encryptionAtRest ?? false,
+          sessionDurationDays: data.sessionDurationDays ?? 7,
         });
       })
       .finally(() => setLoading(false));
@@ -49,6 +51,7 @@ export default function AdminSiteSettings() {
         body: JSON.stringify({
           ...form,
           fileRetentionDays: Number(form.fileRetentionDays) || 0,
+          sessionDurationDays: Number(form.sessionDurationDays) || 7,
         }),
       });
       const data = await r.json();
@@ -138,6 +141,36 @@ export default function AdminSiteSettings() {
               className="w-36"
             />
             <p className="text-xs text-muted-foreground">{t('adminSiteSettings.retentionHint')}</p>
+          </div>
+          <Button disabled={saving} onClick={handleSubmit}>
+            {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Session Duration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faHourglass} className="h-4 w-4" />
+            {t('adminSiteSettings.sessionSection')}
+          </CardTitle>
+          <CardDescription>{t('adminSiteSettings.sessionDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="sessionDurationDays">{t('adminSiteSettings.sessionLabel')}</Label>
+            <Input
+              id="sessionDurationDays"
+              type="number"
+              min="1"
+              step="1"
+              value={form.sessionDurationDays}
+              onChange={(e) => setForm((p) => ({ ...p, sessionDurationDays: e.target.value }))}
+              placeholder="7"
+              className="w-36"
+            />
+            <p className="text-xs text-muted-foreground">{t('adminSiteSettings.sessionHint')}</p>
           </div>
           <Button disabled={saving} onClick={handleSubmit}>
             {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}

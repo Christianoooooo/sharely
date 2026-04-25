@@ -20,6 +20,7 @@ import AdminSiteSettings from '@/pages/admin/SiteSettings';
 import AdminAuditLog from '@/pages/admin/AuditLog';
 import Settings from '@/pages/Settings';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
 
 const PAGE_TITLES = {
   '/gallery': 'Gallery',
@@ -53,6 +54,7 @@ function App() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/f/:shortId" element={<FileView />} />
 
           {/* Protected */}

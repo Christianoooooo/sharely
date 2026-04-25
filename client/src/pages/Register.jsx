@@ -105,6 +105,10 @@ function SignupForm({ className, ...props }) {
                 <Link to="/privacy" target="_blank" className="underline underline-offset-2 hover:text-foreground">
                   {t('register.privacyLink')}
                 </Link>
+                {' '}{t('register.acceptPrivacyAnd')}{' '}
+                <Link to="/terms" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+                  {t('register.termsLink')}
+                </Link>
                 {' '}{t('register.acceptPrivacySuffix')}
               </label>
             </div>

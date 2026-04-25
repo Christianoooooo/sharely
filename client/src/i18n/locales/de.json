@@ -13,7 +13,8 @@
   "footer": {
     "poweredBy": "Bereitgestellt von",
     "license": "Lizenziert unter der MIT-Lizenz",
-    "privacy": "Datenschutzerklärung"
+    "privacy": "Datenschutzerklärung",
+    "terms": "Nutzungsbedingungen"
   },
   "login": {
     "title": "Anmelden",
@@ -41,7 +42,9 @@
     "privacyLink": "Datenschutzerklärung",
     "acceptPrivacy": "Ich habe die",
     "acceptPrivacySuffix": "gelesen und stimme der Verarbeitung meiner personenbezogenen Daten zu.",
-    "ageConfirm": "Ich bestätige, dass ich mindestens 16 Jahre alt bin."
+    "ageConfirm": "Ich bestätige, dass ich mindestens 16 Jahre alt bin.",
+    "acceptPrivacyAnd": "und die",
+    "termsLink": "Nutzungsbedingungen"
   },
   "gallery": {
     "title": "Galerie",
@@ -296,7 +299,11 @@
     "analyticsSection": "Analyse",
     "analyticsDescription": "Aktiviere den Cookie-Hinweis, wenn Cloudflare Web Analytics auf dieser Instanz aktiv ist.",
     "analyticsLabel": "Cloudflare Web Analytics ist auf dieser Instanz aktiv",
-    "analyticsHint": "Cloudflare Web Analytics verwendet keine Cookies. Wenn diese Option aktiviert ist, wird Benutzern ein Informationsbanner angezeigt, das sie über die Datenerhebung informiert (gem. DSGVO Art. 13)."
+    "analyticsHint": "Cloudflare Web Analytics verwendet keine Cookies. Wenn diese Option aktiviert ist, wird Benutzern ein Informationsbanner angezeigt, das sie über die Datenerhebung informiert (gem. DSGVO Art. 13).",
+    "sessionSection": "Sitzungsdauer",
+    "sessionDescription": "Lege fest, wie lange Benutzersitzungen aktiv bleiben, bevor Nutzer automatisch abgemeldet werden.",
+    "sessionLabel": "Sitzungsdauer (Tage)",
+    "sessionHint": "Nach dieser Anzahl von inaktiven Tagen werden Nutzer automatisch abgemeldet. Minimum: 1 Tag. Gilt innerhalb von 60 Sekunden ohne Server-Neustart."
   },
   "adminAuditLog": {
     "title": "Zugriffsprotokoll",
@@ -327,7 +334,9 @@
     "action_admin_toggle_user": "Benutzer (de)aktivieren",
     "action_admin_change_role": "Rolle ändern",
     "action_admin_regen_key": "API-Key neu gen. (Admin)",
-    "action_admin_change_password": "Passwort ändern (Admin)"
+    "action_admin_change_password": "Passwort ändern (Admin)",
+    "exportCsv": "CSV exportieren",
+    "exporting": "Exportiere..."
   },
   "adminImport": {
     "title": "Von XBackBone migrieren",
@@ -398,7 +407,7 @@
     "basisConsent": "Art. 6 Abs. 1 lit. a DSGVO – Einwilligung",
     "s2NoEmail": "Wir erfassen keine E-Mail-Adressen, Klarnamen, Telefonnummern oder Standortdaten.",
     "s3Title": "3. Speicherdauer",
-    "s3Body": "Kontodaten (Benutzername, Profilbild) werden gespeichert, solange dein Konto besteht. Du kannst dein Konto jederzeit in den Einstellungen löschen; dabei werden alle zugehörigen Dateien und personenbezogenen Daten dauerhaft entfernt. Session-Daten verfallen nach 7 Tagen Inaktivität.",
+    "s3Body": "Kontodaten (Benutzername, Profilbild) werden gespeichert, solange dein Konto besteht. Du kannst dein Konto jederzeit in den Einstellungen löschen; dabei werden alle zugehörigen Dateien und personenbezogenen Daten dauerhaft entfernt. Session-Daten verfallen nach {{sessionDays}} Tagen Inaktivität.",
     "s3BodyRetention": "Hochgeladene Dateien werden automatisch nach {{days}} Tagen gelöscht, auch wenn dein Konto weiterhin aktiv ist.",
     "s3BodyNoRetention": "Hochgeladene Dateien werden gespeichert, bis du sie manuell löschst oder dein Konto löschst.",
     "s4Title": "4. Deine Rechte",
@@ -464,5 +473,38 @@
     "pt": "Português",
     "ja": "日本語",
     "zh": "中文"
+  },
+  "terms": {
+    "backHome": "Zurück",
+    "title": "Nutzungsbedingungen",
+    "notConfigured": "[nicht konfiguriert]",
+    "incompleteTitle": "Betreiberdaten fehlen.",
+    "incompleteBody": "Einige Felder wurden noch nicht konfiguriert. Admins können diese unter Admin -> Website-Einstellungen ausfüllen.",
+    "s1Title": "1. Betreiber",
+    "s1Body": "Diese Sharely-Instanz wird betrieben von:",
+    "s1Operator": "Name / Organisation:",
+    "s1Address": "Adresse:",
+    "s1Email": "Kontakt-E-Mail:",
+    "s2Title": "2. Nutzungsvoraussetzungen",
+    "s2Body": "Zur Nutzung dieses Dienstes musst du mindestens 16 Jahre alt sein. Mit der Registrierung bestätigst du, dass du diese Voraussetzung erfüllst.",
+    "s3Title": "3. Erlaubte Nutzung",
+    "s3Body": "Du darfst diesen Dienst ausschliesslich für rechtmässige Zwecke nutzen. Du bist allein verantwortlich für alle Inhalte, die du hochlädst und über den Dienst teilst.",
+    "s4Title": "4. Verbotene Inhalte",
+    "s4Intro": "Die folgenden Inhalte sind strikt untersagt:",
+    "s4Item1": "Illegale Inhalte jeder Art, einschliesslich kinderpornografischer Materialien (CSAM)",
+    "s4Item2": "Schadsoftware, Ransomware oder andere bösartige Programme",
+    "s4Item3": "Inhalte, die Rechte Dritter verletzen (Urheberrecht, Markenrecht etc.)",
+    "s4Item4": "Inhalte, die Belästigung, Verleumdung oder Hassrede darstellen",
+    "s4Item5": "Spam oder unerbetene Massennachrichten",
+    "s5Title": "5. Kontosperrung und -löschung",
+    "s5Body": "Der Betreiber behält sich das Recht vor, Konten, die gegen diese Nutzungsbedingungen verstossen, ohne vorherige Ankündigung und ohne Haftung zu sperren oder dauerhaft zu löschen.",
+    "s6Title": "6. Haftungsausschluss",
+    "s6Body": "Dieser Dienst wird ohne jegliche Gewährleistung bereitgestellt. Der Betreiber garantiert keinen unterbrechungsfreien, sicheren oder fehlerfreien Betrieb.",
+    "s7Title": "7. Änderungen dieser Bedingungen",
+    "s7Body": "Der Betreiber kann diese Nutzungsbedingungen jederzeit aktualisieren. Die weitere Nutzung des Dienstes nach Veröffentlichung von Änderungen gilt als Zustimmung zu den aktualisierten Bedingungen.",
+    "s8Title": "8. Anwendbares Recht & Kontakt",
+    "s8Body": "Diese Nutzungsbedingungen unterliegen dem Recht des Landes, in dem der Betreiber seinen Sitz hat. Bei Fragen wende dich bitte an:",
+    "s8Contact": "Kontakt:",
+    "version": "Sharely - Open-Source-Dateifreigabe - Nutzungsbedingungen"
   }
 }

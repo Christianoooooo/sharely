@@ -294,6 +294,7 @@ router.get('/site-settings', async (req, res) => {
     cloudflareAnalytics: s.cloudflareAnalytics,
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
+    sessionDurationDays: s.sessionDurationDays ?? 7,
   });
 });
 
@@ -307,11 +308,12 @@ router.get('/admin/site-settings', requireAdmin, async (req, res) => {
     cloudflareAnalytics: s.cloudflareAnalytics,
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
+    sessionDurationDays: s.sessionDurationDays ?? 7,
   });
 });
 
 router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
-  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest } = req.body;
+  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays } = req.body;
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
@@ -319,6 +321,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   if (typeof cloudflareAnalytics === 'boolean') s.cloudflareAnalytics = cloudflareAnalytics;
   if (typeof fileRetentionDays === 'number' && fileRetentionDays >= 0) s.fileRetentionDays = Math.floor(fileRetentionDays);
   if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
+  if (typeof sessionDurationDays === 'number' && sessionDurationDays >= 1) s.sessionDurationDays = Math.floor(sessionDurationDays);
   await s.save();
   res.json({
     operatorName: s.operatorName,
@@ -327,6 +330,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
     cloudflareAnalytics: s.cloudflareAnalytics,
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
+    sessionDurationDays: s.sessionDurationDays,
   });
 });
 
@@ -873,6 +877,28 @@ router.get('/admin/audit-log', requireAdmin, async (req, res) => {
     .limit(PAGE_SIZE);
 
   res.json({ logs: logs.map((l) => l.toObject()), total, page, pages });
+});
+
+// ── Admin: audit log CSV export ──────────────────────────────────────────────
+router.get('/admin/audit-log/export', requireAdmin, async (req, res) => {
+  const { user: userFilter, action: actionFilter } = req.query;
+  const filter = {};
+  if (userFilter) filter.username = { $regex: escapeRegex(userFilter), $options: 'i' };
+  if (actionFilter) filter.action = actionFilter;
+
+  const logs = await AuditLog.find(filter).sort({ timestamp: -1 });
+
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = 'timestamp,username,action,ip,meta\n';
+  const rows = logs.map((l) => {
+    const meta = l.meta ? Object.entries(l.meta).map(([k, v]) => `${k}:${v}`).join(';') : '';
+    return [escape(l.timestamp?.toISOString() ?? ''), escape(l.username ?? ''), escape(l.action), escape(l.ip ?? ''), escape(meta)].join(',');
+  });
+
+  const date = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="audit-log-${date}.csv"`);
+  res.send('﻿' + header + rows.join('\n'));
 });
 
 // ── Admin: all files ────────────────────────────────────────────────────────

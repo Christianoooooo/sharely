@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { rateLimit } = require('express-rate-limit');
 const connectDB = require('./src/config/db');
+const SiteSettings = require('./src/models/SiteSettings');
 const uploadMiddleware = require('./src/middleware/upload');
 const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
@@ -60,6 +61,26 @@ app.use(session({
     sameSite: 'strict',
   },
 }));
+
+// Dynamically apply session duration from SiteSettings (cached for 60 s).
+let _cachedSessionMs = null;
+let _sessionCacheTs = 0;
+async function getSessionMaxAge() {
+  const now = Date.now();
+  if (_cachedSessionMs !== null && now - _sessionCacheTs < 60_000) return _cachedSessionMs;
+  try {
+    const s = await SiteSettings.get();
+    _cachedSessionMs = (s.sessionDurationDays || 7) * 24 * 60 * 60 * 1000;
+  } catch {
+    _cachedSessionMs = 7 * 24 * 60 * 60 * 1000;
+  }
+  _sessionCacheTs = Date.now();
+  return _cachedSessionMs;
+}
+app.use(async (req, _res, next) => {
+  if (req.session) req.session.cookie.maxAge = await getSessionMaxAge();
+  next();
+});
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
