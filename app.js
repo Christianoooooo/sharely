@@ -14,6 +14,7 @@ const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
 const { logAudit } = require('./src/utils/audit');
+const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
 
 if (!process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET environment variable is not set.');
@@ -142,6 +143,8 @@ const PORT = process.env.PORT || 3000;
   await connectDB();
   await migrateUserFolders();
   await migrateApiKeyHashes();
+  await runRetentionCleanup();
+  setInterval(runRetentionCleanup, 24 * 60 * 60 * 1000);
   app.listen(PORT, () => {
     console.log(`sharely running on http://localhost:${PORT}`);
   });
