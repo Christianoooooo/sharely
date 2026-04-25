@@ -38,7 +38,10 @@
     "hasAccount": "¿Ya tienes cuenta?",
     "login": "Iniciar sesión",
     "privacyNotice": "Al registrarte aceptas nuestra",
-    "privacyLink": "Política de privacidad"
+    "privacyLink": "Política de privacidad",
+    "acceptPrivacy": "He leído y acepto la",
+    "acceptPrivacySuffix": "y acepto el tratamiento de mis datos personales.",
+    "ageConfirm": "Confirmo que tengo al menos 16 años."
   },
   "gallery": {
     "title": "Galería",
