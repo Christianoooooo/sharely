@@ -177,12 +177,12 @@ export default function PrivacyPolicy() {
                     </a>
                     {' · '}
                     <a
-                      href="https://www.cloudflare.com/gdpr/introduction/"
+                      href="https://www.cloudflare.com/cloudflare_customer_DPAv3-German.pdf"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline underline-offset-2 hover:text-foreground"
                     >
-                      DPA / SCCs
+                      AVV (PDF)
                     </a>
                   </Td>
                 </tr>
