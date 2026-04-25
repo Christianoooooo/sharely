@@ -138,6 +138,14 @@ export function Layout({ children }) {
           </a>
         </div>
         <div>{t('footer.license')}</div>
+        <div>
+          <Link
+            to="/privacy"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            {t('footer.privacy')}
+          </Link>
+        </div>
       </footer>
     </div>
   );
