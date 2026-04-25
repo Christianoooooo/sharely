@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { logAudit } = require('../utils/audit');
 
 const allowRegistration = () => process.env.ALLOW_REGISTRATION !== 'false';
 
@@ -35,6 +36,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   req.session.user = { id: user._id, username: user.username, role: user.role };
+  await logAudit(req, 'login');
   res.json({
     user: {
       id: user._id,
@@ -71,6 +73,7 @@ router.post('/register', async (req, res) => {
   const role = count === 0 ? 'admin' : 'user';
   const user = await User.create({ username, password, role });
   req.session.user = { id: user._id, username: user.username, role: user.role };
+  await logAudit(req, 'register');
   res.status(201).json({
     user: {
       id: user._id,
@@ -82,7 +85,8 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/logout
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  await logAudit(req, 'logout');
   req.session.destroy(() => res.json({ success: true }));
 });
 
