@@ -15,7 +15,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faMagnifyingGlass, faXmark, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 
 const ACTION_COLORS = {
@@ -64,6 +64,25 @@ export default function AdminAuditLog() {
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [userInput, setUserInput] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    const params = new URLSearchParams();
+    if (user) params.set('user', user);
+    if (action) params.set('action', action);
+    const r = await fetch(`/api/admin/audit-log/export?${params}`);
+    if (r.ok) {
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    setExporting(false);
+  }
 
   const user = searchParams.get('user') || '';
   const action = searchParams.get('action') || '';
@@ -111,12 +130,18 @@ export default function AdminAuditLog() {
             {t('adminAuditLog.total_one', { count: total })}
           </p>
         </div>
-        {hasFilter && (
-          <Button variant="outline" size="sm" onClick={clearFilters}>
-            <FontAwesomeIcon icon={faXmark} className="mr-1 h-3 w-3" />
-            {t('adminAuditLog.clearFilters')}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+            <FontAwesomeIcon icon={faDownload} className="mr-1.5 h-3 w-3" />
+            {exporting ? t('adminAuditLog.exporting') : t('adminAuditLog.exportCsv')}
           </Button>
-        )}
+          {hasFilter && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <FontAwesomeIcon icon={faXmark} className="mr-1 h-3 w-3" />
+              {t('adminAuditLog.clearFilters')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}

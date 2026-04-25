@@ -148,12 +148,19 @@ export function Layout({ children }) {
           </a>
         </div>
         <div>{t('footer.license')}</div>
-        <div>
+        <div className="flex items-center justify-center gap-3">
           <Link
             to="/privacy"
             className="underline underline-offset-2 hover:text-foreground transition-colors"
           >
             {t('footer.privacy')}
+          </Link>
+          <span>·</span>
+          <Link
+            to="/terms"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            {t('footer.terms')}
           </Link>
         </div>
       </footer>

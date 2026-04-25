@@ -13,7 +13,8 @@
   "footer": {
     "poweredBy": "Powered by",
     "license": "Licensed under the MIT License",
-    "privacy": "Privacy Policy"
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
   },
   "login": {
     "title": "Login",
@@ -41,7 +42,9 @@
     "privacyLink": "Privacy Policy",
     "acceptPrivacy": "I have read and accept the",
     "acceptPrivacySuffix": "and agree to the processing of my personal data.",
-    "ageConfirm": "I confirm that I am at least 16 years old."
+    "ageConfirm": "I confirm that I am at least 16 years old.",
+    "acceptPrivacyAnd": "and the",
+    "termsLink": "Terms of Service"
   },
   "gallery": {
     "title": "Gallery",
@@ -296,7 +299,11 @@
     "analyticsSection": "Analytics",
     "analyticsDescription": "Enable the cookie consent notice when Cloudflare Web Analytics is active on this instance.",
     "analyticsLabel": "Cloudflare Web Analytics is enabled on this instance",
-    "analyticsHint": "Cloudflare Web Analytics is cookie-free. Enabling this shows an informational banner to users so they are aware of the data collection, as required by GDPR Art. 13."
+    "analyticsHint": "Cloudflare Web Analytics is cookie-free. Enabling this shows an informational banner to users so they are aware of the data collection, as required by GDPR Art. 13.",
+    "sessionSection": "Session Duration",
+    "sessionDescription": "Configure how long user sessions remain active before automatic logout.",
+    "sessionLabel": "Session duration (days)",
+    "sessionHint": "After this many days of inactivity, users are automatically logged out. Minimum: 1 day. Takes effect within 60 seconds without a server restart."
   },
   "adminAuditLog": {
     "title": "Audit Log",
@@ -327,7 +334,9 @@
     "action_admin_toggle_user": "Toggle user",
     "action_admin_change_role": "Change role",
     "action_admin_regen_key": "Admin regen key",
-    "action_admin_change_password": "Admin change password"
+    "action_admin_change_password": "Admin change password",
+    "exportCsv": "Export CSV",
+    "exporting": "Exporting..."
   },
   "adminImport": {
     "title": "Migrate from XBackBone",
@@ -398,7 +407,7 @@
     "basisConsent": "Art. 6(1)(a) – consent",
     "s2NoEmail": "We do not collect email addresses, real names, phone numbers, or location data.",
     "s3Title": "3. Retention",
-    "s3Body": "Account data (username, profile picture) is retained for as long as your account exists. You may delete your account at any time in Settings, which permanently removes all associated files and personal data. Session data expires after 7 days of inactivity.",
+    "s3Body": "Account data (username, profile picture) is stored for as long as your account exists. You can delete your account at any time in Settings; all associated files and personal data will be permanently removed. Session data expires after {{sessionDays}} days of inactivity.",
     "s3BodyRetention": "Uploaded files are automatically deleted after {{days}} days, even if your account remains active.",
     "s3BodyNoRetention": "Uploaded files are retained until you delete them manually or delete your account.",
     "s4Title": "4. Your Rights",
@@ -464,5 +473,38 @@
     "pt": "Português",
     "ja": "日本語",
     "zh": "中文"
+  },
+  "terms": {
+    "backHome": "Back",
+    "title": "Terms of Service",
+    "notConfigured": "[not configured]",
+    "incompleteTitle": "Operator details missing.",
+    "incompleteBody": "Some fields have not been configured yet. Admins can fill these in under Admin -> Site Settings.",
+    "s1Title": "1. Operator",
+    "s1Body": "This Sharely instance is operated by:",
+    "s1Operator": "Name / Organisation:",
+    "s1Address": "Address:",
+    "s1Email": "Contact e-mail:",
+    "s2Title": "2. Eligibility",
+    "s2Body": "You must be at least 16 years old to use this service. By registering, you confirm that you meet this requirement.",
+    "s3Title": "3. Acceptable Use",
+    "s3Body": "You may use this service only for lawful purposes. You are solely responsible for all content you upload and share through the service.",
+    "s4Title": "4. Prohibited Content",
+    "s4Intro": "The following content is strictly prohibited:",
+    "s4Item1": "Illegal content of any kind, including child sexual abuse material (CSAM)",
+    "s4Item2": "Malware, ransomware, or any other malicious software",
+    "s4Item3": "Content that infringes third-party intellectual property rights (copyright, trademarks, etc.)",
+    "s4Item4": "Content constituting harassment, defamation, or hate speech",
+    "s4Item5": "Spam or unsolicited bulk messages",
+    "s5Title": "5. Account Suspension & Termination",
+    "s5Body": "The operator reserves the right to suspend or permanently delete accounts that violate these terms, without prior notice and without liability.",
+    "s6Title": "6. Disclaimer of Warranty",
+    "s6Body": "This service is provided \"as is\" and \"as available\", without any warranties of any kind. The operator does not guarantee uninterrupted, secure, or error-free operation of the service.",
+    "s7Title": "7. Changes to These Terms",
+    "s7Body": "The operator may update these terms at any time. Continued use of the service after changes are published constitutes acceptance of the updated terms.",
+    "s8Title": "8. Governing Law & Contact",
+    "s8Body": "These terms are governed by the laws of the jurisdiction where the operator is located. For questions about these terms, please contact:",
+    "s8Contact": "Contact:",
+    "version": "Sharely - Open-Source File Sharing - Terms of Service"
   }
 }

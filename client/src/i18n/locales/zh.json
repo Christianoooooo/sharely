@@ -13,7 +13,8 @@
   "footer": {
     "poweredBy": "由以下提供支持：",
     "license": "基于 MIT 许可证",
-    "privacy": "隐私政策"
+    "privacy": "隐私政策",
+    "terms": "服务条款"
   },
   "login": {
     "title": "登录",
@@ -41,7 +42,9 @@
     "privacyLink": "隐私政策",
     "acceptPrivacy": "我已阅读并接受",
     "acceptPrivacySuffix": "，并同意处理我的个人数据。",
-    "ageConfirm": "我确认我已年满16岁。"
+    "ageConfirm": "我确认我已年满16岁。",
+    "acceptPrivacyAnd": "及",
+    "termsLink": "服务条款"
   },
   "gallery": {
     "title": "图库",
@@ -296,7 +299,11 @@
     "analyticsSection": "数据分析",
     "analyticsDescription": "当此实例启用 Cloudflare Web Analytics 时，启用 Cookie 同意通知。",
     "analyticsLabel": "此实例已启用 Cloudflare Web Analytics",
-    "analyticsHint": "Cloudflare Web Analytics 不使用 Cookie。启用后将向用户显示信息横幅，如 GDPR 第 13 条所要求。"
+    "analyticsHint": "Cloudflare Web Analytics 不使用 Cookie。启用后将向用户显示信息横幅，如 GDPR 第 13 条所要求。",
+    "sessionSection": "会话时长",
+    "sessionDescription": "配置用户会话在自动注销前保持活跃的时间。",
+    "sessionLabel": "会话时长（天）",
+    "sessionHint": "超过此天数未活动后，用户将自动退出登录。最少：1天。无需重启服务器，60秒内生效。"
   },
   "adminAuditLog": {
     "title": "审计日志",
@@ -327,7 +334,9 @@
     "action_admin_toggle_user": "切换用户状态",
     "action_admin_change_role": "更改角色",
     "action_admin_regen_key": "重新生成密钥（管理员）",
-    "action_admin_change_password": "修改密码（管理员）"
+    "action_admin_change_password": "修改密码（管理员）",
+    "exportCsv": "导出 CSV",
+    "exporting": "导出中..."
   },
   "adminImport": {
     "title": "从 XBackBone 迁移",
@@ -398,7 +407,7 @@
     "basisConsent": "第 6(1)(a) 条 – 同意",
     "s2NoEmail": "我们不收集电子邮件地址、真实姓名、电话号码或位置数据。",
     "s3Title": "3. 数据保留",
-    "s3Body": "账户数据（用户名、头像）在您的账户存在期间保留。您可以随时在设置中删除账户，这将永久删除所有相关文件和个人数据。会话数据在 7 天不活跃后过期。",
+    "s3Body": "账户数据（用户名、头像）在账户存在期间保留。您可以随时在设置中删除账户；所有相关文件和个人数据将被永久删除。会话数据在{{sessionDays}}天不活动后过期。",
     "s3BodyRetention": "上传的文件将在 {{days}} 天后自动删除，即使您的账户仍处于活跃状态。",
     "s3BodyNoRetention": "上传的文件将保留至您手动删除或删除账户为止。",
     "s4Title": "4. 您的权利",
@@ -464,5 +473,38 @@
     "pt": "Português",
     "ja": "日本語",
     "zh": "中文"
+  },
+  "terms": {
+    "backHome": "返回",
+    "title": "服务条款",
+    "notConfigured": "[未配置]",
+    "incompleteTitle": "运营商信息缺失。",
+    "incompleteBody": "部分字段尚未配置。管理员可在 管理 -> 网站设置 中填写。",
+    "s1Title": "1. 运营商",
+    "s1Body": "本 Sharely 实例由以下运营商运营：",
+    "s1Operator": "名称 / 组织：",
+    "s1Address": "地址：",
+    "s1Email": "联系邮箱：",
+    "s2Title": "2. 使用资格",
+    "s2Body": "您必须年满 16 岁才能使用本服务。注册即表示您确认满足此要求。",
+    "s3Title": "3. 可接受的使用",
+    "s3Body": "您只能将本服务用于合法目的。您对通过本服务上传和分享的所有内容承担全部责任。",
+    "s4Title": "4. 禁止内容",
+    "s4Intro": "以下内容被严格禁止：",
+    "s4Item1": "任何类型的非法内容，包括儿童性虐待材料（CSAM）",
+    "s4Item2": "恶意软件、勒索软件或任何其他恶意程序",
+    "s4Item3": "侵犯第三方知识产权（版权、商标等）的内容",
+    "s4Item4": "构成骚扰、诽谤或仇恨言论的内容",
+    "s4Item5": "垃圾邮件或未经请求的群发消息",
+    "s5Title": "5. 账户暂停与终止",
+    "s5Body": "运营商保留暂停或永久删除违反本条款的账户的权利，无需事先通知且不承担任何责任。",
+    "s6Title": "6. 免责声明",
+    "s6Body": "本服务不提供任何形式的保证。运营商不保证服务的不间断、安全或无错误运行。",
+    "s7Title": "7. 条款变更",
+    "s7Body": "运营商可随时更新本条款。变更发布后继续使用本服务即表示接受更新后的条款。",
+    "s8Title": "8. 适用法律与联系方式",
+    "s8Body": "本条款受运营商所在国法律管辖。如有疑问，请联系：",
+    "s8Contact": "联系方式：",
+    "version": "Sharely - 开源文件共享 - 服务条款"
   }
 }

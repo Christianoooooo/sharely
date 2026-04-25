@@ -8,6 +8,7 @@ const siteSettingsSchema = new mongoose.Schema({
   cloudflareAnalytics: { type: Boolean, default: false },
   fileRetentionDays: { type: Number, default: 0 },
   encryptionAtRest: { type: Boolean, default: false },
+  sessionDurationDays: { type: Number, default: 7 },
 });
 
 siteSettingsSchema.statics.get = async function () {
