@@ -404,7 +404,7 @@
     "s6NoEncryption": "Uploaded files are not encrypted at the application level. Encryption at rest depends on the operator's server and storage configuration.",
     "s7Title": "7. Changes to this Policy",
     "s7Body": "The operator may update this policy at any time. The date of the latest revision will be noted above. Continued use of the service after changes constitutes acceptance of the updated policy.",
-    "version": "Sharely – open-source file sharing · Template privacy policy"
+    "version": "Sharely – open-source file sharing · Privacy Policy"
   },
   "cookieBanner": {
     "text": "This site uses Cloudflare Web Analytics (cookie-free) to understand traffic.",

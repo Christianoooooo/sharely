@@ -18,6 +18,7 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **XBackBone migration** — Import your existing XBackBone installation including files and metadata
 - **Short links** — Every file gets an 8-character short ID (e.g. `/f/a1b2c3d4`)
 - **Docker-ready** — Single `docker compose up` gets you running
+- **GDPR-ready** — Privacy policy page, data export (Art. 20), account deletion (Art. 17), audit log, configurable file retention, and API key hashing out of the box
 
 ### Screenshots
 
@@ -220,6 +221,24 @@ sharely/
 | File uploads | Multer |
 | Auth | express-session, bcrypt |
 | Container | Docker, Docker Compose |
+
+## GDPR / Privacy
+
+Sharely is designed with privacy in mind. The following features support GDPR compliance for operators in the EU:
+
+| Feature | GDPR Article |
+|---|---|
+| Privacy Policy page (configurable via Admin Panel) | Art. 13/14 – Transparency |
+| Data export (JSON download of account + file metadata) | Art. 20 – Portability |
+| Account self-deletion (removes all files and data) | Art. 17 – Right to erasure |
+| Audit log (all access and admin actions, 90-day auto-expiry) | Art. 5(2) – Accountability |
+| Configurable file retention (auto-delete after N days) | Art. 5(1)(e) – Storage limitation |
+| API keys stored as SHA-256 hashes, never in plaintext | Art. 32 – Security |
+| Passwords stored as bcrypt hashes (12 rounds) | Art. 32 – Security |
+| Encryption-at-rest documentation (operator self-declaration) | Art. 32 – Security |
+| Cookie consent notice for Cloudflare Analytics (optional) | Art. 13 – Transparency |
+
+> **Note for operators:** GDPR compliance is ultimately the operator's responsibility. Before going live, fill in your operator details under **Admin → Site Settings** (name, address, contact email). Consider whether you need a Data Processing Agreement (DPA) with your hosting provider.
 
 ## License
 

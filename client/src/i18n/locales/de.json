@@ -404,7 +404,7 @@
     "s6NoEncryption": "Hochgeladene Dateien werden auf App-Ebene nicht verschlüsselt. Die Verschlüsselung ruhender Daten ist abhängig von der Server- und Speicherkonfiguration des Betreibers.",
     "s7Title": "7. Änderungen dieser Erklärung",
     "s7Body": "Der Betreiber kann diese Erklärung jederzeit aktualisieren. Das Datum der letzten Überarbeitung wird oben vermerkt. Die weitere Nutzung des Dienstes nach Änderungen gilt als Zustimmung zur aktualisierten Erklärung.",
-    "version": "Sharely – Open-Source-Dateifreigabe · Vorlage Datenschutzerklärung"
+    "version": "Sharely – Open-Source-Dateifreigabe · Datenschutzerklärung"
   },
   "cookieBanner": {
     "text": "Diese Website verwendet Cloudflare Web Analytics (ohne Cookies) zur Analyse des Datenverkehrs.",
