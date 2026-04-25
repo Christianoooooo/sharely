@@ -36,7 +36,9 @@
     "submit": "Créer un compte",
     "submitting": "Création du compte…",
     "hasAccount": "Vous avez déjà un compte ?",
-    "login": "Connexion"
+    "login": "Connexion",
+    "privacyNotice": "En vous inscrivant, vous acceptez notre",
+    "privacyLink": "Politique de confidentialité"
   },
   "gallery": {
     "title": "Galerie",
@@ -391,7 +393,7 @@
     "basisContract": "Art. 6(1)(b) – exécution d'un contrat",
     "basisLegitimate": "Art. 6(1)(f) – intérêt légitime",
     "basisConsent": "Art. 6(1)(a) – consentement",
-    "s2NoEmail": "Nous ne collectons pas d'adresses e-mail, d'adresses IP, de noms réels, de numéros de téléphone ni de données de localisation.",
+    "s2NoEmail": "Nous ne collectons pas d'adresses e-mail, de noms réels, de numéros de téléphone ni de données de localisation.",
     "s3Title": "3. Conservation",
     "s3Body": "Les données de compte (nom d'utilisateur, photo de profil) sont conservées tant que votre compte existe. Vous pouvez supprimer votre compte à tout moment dans les Paramètres, ce qui supprime définitivement tous les fichiers et données personnelles associés. Les données de session expirent après 7 jours d'inactivité.",
     "s3BodyRetention": "Les fichiers téléversés sont automatiquement supprimés après {{days}} jours, même si votre compte reste actif.",
@@ -415,7 +417,7 @@
     "s5Title": "5. Cookies & Suivi",
     "s5Session": "Nous utilisons un seul cookie de session techniquement nécessaire pour vous maintenir connecté. Aucun consentement n'est requis pour ce cookie car il est essentiel au fonctionnement du service.",
     "s5NoTracking": "Nous n'utilisons aucun cookie d'analyse, de publicité ou de fingerprinting.",
-    "s5CloudflareActive": "Cette instance utilise Cloudflare Web Analytics (sans cookies) pour mesurer le trafic du site. Cloudflare Web Analytics ne stocke aucune donnée personnelle ; seules des métriques anonymisées sont collectées. Vous pouvez gérer votre consentement dans les Paramètres.",
+    "s5CloudflareActive": "Cette instance utilise Cloudflare Web Analytics pour mesurer le trafic du site. La balise d'analyse est injectée par le proxy inverse Cloudflare au niveau du réseau et ne peut pas être supprimée par cette application. Cloudflare Web Analytics est sans cookies et ne collecte aucune donnée personnelle — seules des métriques agrégées anonymisées sont collectées. Comme il ne pose pas de cookies ni ne traite de données personnelles, la plupart des interprétations juridiques le considèrent comme ne nécessitant pas de consentement au titre de la directive ePrivacy. Ceci est documenté ici par souci de transparence.",
     "s5CloudflareInactive": "Aucun outil d'analyse ou de suivi tiers n'est actif sur cette instance.",
     "s5bTitle": "5a. Sous-traitants",
     "s5bIntro": "Nous faisons appel aux sous-traitants suivants (Art. 28 RGPD). Un accord de traitement des données (DPA) est en place avec chaque sous-traitant :",
@@ -432,7 +434,10 @@
     "s6NoEncryption": "Les fichiers téléversés ne sont pas chiffrés au niveau de l'application. Le chiffrement au repos dépend de la configuration serveur et de stockage de l'opérateur.",
     "s7Title": "7. Modifications de cette politique",
     "s7Body": "L'opérateur peut mettre à jour cette politique à tout moment. La date de la dernière révision sera indiquée ci-dessus. L'utilisation continue du service après des modifications constitue l'acceptation de la politique mise à jour.",
-    "version": "Sharely – partage de fichiers open source · Politique de confidentialité"
+    "version": "Sharely – partage de fichiers open source · Politique de confidentialité",
+    "dataAuditLog": "Adresse IP, type d'action, horodatage (journal d'audit)",
+    "purposeAuditLog": "Surveillance de sécurité et prévention des abus",
+    "s3BodyAuditLog": "Les entrées du journal d'audit (adresse IP, action, horodatage) sont automatiquement supprimées après 90 jours."
   },
   "cookieBanner": {
     "text": "Ce site utilise Cloudflare Web Analytics (sans cookies) pour comprendre le trafic.",

@@ -36,7 +36,9 @@
     "submit": "Konto erstellen",
     "submitting": "Konto wird erstellt…",
     "hasAccount": "Bereits ein Konto?",
-    "login": "Anmelden"
+    "login": "Anmelden",
+    "privacyNotice": "Mit der Registrierung akzeptierst du unsere",
+    "privacyLink": "Datenschutzerklärung"
   },
   "gallery": {
     "title": "Galerie",
@@ -391,7 +393,7 @@
     "basisContract": "Art. 6 Abs. 1 lit. b DSGVO – Vertragserfüllung",
     "basisLegitimate": "Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse",
     "basisConsent": "Art. 6 Abs. 1 lit. a DSGVO – Einwilligung",
-    "s2NoEmail": "Wir erfassen keine E-Mail-Adressen, IP-Adressen, Klarnamen, Telefonnummern oder Standortdaten.",
+    "s2NoEmail": "Wir erfassen keine E-Mail-Adressen, Klarnamen, Telefonnummern oder Standortdaten.",
     "s3Title": "3. Speicherdauer",
     "s3Body": "Kontodaten (Benutzername, Profilbild) werden gespeichert, solange dein Konto besteht. Du kannst dein Konto jederzeit in den Einstellungen löschen; dabei werden alle zugehörigen Dateien und personenbezogenen Daten dauerhaft entfernt. Session-Daten verfallen nach 7 Tagen Inaktivität.",
     "s3BodyRetention": "Hochgeladene Dateien werden automatisch nach {{days}} Tagen gelöscht, auch wenn dein Konto weiterhin aktiv ist.",
@@ -415,7 +417,7 @@
     "s5Title": "5. Cookies & Tracking",
     "s5Session": "Wir verwenden ein einziges technisch notwendiges Session-Cookie, um dich eingeloggt zu halten. Für dieses Cookie ist keine Einwilligung erforderlich, da es für den Betrieb des Dienstes unerlässlich ist.",
     "s5NoTracking": "Wir verwenden keine Analyse-, Werbe- oder Fingerprinting-Cookies.",
-    "s5CloudflareActive": "Diese Instanz verwendet Cloudflare Web Analytics (ohne Cookies) zur Messung des Datenverkehrs. Cloudflare Web Analytics speichert keine personenbezogenen Daten; es werden nur anonymisierte Metriken erfasst. Du kannst deine Einwilligung in den Einstellungen verwalten.",
+    "s5CloudflareActive": "Diese Instanz verwendet Cloudflare Web Analytics zur Messung des Datenverkehrs. Das Analytics-Beacon wird durch den Cloudflare-Reverse-Proxy auf Netzwerkebene injiziert und kann von dieser Anwendung nicht unterdrückt werden. Cloudflare Web Analytics ist cookielos und erhebt keine personenbezogenen Daten – es werden ausschließlich anonymisierte Aggregatmetriken erfasst. Da weder Cookies gesetzt noch personenbezogene Daten verarbeitet werden, gilt dies nach den meisten Rechtsauffassungen als einwilligungsfrei i. S. d. ePrivacy-Richtlinie / TTDSG. Dies wird hier zur Wahrung der Transparenz dokumentiert.",
     "s5CloudflareInactive": "Auf dieser Instanz sind keine Drittanbieter-Analysetools oder Tracking-Tools aktiv.",
     "s5bTitle": "5a. Auftragsverarbeiter",
     "s5bIntro": "Wir setzen folgende Auftragsverarbeiter ein (Art. 28 DSGVO). Mit jedem Auftragsverarbeiter besteht ein Auftragsverarbeitungsvertrag (AVV):",
@@ -432,7 +434,10 @@
     "s6NoEncryption": "Hochgeladene Dateien werden auf App-Ebene nicht verschlüsselt. Die Verschlüsselung ruhender Daten ist abhängig von der Server- und Speicherkonfiguration des Betreibers.",
     "s7Title": "7. Änderungen dieser Erklärung",
     "s7Body": "Der Betreiber kann diese Erklärung jederzeit aktualisieren. Das Datum der letzten Überarbeitung wird oben vermerkt. Die weitere Nutzung des Dienstes nach Änderungen gilt als Zustimmung zur aktualisierten Erklärung.",
-    "version": "Sharely – Open-Source-Dateifreigabe · Datenschutzerklärung"
+    "version": "Sharely – Open-Source-Dateifreigabe · Datenschutzerklärung",
+    "dataAuditLog": "IP-Adresse, Aktionstyp, Zeitstempel (Audit-Log)",
+    "purposeAuditLog": "Sicherheitsüberwachung & Missbrauchsprävention",
+    "s3BodyAuditLog": "Audit-Log-Einträge (IP-Adresse, Aktion, Zeitstempel) werden nach 90 Tagen automatisch gelöscht."
   },
   "cookieBanner": {
     "text": "Diese Website verwendet Cloudflare Web Analytics (ohne Cookies) zur Analyse des Datenverkehrs.",

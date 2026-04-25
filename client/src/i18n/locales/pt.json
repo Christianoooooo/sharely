@@ -36,7 +36,9 @@
     "submit": "Criar conta",
     "submitting": "A criar conta…",
     "hasAccount": "Já tem uma conta?",
-    "login": "Entrar"
+    "login": "Entrar",
+    "privacyNotice": "Ao registar-se, aceita a nossa",
+    "privacyLink": "Política de privacidade"
   },
   "gallery": {
     "title": "Galeria",
@@ -391,7 +393,7 @@
     "basisContract": "Art. 6(1)(b) – execução de um contrato",
     "basisLegitimate": "Art. 6(1)(f) – interesse legítimo",
     "basisConsent": "Art. 6(1)(a) – consentimento",
-    "s2NoEmail": "Não recolhemos endereços de e-mail, endereços IP, nomes reais, números de telefone nem dados de localização.",
+    "s2NoEmail": "Não recolhemos endereços de e-mail, nomes reais, números de telefone nem dados de localização.",
     "s3Title": "3. Conservação",
     "s3Body": "Os dados da conta (nome de utilizador, foto de perfil) são conservados enquanto a sua conta existir. Pode eliminar a sua conta em qualquer momento nas Configurações, o que remove permanentemente todos os ficheiros e dados pessoais associados. Os dados de sessão expiram após 7 dias de inatividade.",
     "s3BodyRetention": "Os ficheiros enviados são automaticamente eliminados após {{days}} dias, mesmo que a sua conta permaneça ativa.",
@@ -415,7 +417,7 @@
     "s5Title": "5. Cookies e rastreamento",
     "s5Session": "Utilizamos um único cookie de sessão tecnicamente necessário para o manter com sessão iniciada. Não é necessário consentimento para este cookie, pois é essencial para o funcionamento do serviço.",
     "s5NoTracking": "Não utilizamos cookies de análise, publicidade ou fingerprinting.",
-    "s5CloudflareActive": "Esta instância utiliza o Cloudflare Web Analytics (sem cookies) para medir o tráfego do site. O Cloudflare Web Analytics não armazena dados pessoais; apenas métricas anonimizadas são recolhidas. Pode gerir o seu consentimento nas Definições.",
+    "s5CloudflareActive": "Esta instância utiliza o Cloudflare Web Analytics para medir o tráfego do site. O beacon de análise é injetado pelo proxy reverso da Cloudflare ao nível da rede e não pode ser suprimido por esta aplicação. O Cloudflare Web Analytics não utiliza cookies e não recolhe dados pessoais — apenas métricas agregadas anonimizadas são recolhidas. Como não define cookies nem processa dados pessoais, a maioria das interpretações jurídicas considera-o isento de consentimento ao abrigo da Diretiva ePrivacy. Isto é documentado aqui por transparência.",
     "s5CloudflareInactive": "Nenhuma ferramenta de análise ou rastreamento de terceiros está ativa nesta instância.",
     "s5bTitle": "5a. Subcontratantes",
     "s5bIntro": "Utilizamos os seguintes subcontratantes (Art. 28 RGPD). Existe um Acordo de Tratamento de Dados (DPA) com cada subcontratante:",
@@ -432,7 +434,10 @@
     "s6NoEncryption": "Os ficheiros enviados não são encriptados ao nível da aplicação. A encriptação em repouso depende da configuração do servidor e armazenamento do operador.",
     "s7Title": "7. Alterações a esta política",
     "s7Body": "O operador pode atualizar esta política em qualquer momento. A data da última revisão será indicada acima. O uso continuado do serviço após alterações constitui aceitação da política atualizada.",
-    "version": "Sharely – partilha de ficheiros open source · Política de privacidade"
+    "version": "Sharely – partilha de ficheiros open source · Política de privacidade",
+    "dataAuditLog": "Endereço IP, tipo de ação, carimbo de data/hora (registo de auditoria)",
+    "purposeAuditLog": "Monitorização de segurança e prevenção de abusos",
+    "s3BodyAuditLog": "As entradas do registo de auditoria (endereço IP, ação, carimbo de data/hora) são eliminadas automaticamente após 90 dias."
   },
   "cookieBanner": {
     "text": "Este site utiliza o Cloudflare Web Analytics (sem cookies) para compreender o tráfego.",
