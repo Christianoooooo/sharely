@@ -568,6 +568,33 @@ router.delete('/user/account', requireLogin, async (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
+// ── User: change own username (GDPR Art. 16 – Rectification) ──────────────
+router.patch('/user/username', requireLogin, async (req, res) => {
+  const { newUsername, password } = req.body;
+  if (!newUsername || !password) {
+    return res.status(400).json({ error: 'New username and current password required' });
+  }
+  const trimmed = newUsername.trim();
+  if (trimmed.length < 3 || trimmed.length > 32) {
+    return res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    return res.status(400).json({ error: 'Username may only contain letters, numbers, dashes and underscores' });
+  }
+  const user = await User.findById(req.session.user.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const valid = await user.comparePassword(password);
+  if (!valid) return res.status(401).json({ error: 'Password is incorrect' });
+  const conflict = await User.findOne({ username: trimmed, _id: { $ne: user._id } });
+  if (conflict) return res.status(409).json({ error: 'Username already taken' });
+  const oldUsername = user.username;
+  user.username = trimmed;
+  await user.save();
+  req.session.user = { ...req.session.user, username: trimmed };
+  await logAudit(req, 'change_username', { oldUsername, newUsername: trimmed });
+  res.json({ success: true, username: trimmed });
+});
+
 // ── User: change own password ───────────────────────────────────────────────
 router.patch('/user/password', requireLogin, async (req, res) => {
   const { currentPassword, newPassword } = req.body;

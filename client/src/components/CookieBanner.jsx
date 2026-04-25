@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCloud } from '@fortawesome/free-solid-svg-icons';
 
-const STORAGE_KEY = 'cookie-consent-cf';
+export const STORAGE_KEY = 'cookie-consent-cf';
 
 export function CookieBanner() {
   const { t } = useTranslation();
@@ -25,6 +25,11 @@ export function CookieBanner() {
     setVisible(false);
   }
 
+  function decline() {
+    localStorage.setItem(STORAGE_KEY, 'declined');
+    setVisible(false);
+  }
+
   if (!visible) return null;
 
   return (
@@ -38,9 +43,14 @@ export function CookieBanner() {
           </Link>
           .
         </p>
-        <Button size="sm" onClick={accept} className="shrink-0">
-          {t('cookieBanner.accept')}
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button size="sm" variant="outline" onClick={decline}>
+            {t('cookieBanner.decline')}
+          </Button>
+          <Button size="sm" onClick={accept}>
+            {t('cookieBanner.accept')}
+          </Button>
+        </div>
       </div>
     </div>
   );
