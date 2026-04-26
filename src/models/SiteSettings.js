@@ -9,6 +9,7 @@ const siteSettingsSchema = new mongoose.Schema({
   fileRetentionDays: { type: Number, default: 0 },
   encryptionAtRest: { type: Boolean, default: false },
   sessionDurationDays: { type: Number, default: 7 },
+  allowRegistration: { type: Boolean, default: true },
 });
 
 siteSettingsSchema.statics.get = async function () {

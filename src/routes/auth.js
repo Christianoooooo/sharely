@@ -2,9 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { rateLimit } = require('express-rate-limit');
 const User = require('../models/User');
+const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
 
-const allowRegistration = () => process.env.ALLOW_REGISTRATION !== 'false';
+// env var takes precedence; falls back to SiteSettings.allowRegistration
+async function allowRegistration() {
+  if (process.env.ALLOW_REGISTRATION === 'false') return false;
+  if (process.env.ALLOW_REGISTRATION === 'true') return true;
+  const s = await SiteSettings.get();
+  return s.allowRegistration !== false;
+}
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -58,7 +65,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
 // POST /api/auth/register
 router.post('/register', authLimiter, async (req, res) => {
-  if (!allowRegistration()) {
+  if (!await allowRegistration()) {
     return res.status(403).json({ error: 'Registration is disabled' });
   }
   const { username, password, confirmPassword } = req.body;
