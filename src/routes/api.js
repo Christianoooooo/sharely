@@ -567,6 +567,12 @@ router.delete('/user/account', requireLogin, async (req, res) => {
     } catch { /* ignore */ }
   }
 
+  // Anonymize audit log entries before deleting the user (Art. 17 GDPR)
+  await AuditLog.updateMany(
+    { userId: user._id },
+    { $set: { username: '[deleted]', ip: null, userId: null } },
+  );
+
   await logAudit(req, 'delete_account');
   await user.deleteOne();
   req.session.destroy(() => res.json({ success: true }));

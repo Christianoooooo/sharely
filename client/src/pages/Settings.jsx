@@ -22,7 +22,6 @@ import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes, faShield, faDo
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { STORAGE_KEY as COOKIE_CONSENT_KEY } from '@/components/CookieBanner';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -54,10 +53,6 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // GDPR: cookie consent
-  const [consentStatus, setConsentStatus] = useState(() => localStorage.getItem(COOKIE_CONSENT_KEY) || 'none');
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
-
   // GDPR: objection
   const [operatorEmail, setOperatorEmail] = useState('');
 
@@ -65,17 +60,10 @@ export default function Settings() {
     fetch('/api/site-settings')
       .then((r) => r.ok ? r.json() : {})
       .then((data) => {
-        setAnalyticsEnabled(!!data.cloudflareAnalytics);
         setOperatorEmail(data.operatorEmail || '');
       })
       .catch(() => {});
   }, []);
-
-  function handleConsentChange(value) {
-    localStorage.setItem(COOKIE_CONSENT_KEY, value);
-    setConsentStatus(value);
-    toast({ title: t('settings.consentUpdated') });
-  }
 
   async function handleEmbedModeChange(val) {
     setEmbedMode(val);
@@ -126,7 +114,7 @@ export default function Settings() {
       toast({ title: t('settings.passwordMismatch'), variant: 'destructive' });
       return;
     }
-    if (form.newPassword.length < 6) {
+    if (form.newPassword.length < 12) {
       toast({ title: t('settings.passwordTooShort'), variant: 'destructive' });
       return;
     }
@@ -413,7 +401,7 @@ export default function Settings() {
                 type="password"
                 value={form.newPassword}
                 onChange={(e) => setForm((p) => ({ ...p, newPassword: e.target.value }))}
-                minLength={6}
+                minLength={12}
                 required
               />
             </div>
@@ -424,7 +412,7 @@ export default function Settings() {
                 type="password"
                 value={form.confirmPassword}
                 onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))}
-                minLength={6}
+                minLength={12}
                 required
               />
             </div>
@@ -459,35 +447,6 @@ export default function Settings() {
               {exporting ? t('settings.exporting') : t('settings.exportDataBtn')}
             </Button>
           </div>
-
-          {/* Cookie consent withdrawal */}
-          {analyticsEnabled && (
-            <div className="border-t pt-4 space-y-1.5">
-              <p className="text-sm font-medium">{t('settings.cookieConsent')}</p>
-              <p className="text-xs text-muted-foreground">{t('settings.cookieConsentDescription')}</p>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  variant={consentStatus === 'accepted' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleConsentChange('accepted')}
-                >
-                  {t('settings.consentAccept')}
-                </Button>
-                <Button
-                  variant={consentStatus === 'declined' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleConsentChange('declined')}
-                >
-                  {t('settings.consentDecline')}
-                </Button>
-              </div>
-              {consentStatus !== 'none' && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {consentStatus === 'accepted' ? t('settings.consentCurrentAccepted') : t('settings.consentCurrentDeclined')}
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Objection to processing (Art. 21) */}
           {operatorEmail && (

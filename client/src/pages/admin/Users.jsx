@@ -127,7 +127,7 @@ export default function AdminUsers() {
   }
 
   async function savePassword() {
-    if (newPw.length < 6) {
+    if (newPw.length < 12) {
       toast({ title: t('adminUsers.passwordTooShort'), variant: 'destructive' });
       return;
     }
