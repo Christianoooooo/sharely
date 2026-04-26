@@ -54,7 +54,6 @@ function LoginForm({ className, ...props }) {
                   id="username"
                   name="username"
                   type="text"
-                  placeholder="johndoe"
                   autoComplete="username"
                   required
                   autoFocus
