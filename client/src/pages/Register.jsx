@@ -55,7 +55,6 @@ function SignupForm({ className, ...props }) {
                 id="username"
                 name="username"
                 type="text"
-                placeholder="johndoe"
                 minLength={3}
                 maxLength={32}
                 autoComplete="username"
