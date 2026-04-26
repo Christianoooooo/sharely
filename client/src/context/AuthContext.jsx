@@ -4,12 +4,18 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [installed, setInstalled] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setUser(data?.user ?? null))
+    Promise.all([
+      fetch('/api/auth/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/install/status').then((r) => r.json()).catch(() => ({ installed: true })),
+    ])
+      .then(([authData, installData]) => {
+        setUser(authData?.user ?? null);
+        setInstalled(installData?.installed ?? true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -50,8 +56,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  function completeInstall(userData) {
+    setInstalled(true);
+    setUser(userData);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, installed, login, register, logout, refreshUser, completeInstall }}>
       {children}
     </AuthContext.Provider>
   );

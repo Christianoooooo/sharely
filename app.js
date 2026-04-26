@@ -139,6 +139,7 @@ function requireSameOrigin(req, res, next) {
 }
 
 // JSON API routes
+app.use('/api/install', requireSameOrigin, require('./src/routes/install'));
 app.use('/api/auth', requireSameOrigin, require('./src/routes/auth'));
 app.use('/api/admin/import', require('./src/routes/import'));
 app.use('/api', requireSameOrigin, require('./src/routes/api'));
