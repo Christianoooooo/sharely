@@ -20,13 +20,8 @@ export function CookieBanner() {
       .catch(() => {});
   }, []);
 
-  function accept() {
-    localStorage.setItem(STORAGE_KEY, 'accepted');
-    setVisible(false);
-  }
-
-  function decline() {
-    localStorage.setItem(STORAGE_KEY, 'declined');
+  function dismiss() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ status: 'dismissed', ts: Date.now() }));
     setVisible(false);
   }
 
@@ -44,11 +39,8 @@ export function CookieBanner() {
           .
         </p>
         <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" onClick={decline}>
-            {t('cookieBanner.decline')}
-          </Button>
-          <Button size="sm" onClick={accept}>
-            {t('cookieBanner.accept')}
+          <Button size="sm" onClick={dismiss}>
+            {t('cookieBanner.dismiss')}
           </Button>
         </div>
       </div>

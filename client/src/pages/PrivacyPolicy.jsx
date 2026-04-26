@@ -125,6 +125,7 @@ export default function PrivacyPolicy() {
             <li><strong>{t('privacy.right15')}</strong> – {t('privacy.right15Desc')}</li>
             <li><strong>{t('privacy.right16')}</strong> – {t('privacy.right16Desc')}</li>
             <li><strong>{t('privacy.right17')}</strong> – {t('privacy.right17Desc')}</li>
+            <li><strong>{t('privacy.right18')}</strong> – {t('privacy.right18Desc')}</li>
             <li><strong>{t('privacy.right20')}</strong> – {t('privacy.right20Desc')}</li>
             <li><strong>{t('privacy.right21')}</strong> – {t('privacy.right21Desc')}</li>
           </ul>
