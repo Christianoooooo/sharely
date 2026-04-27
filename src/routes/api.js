@@ -77,6 +77,15 @@ function resolveUploadPath(storedName) {
   return resolved;
 }
 
+/** Delete a file record: unlink disk file, remove thumbnail, write audit log, remove DB doc. */
+async function deleteFileRecord(req, file) {
+  const fp = resolveUploadPath(file.storedName);
+  try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  deleteThumbnail(file.shortId);
+  await logAudit(req, 'delete_file', { fileName: file.originalName, shortId: file.shortId });
+  await file.deleteOne();
+}
+
 // ── File upload (API key — ShareX) ─────────────────────────────────────────
 router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
@@ -141,11 +150,7 @@ router.delete('/delete/:shortId', requireApiKey, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const fp = resolveUploadPath(file.storedName);
-  try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-  deleteThumbnail(file.shortId);
-  await logAudit(req, 'delete_file', { fileName: file.originalName, shortId: file.shortId });
-  await file.deleteOne();
+  await deleteFileRecord(req, file);
   res.json({ success: true });
 });
 
@@ -159,11 +164,7 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const fp = resolveUploadPath(file.storedName);
-  try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-  deleteThumbnail(file.shortId);
-  await logAudit(req, 'delete_file', { fileName: file.originalName, shortId: file.shortId });
-  await file.deleteOne();
+  await deleteFileRecord(req, file);
   res.json({ success: true });
 });
 
@@ -317,7 +318,13 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
-  if (typeof operatorEmail === 'string') s.operatorEmail = operatorEmail.trim();
+  if (typeof operatorEmail === 'string') {
+    const trimmed = operatorEmail.trim();
+    if (trimmed !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    s.operatorEmail = trimmed;
+  }
   if (typeof cloudflareAnalytics === 'boolean') s.cloudflareAnalytics = cloudflareAnalytics;
   if (typeof fileRetentionDays === 'number' && fileRetentionDays >= 0) s.fileRetentionDays = Math.floor(fileRetentionDays);
   if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
