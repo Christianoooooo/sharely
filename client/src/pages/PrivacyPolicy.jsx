@@ -90,7 +90,7 @@ export default function PrivacyPolicy() {
                 <Td>{t('privacy.basisContract')}</Td>
               </tr>
               <tr>
-                <Td>{t('privacy.dataSession')}</Td>
+                <Td>{t('privacy.dataSession', { sessionDays })}</Td>
                 <Td>{t('privacy.purposeSession')}</Td>
                 <Td>{t('privacy.basisLegitimate')}</Td>
               </tr>
