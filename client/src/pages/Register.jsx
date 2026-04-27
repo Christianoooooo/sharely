@@ -68,7 +68,7 @@ function SignupForm({ className, ...props }) {
                 id="password"
                 name="password"
                 type="password"
-                minLength={6}
+                minLength={12}
                 autoComplete="new-password"
                 required
               />
@@ -82,7 +82,7 @@ function SignupForm({ className, ...props }) {
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
-                minLength={6}
+                minLength={12}
                 autoComplete="new-password"
                 required
               />
