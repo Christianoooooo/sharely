@@ -220,7 +220,7 @@ function FileViewInner() {
                 <Badge variant="secondary">{file.displayType}</Badge>
                 <span>{fmtSize(file.size)}</span>
                 <span className="flex items-center gap-1"><FontAwesomeIcon icon={faEye} className="h-3.5 w-3.5" />{file.views}</span>
-                {file.uploader && <span className="flex items-center gap-1"><UserAvatar userId={file.uploader._id} size="xs" />{file.uploader.username}</span>}
+                {file.uploader && <span className="flex items-center gap-1"><UserAvatar avatarUrl={file.uploader.avatarUrl} size="xs" />{file.uploader.username}</span>}
                 <span className="flex items-center gap-1"><FontAwesomeIcon icon={faCalendar} className="h-3.5 w-3.5" />{fmtDate(file.createdAt)}</span>
               </div>
             </div>
