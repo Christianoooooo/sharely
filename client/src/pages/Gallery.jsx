@@ -164,7 +164,7 @@ function FileCard({ file, user, onDelete }) {
               </div>
               {file.uploader && (
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <UserAvatar userId={file.uploader._id} size="xs" />
+                  <UserAvatar avatarUrl={file.uploader.avatarUrl} size="xs" />
                   <p className="text-xs text-muted-foreground truncate">{file.uploader.username}</p>
                 </div>
               )}

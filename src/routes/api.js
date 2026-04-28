@@ -170,13 +170,15 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
 
 // ── File metadata ───────────────────────────────────────────────────────────
 router.get('/file/:shortId', async (req, res) => {
-  const file = await File.findOne({ shortId: req.params.shortId }).populate('uploader', 'username');
+  const file = await File.findOne({ shortId: req.params.shortId }).populate('uploader', 'username avatarExt');
   if (!file) return res.status(404).json({ error: 'File not found' });
 
   file.views += 1;
   await file.save();
 
-  res.json({ file: file.toObject() });
+  const obj = file.toObject();
+  if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
+  res.json({ file: obj });
 });
 
 // ── Gallery ─────────────────────────────────────────────────────────────────
@@ -219,7 +221,7 @@ router.get('/gallery', requireLogin, async (req, res) => {
   const total = await File.countDocuments(filter);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const files = await File.find(filter)
-    .populate('uploader', 'username')
+    .populate('uploader', 'username avatarExt')
     .sort({ createdAt: -1 })
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
@@ -228,6 +230,7 @@ router.get('/gallery', requireLogin, async (req, res) => {
     files: files.map((f) => {
       const obj = f.toObject();
       obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+      if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
       return obj;
     }),
     total,
@@ -352,9 +355,16 @@ router.get('/admin/stats', requireAdmin, async (req, res) => {
   const recentFiles = await File.find()
     .sort({ createdAt: -1 })
     .limit(10)
-    .populate('uploader', 'username');
+    .populate('uploader', 'username avatarExt');
 
-  res.json({ userCount, fileCount, totalSize, recentFiles: recentFiles.map((f) => f.toObject()) });
+  res.json({
+    userCount, fileCount, totalSize,
+    recentFiles: recentFiles.map((f) => {
+      const obj = f.toObject();
+      if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
+      return obj;
+    }),
+  });
 });
 
 // ── Admin: users ────────────────────────────────────────────────────────────
@@ -371,6 +381,7 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
     password: undefined,
     apiKey: undefined,
     apiKeyHash: undefined,
+    avatarUrl: u.avatarExt ? `/api/user/avatar/${u._id}` : undefined,
     fileCount: statsMap[u._id.toString()]?.count || 0,
     storageUsed: statsMap[u._id.toString()]?.size || 0,
   }));
@@ -924,7 +935,7 @@ router.get('/admin/files', requireAdmin, async (req, res) => {
   const total = await File.countDocuments(filter);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const files = await File.find(filter)
-    .populate('uploader', 'username')
+    .populate('uploader', 'username avatarExt')
     .sort({ createdAt: -1 })
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
@@ -933,6 +944,7 @@ router.get('/admin/files', requireAdmin, async (req, res) => {
     files: files.map((f) => {
       const obj = f.toObject();
       obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+      if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
       return obj;
     }),
     total,

@@ -237,7 +237,7 @@ export default function AdminUsers() {
                 <TableRow key={u._id} className={!u.isActive ? 'opacity-50' : ''}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <UserAvatar userId={u._id} size="sm" />
+                      <UserAvatar avatarUrl={u.avatarUrl} size="sm" />
                       {u.username}
                     </div>
                   </TableCell>
