@@ -84,4 +84,18 @@ fileSchema.virtual('displayType').get(function () {
 fileSchema.set('toJSON', { virtuals: true });
 fileSchema.set('toObject', { virtuals: true });
 
+fileSchema.statics.createUnique = async function (data, maxAttempts = 5) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await this.create(data);
+    } catch (err) {
+      if (err.code === 11000 && err.keyPattern?.shortId && attempt < maxAttempts - 1) {
+        data.shortId = generateShortId();
+        continue;
+      }
+      throw err;
+    }
+  }
+};
+
 module.exports = mongoose.model('File', fileSchema);
