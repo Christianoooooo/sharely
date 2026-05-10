@@ -1,11 +1,19 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
+const EPOCH = Math.floor(new Date('2024-01-01').getTime() / 1000);
+
+function generateShortId() {
+  const ts = (Math.floor(Date.now() / 1000) - EPOCH).toString(16).padStart(6, '0');
+  const rand = crypto.randomBytes(2).toString('hex');
+  return ts + rand;
+}
+
 const fileSchema = new mongoose.Schema({
   shortId: {
     type: String,
     unique: true,
-    default: () => crypto.randomBytes(4).toString('hex'), // 8 hex chars
+    default: generateShortId,
   },
   deleteToken: {
     type: String,
