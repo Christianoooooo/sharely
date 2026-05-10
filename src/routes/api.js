@@ -93,7 +93,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
   // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
 
-  const file = await File.create({
+  const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType: req.file.mimetype,
@@ -125,7 +125,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
   for (const f of req.files) {
     // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
     const storedName = path.relative(UPLOAD_DIR, f.path);
-    const doc = await File.create({
+    const doc = await File.createUnique({
       originalName: sanitizeFilename(f.originalname),
       storedName,
       mimeType: f.mimetype,
@@ -800,7 +800,7 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
 
   const storedName = path.relative(UPLOAD_DIR, finalPath);
-  const doc = await File.create({
+  const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
     mimeType: meta.mimeType,
