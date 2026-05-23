@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,16 +18,17 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes, faShield, faDownload, faPencil } from '@fortawesome/free-solid-svg-icons';
+import { faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes, faShield, faDownload, faPencil, faEnvelope, faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Settings() {
   const { toast } = useToast();
-  const { user, refreshUser, logout } = useAuth();
+  const { user, smtpEnabled, refreshUser, logout } = useAuth();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Password form
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -36,6 +37,11 @@ export default function Settings() {
   // Username change
   const [usernameForm, setUsernameForm] = useState({ newUsername: '', password: '' });
   const [savingUsername, setSavingUsername] = useState(false);
+
+  // Email change
+  const [emailForm, setEmailForm] = useState({ email: '', password: '' });
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   // Avatar
   const avatarInputRef = useRef(null);
@@ -55,6 +61,18 @@ export default function Settings() {
 
   // GDPR: objection
   const [operatorEmail, setOperatorEmail] = useState('');
+
+  useEffect(() => {
+    const emailVerified = searchParams.get('emailVerified');
+    if (emailVerified === 'success') {
+      refreshUser();
+      toast({ title: t('settings.emailVerifiedSuccess') });
+      setSearchParams({}, { replace: true });
+    } else if (emailVerified === 'error') {
+      toast({ title: t('settings.emailVerifiedError'), variant: 'destructive' });
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/api/site-settings')
@@ -105,6 +123,40 @@ export default function Settings() {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
       setSavingUsername(false);
+    }
+  }
+
+  async function handleEmailSubmit(e) {
+    e.preventDefault();
+    if (!emailForm.password) return;
+    setSavingEmail(true);
+    try {
+      const r = await fetch('/api/user/email', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailForm.email.trim(), password: emailForm.password }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.emailSaved') });
+      setEmailForm({ email: '', password: '' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingEmail(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setResendingVerification(true);
+    try {
+      await fetch('/api/user/resend-verification', { method: 'POST' });
+      toast({ title: t('settings.emailResent') });
+    } catch {
+      // silent
+    } finally {
+      setResendingVerification(false);
     }
   }
 
@@ -373,6 +425,75 @@ export default function Settings() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Email Address */}
+      {smtpEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />{t('settings.email')}
+            </CardTitle>
+            <CardDescription>{t('settings.emailDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {user?.email && (
+              <div className="space-y-1.5 mb-4">
+                <Label>{t('settings.currentEmail')}</Label>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1">{user.email}</p>
+                  {user.emailVerified ? (
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                      <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5" />
+                      {t('settings.emailVerifiedBadge')}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                      <FontAwesomeIcon icon={faCircleExclamation} className="h-3.5 w-3.5" />
+                      {t('settings.emailUnverifiedBadge')}
+                    </span>
+                  )}
+                </div>
+                {!user.emailVerified && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-1"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                  >
+                    {resendingVerification ? t('settings.saving') : t('settings.emailResend')}
+                  </Button>
+                )}
+              </div>
+            )}
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="newEmail">{t('settings.newEmail')}</Label>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  autoComplete="email"
+                  value={emailForm.email}
+                  onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="emailPassword">{t('settings.emailCurrentPasswordConfirm')}</Label>
+                <Input
+                  id="emailPassword"
+                  type="password"
+                  value={emailForm.password}
+                  onChange={(e) => setEmailForm((p) => ({ ...p, password: e.target.value }))}
+                  required
+                />
+              </div>
+              <Button type="submit" disabled={savingEmail}>
+                {savingEmail ? t('settings.saving') : t('settings.saveEmail')}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Change Password */}
       <Card>

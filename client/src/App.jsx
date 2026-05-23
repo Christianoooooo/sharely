@@ -9,6 +9,9 @@ import { CookieBanner } from '@/components/CookieBanner';
 
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import { RequireEmailDialog } from '@/components/RequireEmailDialog';
 import Gallery from '@/pages/Gallery';
 import Upload from '@/pages/Upload';
 import FileView from '@/pages/FileView';
@@ -33,6 +36,8 @@ const PAGE_TITLES = {
   '/admin/import': 'Import',
   '/auth/login': 'Login',
   '/auth/register': 'Register',
+  '/auth/forgot-password': 'Forgot Password',
+  '/auth/reset-password': 'Reset Password',
   '/install': 'Setup',
 };
 
@@ -83,6 +88,8 @@ function App() {
             {/* Public */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/f/:shortId" element={<FileView />} />
@@ -104,6 +111,7 @@ function App() {
             <Route path="*" element={<Navigate to="/gallery" replace />} />
           </Routes>
         </SetupGuard>
+        <RequireEmailDialog />
         <CookieBanner />
         <Toaster />
         </TooltipProvider>

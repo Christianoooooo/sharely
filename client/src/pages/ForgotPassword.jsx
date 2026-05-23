@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,10 +8,9 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from '@/components/LanguageSelector';
 
-function LoginForm({ className, ...props }) {
-  const { login, smtpEnabled } = useAuth();
-  const navigate = useNavigate();
+function ForgotPasswordForm({ className, ...props }) {
   const { t } = useTranslation();
+  const [step, setStep] = useState('form');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,8 +20,14 @@ function LoginForm({ className, ...props }) {
     setLoading(true);
     const fd = new FormData(e.target);
     try {
-      await login(fd.get('username'), fd.get('password'));
-      navigate('/gallery');
+      const r = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: fd.get('username') }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Request failed');
+      setStep('success');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -31,14 +35,32 @@ function LoginForm({ className, ...props }) {
     }
   }
 
+  if (step === 'success') {
+    return (
+      <div className={cn('flex flex-col gap-6', className)} {...props}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{t('forgotPassword.sentTitle')}</CardTitle>
+            <CardDescription>{t('forgotPassword.sentDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-2 text-center text-sm">
+              <Link to="/auth/login" className="underline underline-offset-4">
+                {t('forgotPassword.backToLogin')}
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('login.title')}</CardTitle>
-          <CardDescription>
-            {t('login.description')}
-          </CardDescription>
+          <CardTitle className="text-2xl">{t('forgotPassword.title')}</CardTitle>
+          <CardDescription>{t('forgotPassword.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -49,7 +71,7 @@ function LoginForm({ className, ...props }) {
                 </div>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="username">{t('login.username')}</Label>
+                <Label htmlFor="username">{t('forgotPassword.username')}</Label>
                 <Input
                   id="username"
                   name="username"
@@ -59,34 +81,13 @@ function LoginForm({ className, ...props }) {
                   autoFocus
                 />
               </div>
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">{t('login.password')}</Label>
-                  {smtpEnabled && (
-                    <Link
-                      to="/auth/forgot-password"
-                      className="text-sm underline underline-offset-4 text-muted-foreground"
-                    >
-                      {t('login.forgotPassword')}
-                    </Link>
-                  )}
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? t('login.submitting') : t('login.submit')}
+                {loading ? t('forgotPassword.submitting') : t('forgotPassword.submit')}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              {t('login.noAccount')}{' '}
-              <Link to="/auth/register" className="underline underline-offset-4">
-                {t('login.signUp')}
+              <Link to="/auth/login" className="underline underline-offset-4">
+                {t('forgotPassword.backToLogin')}
               </Link>
             </div>
           </form>
@@ -96,14 +97,14 @@ function LoginForm({ className, ...props }) {
   );
 }
 
-export default function Login() {
+export default function ForgotPassword() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
         <div className="flex justify-end mb-4">
           <LanguageSelector />
         </div>
-        <LoginForm />
+        <ForgotPasswordForm />
       </div>
     </div>
   );
