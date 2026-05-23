@@ -124,6 +124,10 @@
   },
   "settings": {
     "title": "Settings",
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "profilePicture": "Profile Picture",
     "profilePictureDescription": "Visible in the navigation bar",
     "uploadPicture": "Upload picture",

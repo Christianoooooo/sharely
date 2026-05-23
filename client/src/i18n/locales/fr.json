@@ -97,6 +97,10 @@
     "folderDropHint": "Les dossiers peuvent être ajoutés par glisser-déposer"
   },
   "settings": {
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "title": "Paramètres",
     "profilePicture": "Photo de profil",
     "profilePictureDescription": "Visible dans la barre de navigation",

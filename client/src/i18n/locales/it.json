@@ -97,6 +97,10 @@
     "folderDropHint": "Le cartelle possono essere aggiunte tramite trascinamento"
   },
   "settings": {
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "title": "Impostazioni",
     "profilePicture": "Foto profilo",
     "profilePictureDescription": "Visibile nella barra di navigazione",

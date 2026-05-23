@@ -97,6 +97,10 @@
     "folderDropHint": "Pastas podem ser adicionadas via arrastar e soltar"
   },
   "settings": {
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "title": "Configurações",
     "profilePicture": "Foto de perfil",
     "profilePictureDescription": "Visível na barra de navegação",
