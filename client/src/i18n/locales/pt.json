@@ -45,7 +45,9 @@
     "acceptPrivacySuffix": "e concordo com o processamento dos meus dados pessoais.",
     "ageConfirm": "Confirmo que tenho pelo menos 16 anos.",
     "acceptPrivacyAnd": "e os",
-    "termsLink": "Termos de serviço"
+    "termsLink": "Termos de serviço",
+    "email": "Email address",
+    "emailHint": "Used for email verification and password reset."
   },
   "gallery": {
     "title": "Galeria",

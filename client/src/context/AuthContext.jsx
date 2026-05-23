@@ -34,11 +34,11 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
-  async function register(username, password, confirmPassword) {
+  async function register(username, password, confirmPassword, email = '') {
     const r = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, confirmPassword }),
+      body: JSON.stringify({ username, password, confirmPassword, email }),
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Registration failed');

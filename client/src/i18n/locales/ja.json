@@ -45,7 +45,9 @@
     "acceptPrivacySuffix": "を読み、個人データの処理に同意します。",
     "ageConfirm": "私は16歳以上であることを確認します。",
     "acceptPrivacyAnd": "および",
-    "termsLink": "利用規約"
+    "termsLink": "利用規約",
+    "email": "Email address",
+    "emailHint": "Used for email verification and password reset."
   },
   "gallery": {
     "title": "ギャラリー",
