@@ -404,7 +404,7 @@ export default function Settings() {
           <form onSubmit={handleUsernameSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>{t('settings.currentUsername')}</Label>
-              <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{user?.username}</p>
+              <Input value={user?.username ?? ''} readOnly className="cursor-default" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="newUsername">{t('settings.newUsername')}</Label>
@@ -449,14 +449,18 @@ export default function Settings() {
               <div className="space-y-1.5 mb-4">
                 <Label>{t('settings.currentEmail')}</Label>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1">{user.email}</p>
+                  <Input
+                    value={user.email}
+                    readOnly
+                    className="flex-1 cursor-default"
+                  />
                   {user.emailVerified ? (
-                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium shrink-0">
                       <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5" />
                       {t('settings.emailVerifiedBadge')}
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                    <span className="flex items-center gap-1 text-xs text-amber-600 font-medium shrink-0">
                       <FontAwesomeIcon icon={faCircleExclamation} className="h-3.5 w-3.5" />
                       {t('settings.emailUnverifiedBadge')}
                     </span>
