@@ -344,7 +344,16 @@ export default function Settings() {
         <CardContent>
           <Select
             value={i18n.resolvedLanguage}
-            onValueChange={(val) => i18n.changeLanguage(val)}
+            onValueChange={(val) => {
+              i18n.changeLanguage(val);
+              if (user) {
+                fetch('/api/user/language', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ language: val }),
+                }).catch(() => {});
+              }
+            }}
           >
             <SelectTrigger className="w-48">
               <SelectValue />

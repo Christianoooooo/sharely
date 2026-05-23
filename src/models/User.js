@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: null,
   },
+  language: {
+    type: String,
+    default: 'en',
+  },
   emailVerified: {
     type: Boolean,
     default: false,

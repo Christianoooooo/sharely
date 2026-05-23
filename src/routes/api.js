@@ -679,12 +679,23 @@ router.patch('/user/email', requireLogin, async (req, res) => {
 
   if (trimmed) {
     const verifyUrl = `${process.env.BASE_URL || ''}/api/auth/verify-email?token=${plaintext}`;
-    mailer.sendEmailVerificationEmail(trimmed, user.username, verifyUrl).catch((err) => {
+    mailer.sendEmailVerificationEmail(trimmed, user.username, verifyUrl, user.language || 'en').catch((err) => {
       console.error('Failed to send verification email:', err.message);
     });
   }
 
   await logAudit(req, 'change_email');
+  res.json({ success: true });
+});
+
+// ── User: set language preference ──────────────────────────────────────────
+router.patch('/user/language', requireLogin, async (req, res) => {
+  const { language } = req.body;
+  const allowed = ['en', 'de', 'fr', 'es', 'it', 'pt', 'ja', 'zh'];
+  if (!language || !allowed.includes(language)) {
+    return res.status(400).json({ error: 'Invalid language' });
+  }
+  await User.findByIdAndUpdate(req.session.user.id, { language });
   res.json({ success: true });
 });
 
@@ -701,7 +712,7 @@ router.post('/user/resend-verification', requireLogin, async (req, res) => {
   await user.save();
 
   const verifyUrl = `${process.env.BASE_URL || ''}/api/auth/verify-email?token=${plaintext}`;
-  mailer.sendEmailVerificationEmail(user.email, user.username, verifyUrl).catch((err) => {
+  mailer.sendEmailVerificationEmail(user.email, user.username, verifyUrl, user.language || 'en').catch((err) => {
     console.error('Failed to resend verification email:', err.message);
   });
   res.json({ success: true });
