@@ -24,7 +24,8 @@
     "submit": "Connexion",
     "submitting": "Connexion…",
     "noAccount": "Pas encore de compte ?",
-    "signUp": "S'inscrire"
+    "signUp": "S'inscrire",
+    "forgotPassword": "Forgot password?"
   },
   "register": {
     "title": "Créer un compte",
@@ -149,7 +150,17 @@
     "objectionBtn": "Envoyer une opposition par e-mail",
     "objectionContact": "Ou contactez l'opérateur directement à :",
     "objectionEmailSubject": "RGPD Art. 21 – Opposition au traitement des données",
-    "objectionEmailBody": "Bonjour,\n\nJe m'oppose par la présente au traitement de mes données personnelles sur la base d'un intérêt légitime conformément à l'Art. 21 du RGPD.\n\nNom d'utilisateur : {{username}}\n\nVeuillez confirmer cette opposition et m'informer des mesures prises.\n\nCordialement"
+    "objectionEmailBody": "Bonjour,\n\nJe m'oppose par la présente au traitement de mes données personnelles sur la base d'un intérêt légitime conformément à l'Art. 21 du RGPD.\n\nNom d'utilisateur : {{username}}\n\nVeuillez confirmer cette opposition et m'informer des mesures prises.\n\nCordialement",
+    "email": "Email address",
+    "emailDescription": "Your email address is used for email verification and password reset. It is never shared or displayed publicly.",
+    "emailSaved": "Email address saved. Please check your inbox to verify it.",
+    "emailCurrentPasswordConfirm": "Confirm with your current password",
+    "emailVerifiedBadge": "Verified",
+    "emailUnverifiedBadge": "Unverified – check your inbox",
+    "emailResend": "Resend verification email",
+    "emailResent": "Verification email resent",
+    "emailVerifiedSuccess": "Email address verified successfully!",
+    "emailVerifiedError": "The verification link is invalid or has expired. Please request a new one."
   },
   "fileView": {
     "copyUrl": "Copier l'URL",
@@ -329,7 +340,11 @@
     "action_admin_regen_key": "Régénération de clé (admin)",
     "action_admin_change_password": "Modification du mot de passe (admin)",
     "exportCsv": "Exporter CSV",
-    "exporting": "Exportation..."
+    "exporting": "Exportation...",
+    "action_forgot_password": "Forgot password",
+    "action_reset_password": "Reset password",
+    "action_verify_email": "Verify email",
+    "action_change_email": "Change email"
   },
   "adminImport": {
     "title": "Migrer depuis XBackBone",
@@ -500,5 +515,46 @@
     "s8Body": "Ces conditions sont régies par le droit du pays où l'opérateur est établi. Pour toute question, veuillez contacter :",
     "s8Contact": "Contact :",
     "version": "Sharely - Partage de fichiers open source - Conditions d'utilisation"
+  },
+  "forgotPassword": {
+    "title": "Reset your password",
+    "description": "Enter your username and we'll send a reset link to your registered email address.",
+    "username": "Username",
+    "submit": "Send reset link",
+    "submitting": "Sending…",
+    "backToLogin": "Back to login",
+    "sentTitle": "Check your email",
+    "sentDescription": "If an account with that username exists and has a verified email address on file, a reset link has been sent. The link is valid for 1 hour."
+  },
+  "resetPassword": {
+    "title": "Set new password",
+    "description": "Enter a new password for your account.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "submit": "Set new password",
+    "submitting": "Saving…",
+    "successTitle": "Password reset",
+    "successDescription": "Your password has been changed successfully.",
+    "backToLogin": "Back to login",
+    "invalidToken": "This reset link is invalid or has expired.",
+    "requestNew": "Request a new link",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 12 characters",
+    "checking": "Checking link…"
+  },
+  "requireEmailDialog": {
+    "title": "Email address required",
+    "description": "Password reset is enabled on this instance. Please add and verify your email address to continue.",
+    "emailLabel": "Email address",
+    "passwordLabel": "Confirm with your current password",
+    "submit": "Save & send verification email",
+    "submitting": "Saving…",
+    "waitingTitle": "Check your inbox",
+    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
+    "resend": "Resend verification email",
+    "resending": "Sending…",
+    "changeEmail": "Use a different email address",
+    "verifiedTitle": "Email verified!",
+    "verifiedDescription": "Your email address has been verified successfully."
   }
 }

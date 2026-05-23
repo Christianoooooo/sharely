@@ -20,6 +20,7 @@
     "mime-types": "^2.1.35",
     "mongoose": "^8.4.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.7",
     "sql.js": "^1.14.1"
   },
   "devDependencies": {

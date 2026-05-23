@@ -24,7 +24,8 @@
     "submit": "ログイン",
     "submitting": "ログイン中…",
     "noAccount": "アカウントをお持ちでないですか？",
-    "signUp": "登録する"
+    "signUp": "登録する",
+    "forgotPassword": "Forgot password?"
   },
   "register": {
     "title": "アカウントを作成",
@@ -149,7 +150,17 @@
     "objectionBtn": "メールで異議申し立てを送信",
     "objectionContact": "または運営者に直接連絡してください：",
     "objectionEmailSubject": "GDPR 第21条 – データ処理への異議申し立て",
-    "objectionEmailBody": "拝啓\n\nGDPR第21条に基づき、正当な利益に基づく私の個人データの処理に異議を申し立てます。\n\nユーザー名: {{username}}\n\nこの異議申し立てを確認し、講じた措置についてご連絡ください。\n\n敬具"
+    "objectionEmailBody": "拝啓\n\nGDPR第21条に基づき、正当な利益に基づく私の個人データの処理に異議を申し立てます。\n\nユーザー名: {{username}}\n\nこの異議申し立てを確認し、講じた措置についてご連絡ください。\n\n敬具",
+    "email": "Email address",
+    "emailDescription": "Your email address is used for email verification and password reset. It is never shared or displayed publicly.",
+    "emailSaved": "Email address saved. Please check your inbox to verify it.",
+    "emailCurrentPasswordConfirm": "Confirm with your current password",
+    "emailVerifiedBadge": "Verified",
+    "emailUnverifiedBadge": "Unverified – check your inbox",
+    "emailResend": "Resend verification email",
+    "emailResent": "Verification email resent",
+    "emailVerifiedSuccess": "Email address verified successfully!",
+    "emailVerifiedError": "The verification link is invalid or has expired. Please request a new one."
   },
   "fileView": {
     "copyUrl": "URLをコピー",
@@ -329,7 +340,11 @@
     "action_admin_regen_key": "キー再生成（管理者）",
     "action_admin_change_password": "パスワード変更（管理者）",
     "exportCsv": "CSVエクスポート",
-    "exporting": "エクスポート中..."
+    "exporting": "エクスポート中...",
+    "action_forgot_password": "Forgot password",
+    "action_reset_password": "Reset password",
+    "action_verify_email": "Verify email",
+    "action_change_email": "Change email"
   },
   "adminImport": {
     "title": "XBackBoneから移行",
@@ -500,5 +515,46 @@
     "s8Body": "これらの規約は、運営者が所在する国の法律に準拠します。ご質問は以下にお問い合わせください：",
     "s8Contact": "連絡先：",
     "version": "Sharely - オープンソースファイル共有 - 利用規約"
+  },
+  "forgotPassword": {
+    "title": "Reset your password",
+    "description": "Enter your username and we'll send a reset link to your registered email address.",
+    "username": "Username",
+    "submit": "Send reset link",
+    "submitting": "Sending…",
+    "backToLogin": "Back to login",
+    "sentTitle": "Check your email",
+    "sentDescription": "If an account with that username exists and has a verified email address on file, a reset link has been sent. The link is valid for 1 hour."
+  },
+  "resetPassword": {
+    "title": "Set new password",
+    "description": "Enter a new password for your account.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "submit": "Set new password",
+    "submitting": "Saving…",
+    "successTitle": "Password reset",
+    "successDescription": "Your password has been changed successfully.",
+    "backToLogin": "Back to login",
+    "invalidToken": "This reset link is invalid or has expired.",
+    "requestNew": "Request a new link",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 12 characters",
+    "checking": "Checking link…"
+  },
+  "requireEmailDialog": {
+    "title": "Email address required",
+    "description": "Password reset is enabled on this instance. Please add and verify your email address to continue.",
+    "emailLabel": "Email address",
+    "passwordLabel": "Confirm with your current password",
+    "submit": "Save & send verification email",
+    "submitting": "Saving…",
+    "waitingTitle": "Check your inbox",
+    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
+    "resend": "Resend verification email",
+    "resending": "Sending…",
+    "changeEmail": "Use a different email address",
+    "verifiedTitle": "Email verified!",
+    "verifiedDescription": "Your email address has been verified successfully."
   }
 }

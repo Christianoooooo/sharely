@@ -15,6 +15,7 @@ const sanitizeFilename = require('../utils/sanitizeFilename');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { logAudit } = require('../utils/audit');
 const AuditLog = require('../models/AuditLog');
+const mailer = require('../utils/mailer');
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -639,6 +640,66 @@ router.patch('/user/password', requireLogin, async (req, res) => {
   user.password = newPassword;
   await user.save();
   await logAudit(req, 'change_password');
+  res.json({ success: true });
+});
+
+// ── User: set email address ─────────────────────────────────────────────────
+router.patch('/user/email', requireLogin, async (req, res) => {
+  const { email, password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password required' });
+
+  const user = await User.findById(req.session.user.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+
+  const valid = await user.comparePassword(password);
+  if (!valid) return res.status(401).json({ error: 'Password is incorrect' });
+
+  const trimmed = (email || '').toLowerCase().trim();
+
+  if (trimmed) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) || trimmed.length > 254) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    const conflict = await User.findOne({ email: trimmed, _id: { $ne: user._id } });
+    if (conflict) return res.status(409).json({ error: 'Email already in use' });
+  }
+
+  const plaintext = crypto.randomBytes(32).toString('hex');
+  const hash = crypto.createHash('sha256').update(plaintext).digest('hex');
+
+  user.email = trimmed || null;
+  user.emailVerified = false;
+  user.emailVerificationToken = trimmed ? hash : null;
+  user.emailVerificationExpires = trimmed ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
+  await user.save();
+
+  if (trimmed) {
+    const verifyUrl = `${process.env.BASE_URL || ''}/api/auth/verify-email?token=${plaintext}`;
+    mailer.sendEmailVerificationEmail(trimmed, user.username, verifyUrl).catch((err) => {
+      console.error('Failed to send verification email:', err.message);
+    });
+  }
+
+  await logAudit(req, 'change_email');
+  res.json({ success: true });
+});
+
+// ── User: resend verification email ────────────────────────────────────────
+router.post('/user/resend-verification', requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.user.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  if (!user.email || user.emailVerified) return res.status(400).json({ error: 'No unverified email' });
+
+  const plaintext = crypto.randomBytes(32).toString('hex');
+  const hash = crypto.createHash('sha256').update(plaintext).digest('hex');
+  user.emailVerificationToken = hash;
+  user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await user.save();
+
+  const verifyUrl = `${process.env.BASE_URL || ''}/api/auth/verify-email?token=${plaintext}`;
+  mailer.sendEmailVerificationEmail(user.email, user.username, verifyUrl).catch((err) => {
+    console.error('Failed to resend verification email:', err.message);
+  });
   res.json({ success: true });
 });
 

@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { rateLimit } = require('express-rate-limit');
 const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
+const mailer = require('../utils/mailer');
 
 // env var takes precedence; falls back to SiteSettings.allowRegistration
 async function allowRegistration() {
@@ -21,10 +23,18 @@ const authLimiter = rateLimit({
   message: { error: 'Too many attempts, please try again later.' },
 });
 
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password reset attempts, please try again later.' },
+});
+
 // GET /api/auth/me
 router.get('/me', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
-  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt embedMode');
+  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt embedMode email emailVerified');
   if (!dbUser) return res.status(401).json({ error: 'Not authenticated' });
   res.json({
     user: {
@@ -33,6 +43,8 @@ router.get('/me', async (req, res) => {
       role: dbUser.role,
       avatarUrl: dbUser.avatarExt ? `/api/user/avatar/${dbUser._id}` : null,
       embedMode: dbUser.embedMode || 'embed',
+      email: dbUser.email || null,
+      emailVerified: dbUser.emailVerified || false,
     },
   });
 });
@@ -104,6 +116,98 @@ router.post('/register', authLimiter, async (req, res) => {
 router.post('/logout', async (req, res) => {
   await logAudit(req, 'logout');
   req.session.destroy(() => res.json({ success: true }));
+});
+
+// GET /api/auth/smtp-enabled — public flag, no secrets exposed
+router.get('/smtp-enabled', (_req, res) => {
+  res.json({ enabled: mailer.isConfigured() });
+});
+
+// GET /api/auth/verify-email?token=<hex>
+router.get('/verify-email', authLimiter, async (req, res) => {
+  const { token } = req.query;
+  if (!token || typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
+    return res.redirect(`${process.env.BASE_URL || ''}/settings?emailVerified=error`);
+  }
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    emailVerificationToken: hash,
+    emailVerificationExpires: { $gt: Date.now() },
+  });
+  if (!user) {
+    return res.redirect(`${process.env.BASE_URL || ''}/settings?emailVerified=error`);
+  }
+  user.emailVerified = true;
+  user.emailVerificationToken = null;
+  user.emailVerificationExpires = null;
+  await user.save();
+  await logAudit(req, 'verify_email', { username: user.username });
+  res.redirect(`${process.env.BASE_URL || ''}/settings?emailVerified=success`);
+});
+
+// GET /api/auth/verify-reset-token?token=<hex>
+router.get('/verify-reset-token', authLimiter, async (req, res) => {
+  const { token } = req.query;
+  if (!token || typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
+    return res.json({ valid: false });
+  }
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    passwordResetToken: hash,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+  res.json({ valid: Boolean(user) });
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
+  const { username } = req.body;
+  if (!username || typeof username !== 'string') {
+    return res.json({ success: true });
+  }
+  try {
+    const user = await User.findOne({ username: username.trim() });
+    if (user && user.isActive && user.email && user.emailVerified) {
+      const plaintext = crypto.randomBytes(32).toString('hex');
+      const hash = crypto.createHash('sha256').update(plaintext).digest('hex');
+      user.passwordResetToken = hash;
+      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+      await user.save();
+      const resetUrl = `${process.env.BASE_URL || ''}/auth/reset-password?token=${plaintext}`;
+      mailer.sendPasswordResetEmail(user.email, user.username, resetUrl).catch((err) => {
+        console.error('Failed to send password reset email:', err.message);
+      });
+      await logAudit(req, 'forgot_password', { username: user.username });
+    }
+  } catch (err) {
+    console.error('forgot-password error:', err.message);
+  }
+  res.json({ success: true });
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
+    return res.status(400).json({ error: 'Invalid or expired reset token' });
+  }
+  if (!newPassword || newPassword.length < 12) {
+    return res.status(400).json({ error: 'Password must be at least 12 characters' });
+  }
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    passwordResetToken: hash,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+  if (!user) {
+    return res.status(400).json({ error: 'Invalid or expired reset token' });
+  }
+  user.password = newPassword;
+  user.passwordResetToken = null;
+  user.passwordResetExpires = null;
+  await user.save();
+  await logAudit(req, 'reset_password', { username: user.username });
+  res.json({ success: true });
 });
 
 module.exports = router;

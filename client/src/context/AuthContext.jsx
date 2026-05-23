@@ -6,15 +6,18 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [installed, setInstalled] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [smtpEnabled, setSmtpEnabled] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/auth/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/install/status').then((r) => r.json()).catch(() => ({ installed: true })),
+      fetch('/api/auth/smtp-enabled').then((r) => r.json()).catch(() => ({ enabled: false })),
     ])
-      .then(([authData, installData]) => {
+      .then(([authData, installData, smtpData]) => {
         setUser(authData?.user ?? null);
         setInstalled(installData?.installed ?? true);
+        setSmtpEnabled(smtpData?.enabled ?? false);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -62,7 +65,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, installed, login, register, logout, refreshUser, completeInstall }}>
+    <AuthContext.Provider value={{ user, loading, installed, smtpEnabled, login, register, logout, refreshUser, completeInstall }}>
       {children}
     </AuthContext.Provider>
   );
