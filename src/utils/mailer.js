@@ -1,16 +1,5 @@
 const nodemailer = require('nodemailer');
 
-// Cloud icon SVG (favicon.svg) as data URI for email logo
-const LOGO_DATA_URI =
-  'data:image/svg+xml,' +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">' +
-    '<path fill="#3c83f6" d="M32 400C32 479.5 96.5 544 176 544L480 544C550.7 544 608 486.7 608 416' +
-    'C608 364.4 577.5 319.9 533.5 299.7C540.2 286.6 544 271.7 544 256C544 203 501 160 448 160' +
-    'C430.3 160 413.8 164.8 399.6 173.1C375.5 127.3 327.4 96 272 96C192.5 96 128 160.5 128 240' +
-    'C128 248 128.7 255.9 129.9 263.5C73 282.7 32 336.6 32 400z"/></svg>',
-  );
-
 function isConfigured() {
   return Boolean(process.env.SMTP_HOST);
 }
@@ -33,6 +22,7 @@ function fromAddress(siteName) {
 }
 
 function buildHtml({ siteName, baseUrl, preheader, title, body, ctaLabel, ctaUrl, footerNote }) {
+  const logoUrl = `${baseUrl}/favicon.svg`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,8 +33,7 @@ function buildHtml({ siteName, baseUrl, preheader, title, body, ctaLabel, ctaUrl
 <title>${siteName}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#060a12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-<!-- preheader (hidden preview text) -->
-<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#060a12;">${preheader}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#060a12;">${preheader}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#060a12;">
   <tr>
@@ -54,8 +43,8 @@ function buildHtml({ siteName, baseUrl, preheader, title, body, ctaLabel, ctaUrl
         <!-- Logo + brand name -->
         <tr>
           <td align="center" style="padding-bottom:36px;">
-            <a href="${baseUrl}" style="text-decoration:none;display:inline-flex;align-items:center;gap:10px;">
-              <img src="${LOGO_DATA_URI}" width="28" height="28" alt="" style="display:inline-block;vertical-align:middle;">
+            <a href="${baseUrl}" style="text-decoration:none;display:inline-block;">
+              <img src="${logoUrl}" width="28" height="28" alt="${siteName}" style="display:inline-block;vertical-align:middle;margin-right:10px;">
               <span style="font-size:14px;font-weight:700;letter-spacing:0.18em;color:#3c83f6;text-transform:uppercase;vertical-align:middle;">${siteName}</span>
             </a>
           </td>
@@ -65,32 +54,25 @@ function buildHtml({ siteName, baseUrl, preheader, title, body, ctaLabel, ctaUrl
         <tr>
           <td style="background-color:#0d1525;border-radius:12px;border:1px solid #1a2332;padding:40px 40px 36px;">
 
-            <!-- Title -->
             <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#f0f4f8;line-height:1.3;">${title}</h1>
 
-            <!-- Body -->
             <div style="font-size:15px;color:#8a9bb0;line-height:1.7;margin-bottom:32px;">${body}</div>
 
             ${ctaLabel && ctaUrl ? `
-            <!-- CTA Button -->
-            <table cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:32px;">
+            <table cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
               <tr>
                 <td style="border-radius:8px;background-color:#3c83f6;">
-                  <a href="${ctaUrl}"
-                     style="display:inline-block;padding:13px 28px;background-color:#3c83f6;color:#060a12;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.02em;"
-                  >${ctaLabel}</a>
+                  <a href="${ctaUrl}" style="display:inline-block;padding:13px 28px;background-color:#3c83f6;color:#060a12;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.02em;">${ctaLabel}</a>
                 </td>
               </tr>
             </table>
 
-            <!-- Fallback link -->
             <p style="margin:0 0 32px;font-size:13px;color:#6b7a8a;line-height:1.6;">
               If the button doesn't work, copy and paste this link:<br>
               <a href="${ctaUrl}" style="color:#3c83f6;word-break:break-all;">${ctaUrl}</a>
             </p>
             ` : ''}
 
-            <!-- Divider -->
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
               <tr><td style="border-top:1px solid #1a2332;padding-top:28px;">
                 <p style="margin:0;font-size:13px;color:#4d6070;line-height:1.6;">${footerNote}</p>
