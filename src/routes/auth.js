@@ -71,6 +71,8 @@ router.post('/login', authLimiter, async (req, res) => {
       username: user.username,
       role: user.role,
       avatarUrl: user.avatarExt ? `/api/user/avatar/${user._id}` : null,
+      email: user.email || null,
+      emailVerified: user.emailVerified || false,
     },
   });
 });
