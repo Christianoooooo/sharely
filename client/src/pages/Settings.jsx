@@ -404,7 +404,7 @@ export default function Settings() {
           <form onSubmit={handleUsernameSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>{t('settings.currentUsername')}</Label>
-              <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{user?.username}</p>
+              <Input value={user?.username ?? ''} readOnly className="cursor-default" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="newUsername">{t('settings.newUsername')}</Label>
