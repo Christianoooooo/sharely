@@ -1,5 +1,16 @@
 const nodemailer = require('nodemailer');
 
+// Cloud icon SVG (favicon.svg) as data URI for email logo
+const LOGO_DATA_URI =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">' +
+    '<path fill="#3c83f6" d="M32 400C32 479.5 96.5 544 176 544L480 544C550.7 544 608 486.7 608 416' +
+    'C608 364.4 577.5 319.9 533.5 299.7C540.2 286.6 544 271.7 544 256C544 203 501 160 448 160' +
+    'C430.3 160 413.8 164.8 399.6 173.1C375.5 127.3 327.4 96 272 96C192.5 96 128 160.5 128 240' +
+    'C128 248 128.7 255.9 129.9 263.5C73 282.7 32 336.6 32 400z"/></svg>',
+  );
+
 function isConfigured() {
   return Boolean(process.env.SMTP_HOST);
 }
@@ -16,65 +27,170 @@ function createTransport() {
   });
 }
 
-function fromAddress() {
-  const siteName = process.env.SITE_NAME || 'Sharely';
+function fromAddress(siteName) {
   const addr = process.env.SMTP_FROM || process.env.SMTP_USER || '';
   return `"${siteName}" <${addr}>`;
+}
+
+function buildHtml({ siteName, baseUrl, preheader, title, body, ctaLabel, ctaUrl, footerNote }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>${siteName}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#060a12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<!-- preheader (hidden preview text) -->
+<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#060a12;">${preheader}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#060a12;">
+  <tr>
+    <td align="center" style="padding:48px 16px 40px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;">
+
+        <!-- Logo + brand name -->
+        <tr>
+          <td align="center" style="padding-bottom:36px;">
+            <a href="${baseUrl}" style="text-decoration:none;display:inline-flex;align-items:center;gap:10px;">
+              <img src="${LOGO_DATA_URI}" width="28" height="28" alt="" style="display:inline-block;vertical-align:middle;">
+              <span style="font-size:14px;font-weight:700;letter-spacing:0.18em;color:#3c83f6;text-transform:uppercase;vertical-align:middle;">${siteName}</span>
+            </a>
+          </td>
+        </tr>
+
+        <!-- Card -->
+        <tr>
+          <td style="background-color:#0d1525;border-radius:12px;border:1px solid #1a2332;padding:40px 40px 36px;">
+
+            <!-- Title -->
+            <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#f0f4f8;line-height:1.3;">${title}</h1>
+
+            <!-- Body -->
+            <div style="font-size:15px;color:#8a9bb0;line-height:1.7;margin-bottom:32px;">${body}</div>
+
+            ${ctaLabel && ctaUrl ? `
+            <!-- CTA Button -->
+            <table cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:32px;">
+              <tr>
+                <td style="border-radius:8px;background-color:#3c83f6;">
+                  <a href="${ctaUrl}"
+                     style="display:inline-block;padding:13px 28px;background-color:#3c83f6;color:#060a12;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.02em;"
+                  >${ctaLabel}</a>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Fallback link -->
+            <p style="margin:0 0 32px;font-size:13px;color:#6b7a8a;line-height:1.6;">
+              If the button doesn't work, copy and paste this link:<br>
+              <a href="${ctaUrl}" style="color:#3c83f6;word-break:break-all;">${ctaUrl}</a>
+            </p>
+            ` : ''}
+
+            <!-- Divider -->
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr><td style="border-top:1px solid #1a2332;padding-top:28px;">
+                <p style="margin:0;font-size:13px;color:#4d6070;line-height:1.6;">${footerNote}</p>
+              </td></tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- Bottom footer -->
+        <tr>
+          <td align="center" style="padding-top:28px;">
+            <p style="margin:0;font-size:12px;color:#2d3f52;">
+              Sent by <span style="color:#3c83f6;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">${siteName}</span>
+              &nbsp;·&nbsp;
+              <a href="${baseUrl}" style="color:#2d3f52;text-decoration:underline;">${baseUrl}</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
+
+function buildText({ siteName, baseUrl, preheader, title, body, ctaLabel, ctaUrl, footerNote }) {
+  const lines = [
+    `[ ${siteName.toUpperCase()} ]`,
+    '',
+    title,
+    '—'.repeat(40),
+    '',
+    body.replace(/<[^>]+>/g, ''),
+    '',
+  ];
+  if (ctaLabel && ctaUrl) {
+    lines.push(`${ctaLabel}:`);
+    lines.push(ctaUrl);
+    lines.push('');
+  }
+  lines.push(footerNote.replace(/<[^>]+>/g, ''));
+  lines.push('');
+  lines.push(`— ${siteName} · ${baseUrl}`);
+  return lines.join('\n');
 }
 
 async function sendPasswordResetEmail(to, username, resetUrl) {
   if (!isConfigured()) throw new Error('SMTP not configured');
   const siteName = process.env.SITE_NAME || 'Sharely';
-  const transporter = createTransport();
-  await transporter.sendMail({
-    from: fromAddress(),
+  const baseUrl = process.env.BASE_URL || '';
+
+  const params = {
+    siteName,
+    baseUrl,
+    preheader: `Reset your ${siteName} password — link valid for 1 hour.`,
+    title: 'Reset your password',
+    body: `Hi <strong style="color:#f0f4f8;">${username}</strong>,<br><br>
+We received a request to reset the password for your ${siteName} account.<br>
+Click the button below to choose a new password. This link is valid for <strong style="color:#f0f4f8;">1 hour</strong> and can only be used once.`,
+    ctaLabel: 'Reset password',
+    ctaUrl: resetUrl,
+    footerNote: `If you didn't request a password reset, you can safely ignore this email — your password will remain unchanged.`,
+  };
+
+  await createTransport().sendMail({
+    from: fromAddress(siteName),
     to,
     subject: `Reset your ${siteName} password`,
-    text: [
-      `Hi ${username},`,
-      '',
-      `You requested a password reset for your ${siteName} account.`,
-      `Click the link below to set a new password. This link is valid for 1 hour and can only be used once.`,
-      '',
-      resetUrl,
-      '',
-      `If you did not request this, you can safely ignore this email.`,
-      '',
-      `— ${siteName}`,
-    ].join('\n'),
-    html: `<p>Hi <strong>${username}</strong>,</p>
-<p>You requested a password reset for your <strong>${siteName}</strong> account.</p>
-<p><a href="${resetUrl}" style="display:inline-block;padding:10px 20px;background:#000;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Reset my password</a></p>
-<p style="color:#666;font-size:13px;">This link is valid for <strong>1 hour</strong> and can only be used once.<br>If you did not request this, you can safely ignore this email.</p>
-<p style="color:#999;font-size:12px;">— ${siteName}</p>`,
+    text: buildText(params),
+    html: buildHtml(params),
   });
 }
 
 async function sendEmailVerificationEmail(to, username, verifyUrl) {
   if (!isConfigured()) throw new Error('SMTP not configured');
   const siteName = process.env.SITE_NAME || 'Sharely';
-  const transporter = createTransport();
-  await transporter.sendMail({
-    from: fromAddress(),
+  const baseUrl = process.env.BASE_URL || '';
+
+  const params = {
+    siteName,
+    baseUrl,
+    preheader: `Verify your email address for ${siteName}.`,
+    title: 'Verify your email address',
+    body: `Hi <strong style="color:#f0f4f8;">${username}</strong>,<br><br>
+Please verify your email address to finish setting up your ${siteName} account.<br>
+Click the button below to confirm. This link is valid for <strong style="color:#f0f4f8;">24 hours</strong>.`,
+    ctaLabel: 'Verify email address',
+    ctaUrl: verifyUrl,
+    footerNote: `If you didn't create an account on ${siteName}, you can safely ignore this email.`,
+  };
+
+  await createTransport().sendMail({
+    from: fromAddress(siteName),
     to,
     subject: `Verify your ${siteName} email address`,
-    text: [
-      `Hi ${username},`,
-      '',
-      `Please verify your email address for your ${siteName} account by clicking the link below.`,
-      `This link is valid for 24 hours.`,
-      '',
-      verifyUrl,
-      '',
-      `If you did not request this, you can safely ignore this email.`,
-      '',
-      `— ${siteName}`,
-    ].join('\n'),
-    html: `<p>Hi <strong>${username}</strong>,</p>
-<p>Please verify your email address for your <strong>${siteName}</strong> account.</p>
-<p><a href="${verifyUrl}" style="display:inline-block;padding:10px 20px;background:#000;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Verify email address</a></p>
-<p style="color:#666;font-size:13px;">This link is valid for <strong>24 hours</strong>.<br>If you did not request this, you can safely ignore this email.</p>
-<p style="color:#999;font-size:12px;">— ${siteName}</p>`,
+    text: buildText(params),
+    html: buildHtml(params),
   });
 }
 
