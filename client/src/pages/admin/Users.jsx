@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRotate, faTrash, faUserPlus, faPowerOff, faPencil, faCheck, faXmark, faKey } from '@fortawesome/free-solid-svg-icons';
+import { faRotate, faTrash, faUserPlus, faPowerOff, faPencil, faCheck, faXmark, faKey, faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 
@@ -226,6 +226,7 @@ export default function AdminUsers() {
                 <TableHead>{t('adminUsers.colRole')}</TableHead>
                 <TableHead>{t('adminUsers.colFiles')}</TableHead>
                 <TableHead>{t('adminUsers.colStorage')}</TableHead>
+                <TableHead>{t('adminUsers.colEmail')}</TableHead>
                 <TableHead>{t('adminUsers.colStatus')}</TableHead>
                 <TableHead>{t('adminUsers.colCreated')}</TableHead>
                 <TableHead>{t('adminUsers.colApiKey')}</TableHead>
@@ -308,6 +309,26 @@ export default function AdminUsers() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{u.fileCount}</TableCell>
                   <TableCell className="text-muted-foreground">{fmtSize(u.storageUsed)}</TableCell>
+                  <TableCell>
+                    {u.email ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-mono">{u.email}</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <FontAwesomeIcon
+                              icon={u.emailVerified ? faCircleCheck : faCircleExclamation}
+                              className={`h-3.5 w-3.5 shrink-0 ${u.emailVerified ? 'text-green-500' : 'text-amber-500'}`}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {u.emailVerified ? t('adminUsers.emailVerified') : t('adminUsers.emailUnverified')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={u.isActive ? 'outline' : 'destructive'} className={u.isActive ? 'border-green-500/50 text-green-400' : ''}>
                       {u.isActive ? t('adminUsers.statusActive') : t('adminUsers.statusInactive')}
