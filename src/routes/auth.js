@@ -34,7 +34,7 @@ const passwordResetLimiter = rateLimit({
 // GET /api/auth/me
 router.get('/me', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
-  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt embedMode email emailVerified');
+  const dbUser = await User.findById(req.session.user.id).select('username role avatarExt embedMode email emailVerified language');
   if (!dbUser) return res.status(401).json({ error: 'Not authenticated' });
   res.json({
     user: {
@@ -45,6 +45,7 @@ router.get('/me', async (req, res) => {
       embedMode: dbUser.embedMode || 'embed',
       email: dbUser.email || null,
       emailVerified: dbUser.emailVerified || false,
+      language: dbUser.language || 'en',
     },
   });
 });
@@ -73,6 +74,7 @@ router.post('/login', authLimiter, async (req, res) => {
       avatarUrl: user.avatarExt ? `/api/user/avatar/${user._id}` : null,
       email: user.email || null,
       emailVerified: user.emailVerified || false,
+      language: user.language || 'en',
     },
   });
 });
@@ -127,13 +129,13 @@ router.post('/register', authLimiter, async (req, res) => {
     userData.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const user = await User.create(userData);
     const verifyUrl = `${process.env.BASE_URL || ''}/api/auth/verify-email?token=${plaintext}`;
-    mailer.sendEmailVerificationEmail(trimmedEmail, username, verifyUrl).catch((err) => {
+    mailer.sendEmailVerificationEmail(trimmedEmail, username, verifyUrl, user.language || 'en').catch((err) => {
       console.error('Failed to send verification email on register:', err.message);
     });
     req.session.user = { id: user._id, username: user.username, role: user.role };
     await logAudit(req, 'register');
     return res.status(201).json({
-      user: { id: user._id, username: user.username, role: user.role, avatarUrl: null, email: user.email, emailVerified: false },
+      user: { id: user._id, username: user.username, role: user.role, avatarUrl: null, email: user.email, emailVerified: false, language: user.language || 'en' },
     });
   }
 
@@ -141,7 +143,7 @@ router.post('/register', authLimiter, async (req, res) => {
   req.session.user = { id: user._id, username: user.username, role: user.role };
   await logAudit(req, 'register');
   res.status(201).json({
-    user: { id: user._id, username: user.username, role: user.role, avatarUrl: null },
+    user: { id: user._id, username: user.username, role: user.role, avatarUrl: null, language: user.language || 'en' },
   });
 });
 
@@ -207,7 +209,7 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
       user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
       await user.save();
       const resetUrl = `${process.env.BASE_URL || ''}/auth/reset-password?token=${plaintext}`;
-      mailer.sendPasswordResetEmail(user.email, user.username, resetUrl).catch((err) => {
+      mailer.sendPasswordResetEmail(user.email, user.username, resetUrl, user.language || 'en').catch((err) => {
         console.error('Failed to send password reset email:', err.message);
       });
       await logAudit(req, 'forgot_password', { username: user.username });

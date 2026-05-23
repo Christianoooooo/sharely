@@ -24,6 +24,14 @@ export function RequireEmailDialog() {
 
   const needsEmail = smtpEnabled && user && (!user.email || !user.emailVerified);
 
+  // If the user already has an unverified email (e.g. just registered), skip
+  // straight to the waiting-for-verification step instead of showing the form.
+  useEffect(() => {
+    if (user?.email && !user?.emailVerified && step === 'form') {
+      setStep('waiting');
+    }
+  }, [user?.email, user?.emailVerified]);
+
   const checkVerified = useCallback(async () => {
     await refreshUser();
   }, [refreshUser]);
@@ -37,7 +45,6 @@ export function RequireEmailDialog() {
   useEffect(() => {
     if (step === 'waiting' && user?.emailVerified) {
       setStep('verified');
-      setTimeout(() => {}, 2000);
     }
   }, [user?.emailVerified, step]);
 

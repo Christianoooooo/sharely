@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import i18n from '@/i18n';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +17,7 @@ export function AuthProvider({ children }) {
     ])
       .then(([authData, installData, smtpData]) => {
         setUser(authData?.user ?? null);
+        if (authData?.user?.language) i18n.changeLanguage(authData.user.language);
         setInstalled(installData?.installed ?? true);
         setSmtpEnabled(smtpData?.enabled ?? false);
       })
@@ -31,6 +33,7 @@ export function AuthProvider({ children }) {
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Login failed');
     setUser(data.user);
+    if (data.user?.language) i18n.changeLanguage(data.user.language);
     return data.user;
   }
 
@@ -43,6 +46,7 @@ export function AuthProvider({ children }) {
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Registration failed');
     setUser(data.user);
+    if (data.user?.language) i18n.changeLanguage(data.user.language);
     return data.user;
   }
 
