@@ -273,8 +273,12 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-md space-y-6">
+    <div className="space-y-6 max-w-4xl">
       <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* ── Left column ── */}
+      <div className="space-y-6">
 
       {/* Profile Picture */}
       <Card>
@@ -330,65 +334,6 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">{t('settings.pictureHint')}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Language */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FontAwesomeIcon icon={faGlobe} className="h-4 w-4" />{t('settings.language')}
-          </CardTitle>
-          <CardDescription>{t('settings.languageDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select
-            value={i18n.resolvedLanguage}
-            onValueChange={(val) => {
-              i18n.changeLanguage(val);
-              if (user) {
-                fetch('/api/user/language', {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ language: val }),
-                }).catch(() => {});
-              }
-            }}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* Embed Mode */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FontAwesomeIcon icon={faShareNodes} className="h-4 w-4" />{t('settings.embedMode')}
-          </CardTitle>
-          <CardDescription>{t('settings.embedModeDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select
-            value={embedMode}
-            onValueChange={handleEmbedModeChange}
-            disabled={savingEmbed}
-          >
-            <SelectTrigger className="w-64">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="embed">{t('settings.embedModeEmbed')}</SelectItem>
-              <SelectItem value="raw">{t('settings.embedModeRaw')}</SelectItem>
-            </SelectContent>
-          </Select>
         </CardContent>
       </Card>
 
@@ -507,6 +452,69 @@ export default function Settings() {
           </CardContent>
         </Card>
       )}
+
+      </div>{/* end left column */}
+      {/* ── Right column ── */}
+      <div className="space-y-6">
+
+      {/* Language */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faGlobe} className="h-4 w-4" />{t('settings.language')}
+          </CardTitle>
+          <CardDescription>{t('settings.languageDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={i18n.resolvedLanguage}
+            onValueChange={(val) => {
+              i18n.changeLanguage(val);
+              if (user) {
+                fetch('/api/user/language', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ language: val }),
+                }).catch(() => {});
+              }
+            }}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Embed Mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faShareNodes} className="h-4 w-4" />{t('settings.embedMode')}
+          </CardTitle>
+          <CardDescription>{t('settings.embedModeDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={embedMode}
+            onValueChange={handleEmbedModeChange}
+            disabled={savingEmbed}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="embed">{t('settings.embedModeEmbed')}</SelectItem>
+              <SelectItem value="raw">{t('settings.embedModeRaw')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {/* Change Password */}
       <Card>
@@ -653,6 +661,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      </div>{/* end right column */}
+      </div>{/* end grid */}
     </div>
   );
 }
