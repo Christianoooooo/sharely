@@ -80,7 +80,7 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!await allowRegistration()) {
     return res.status(403).json({ error: 'Registration is disabled' });
   }
-  const { username, password, confirmPassword } = req.body;
+  const { username, password, confirmPassword, email } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
@@ -93,22 +93,53 @@ router.post('/register', authLimiter, async (req, res) => {
   if (password.length < 12) {
     return res.status(400).json({ error: 'Password must be at least 12 characters' });
   }
+
+  const trimmedEmail = (email || '').toLowerCase().trim();
+  if (mailer.isConfigured()) {
+    if (!trimmedEmail) {
+      return res.status(400).json({ error: 'Email address required' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail) || trimmedEmail.length > 254) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    const emailExists = await User.findOne({ email: trimmedEmail });
+    if (emailExists) {
+      return res.status(409).json({ error: 'Email already in use' });
+    }
+  }
+
   const exists = await User.findOne({ username });
   if (exists) {
     return res.status(409).json({ error: 'Username already taken' });
   }
   const count = await User.countDocuments();
   const role = count === 0 ? 'admin' : 'user';
-  const user = await User.create({ username, password, role });
+
+  const userData = { username, password, role };
+  if (trimmedEmail) {
+    const plaintext = crypto.randomBytes(32).toString('hex');
+    const hash = crypto.createHash('sha256').update(plaintext).digest('hex');
+    userData.email = trimmedEmail;
+    userData.emailVerified = false;
+    userData.emailVerificationToken = hash;
+    userData.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const user = await User.create(userData);
+    const verifyUrl = `${process.env.BASE_URL || ''}/api/auth/verify-email?token=${plaintext}`;
+    mailer.sendEmailVerificationEmail(trimmedEmail, username, verifyUrl).catch((err) => {
+      console.error('Failed to send verification email on register:', err.message);
+    });
+    req.session.user = { id: user._id, username: user.username, role: user.role };
+    await logAudit(req, 'register');
+    return res.status(201).json({
+      user: { id: user._id, username: user.username, role: user.role, avatarUrl: null, email: user.email, emailVerified: false },
+    });
+  }
+
+  const user = await User.create(userData);
   req.session.user = { id: user._id, username: user.username, role: user.role };
   await logAudit(req, 'register');
   res.status(201).json({
-    user: {
-      id: user._id,
-      username: user.username,
-      role: user.role,
-      avatarUrl: null,
-    },
+    user: { id: user._id, username: user.username, role: user.role, avatarUrl: null },
   });
 });
 

@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from '@/components/LanguageSelector';
 
 function SignupForm({ className, ...props }) {
-  const { register } = useAuth();
+  const { register, smtpEnabled } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ function SignupForm({ className, ...props }) {
     setLoading(true);
     const fd = new FormData(e.target);
     try {
-      await register(fd.get('username'), fd.get('password'), fd.get('confirmPassword'));
+      await register(fd.get('username'), fd.get('password'), fd.get('confirmPassword'), fd.get('email') || '');
       navigate('/gallery');
     } catch (err) {
       setError(err.message);
@@ -62,6 +62,19 @@ function SignupForm({ className, ...props }) {
                 autoFocus
               />
             </div>
+            {smtpEnabled && (
+              <div className="grid gap-2">
+                <Label htmlFor="email">{t('register.email')}</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                />
+                <p className="text-sm text-muted-foreground">{t('register.emailHint')}</p>
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="password">{t('register.password')}</Label>
               <Input

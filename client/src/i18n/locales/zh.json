@@ -45,7 +45,9 @@
     "acceptPrivacySuffix": "，并同意处理我的个人数据。",
     "ageConfirm": "我确认我已年满16岁。",
     "acceptPrivacyAnd": "及",
-    "termsLink": "服务条款"
+    "termsLink": "服务条款",
+    "email": "Email address",
+    "emailHint": "Used for email verification and password reset."
   },
   "gallery": {
     "title": "图库",
