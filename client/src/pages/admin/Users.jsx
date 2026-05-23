@@ -312,7 +312,7 @@ export default function AdminUsers() {
                   <TableCell>
                     {u.email ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-mono">{u.email}</span>
+                        <span className="text-xs font-mono blur-sm hover:blur-none transition-[filter] duration-200 cursor-default select-none">{u.email}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <FontAwesomeIcon
