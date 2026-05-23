@@ -97,6 +97,10 @@
     "folderDropHint": "Las carpetas se pueden añadir arrastrando y soltando"
   },
   "settings": {
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "title": "Configuración",
     "profilePicture": "Foto de perfil",
     "profilePictureDescription": "Visible en la barra de navegación",

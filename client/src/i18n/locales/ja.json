@@ -97,6 +97,10 @@
     "folderDropHint": "フォルダはドラッグ＆ドロップで追加できます"
   },
   "settings": {
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "title": "設定",
     "profilePicture": "プロフィール画像",
     "profilePictureDescription": "ナビゲーションバーに表示されます",

@@ -97,6 +97,10 @@
     "folderDropHint": "文件夹可以通过拖放添加"
   },
   "settings": {
+    "tabProfile": "Profile",
+    "tabPreferences": "Preferences",
+    "tabSecurity": "Security",
+    "tabPrivacy": "Privacy",
     "title": "设置",
     "profilePicture": "头像",
     "profilePictureDescription": "显示在导航栏中",

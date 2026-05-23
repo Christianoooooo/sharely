@@ -124,6 +124,10 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "tabProfile": "Profil",
+    "tabPreferences": "Einstellungen",
+    "tabSecurity": "Sicherheit",
+    "tabPrivacy": "Datenschutz",
     "profilePicture": "Profilbild",
     "profilePictureDescription": "Sichtbar in der Navigationsleiste",
     "uploadPicture": "Bild hochladen",
