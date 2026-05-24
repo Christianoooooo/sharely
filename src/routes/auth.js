@@ -6,6 +6,7 @@ const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
 const mailer = require('../utils/mailer');
+const { broadcast } = require('../ws');
 
 // env var takes precedence; falls back to SiteSettings.allowRegistration
 async function allowRegistration() {
@@ -134,6 +135,7 @@ router.post('/register', authLimiter, async (req, res) => {
     });
     req.session.user = { id: user._id, username: user.username, role: user.role };
     await logAudit(req, 'register');
+    broadcast('stats:invalidate', {}, (c) => c.isAdmin);
     return res.status(201).json({
       user: { id: user._id, username: user.username, role: user.role, avatarUrl: null, email: user.email, emailVerified: false, language: user.language || 'en' },
     });
@@ -142,6 +144,7 @@ router.post('/register', authLimiter, async (req, res) => {
   const user = await User.create(userData);
   req.session.user = { id: user._id, username: user.username, role: user.role };
   await logAudit(req, 'register');
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.status(201).json({
     user: { id: user._id, username: user.username, role: user.role, avatarUrl: null, language: user.language || 'en' },
   });

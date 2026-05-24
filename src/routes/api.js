@@ -191,6 +191,7 @@ router.get('/file/:shortId', async (req, res) => {
 
   file.views += 1;
   await file.save();
+  broadcast('file:view', { shortId: req.params.shortId, views: file.views }, () => true);
 
   const obj = file.toObject();
   if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
@@ -349,7 +350,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
   if (typeof sessionDurationDays === 'number' && sessionDurationDays >= 1) s.sessionDurationDays = Math.floor(sessionDurationDays);
   await s.save();
-  res.json({
+  const settingsPayload = {
     operatorName: s.operatorName,
     operatorAddress: s.operatorAddress,
     operatorEmail: s.operatorEmail,
@@ -357,7 +358,9 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays,
-  });
+  };
+  broadcast('settings:updated', settingsPayload, (c) => c.isAdmin);
+  res.json(settingsPayload);
 });
 
 // ── Admin: stats ────────────────────────────────────────────────────────────
@@ -420,6 +423,8 @@ router.post('/admin/users', requireAdmin, async (req, res) => {
   if (exists) return res.status(409).json({ error: 'Username already taken' });
   const user = await User.create({ username, password, role: role === 'admin' ? 'admin' : 'user' });
   await logAudit(req, 'admin_create_user', { targetUsername: username, role: user.role });
+  broadcast('user:created', { id: user._id.toString(), username: user.username, role: user.role }, (c) => c.isAdmin);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.status(201).json({ user: { id: user._id, username: user.username, role: user.role } });
 });
 
@@ -432,6 +437,7 @@ router.patch('/admin/users/:id/toggle', requireAdmin, async (req, res) => {
   user.isActive = !user.isActive;
   await user.save();
   await logAudit(req, 'admin_toggle_user', { targetUsername: user.username, isActive: user.isActive });
+  broadcast('user:updated', { id: user._id.toString(), isActive: user.isActive }, (c) => c.isAdmin);
   res.json({ isActive: user.isActive });
 });
 
@@ -448,6 +454,7 @@ router.patch('/admin/users/:id/role', requireAdmin, async (req, res) => {
   user.role = role;
   await user.save();
   await logAudit(req, 'admin_change_role', { targetUsername: user.username, role });
+  broadcast('user:updated', { id: user._id.toString(), role: user.role }, (c) => c.isAdmin);
   res.json({ role: user.role });
 });
 
@@ -466,7 +473,10 @@ router.delete('/admin/users/:id', requireAdmin, async (req, res) => {
   }
   await File.deleteMany({ uploader: user._id });
   await logAudit(req, 'admin_delete_user', { targetUsername: user.username });
+  const deletedUserId = user._id.toString();
   await user.deleteOne();
+  broadcast('user:deleted', { id: deletedUserId }, (c) => c.isAdmin);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.json({ success: true });
 });
 
@@ -613,6 +623,7 @@ router.delete('/user/account', requireLogin, async (req, res) => {
 
   await logAudit(req, 'delete_account');
   await user.deleteOne();
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   req.session.destroy(() => res.json({ success: true }));
 });
 

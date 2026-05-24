@@ -66,6 +66,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 function CodeViewer({ shortId, lang }) {
   const [code, setCode] = useState('');
@@ -174,6 +175,12 @@ function FileViewInner() {
       .then((data) => setFile(data.file))
       .catch((code) => setError(code === 404 ? t('fileView.fileNotFound') : t('fileView.loadFailed')));
   }, [shortId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useWebSocket((event, data) => {
+    if (event === 'file:view' && data.shortId === shortId) {
+      setFile((prev) => (prev ? { ...prev, views: data.views } : prev));
+    }
+  });
 
   async function handleDelete() {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });

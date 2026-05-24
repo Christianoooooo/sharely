@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { faShield, faCloud, faClock, faLock, faHourglass } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminSiteSettings() {
@@ -40,6 +41,12 @@ export default function AdminSiteSettings() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useWebSocket((event, data) => {
+    if (event === 'settings:updated') {
+      setForm((prev) => ({ ...prev, ...data }));
+    }
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
