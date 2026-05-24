@@ -106,6 +106,9 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
   generateThumbnail(req.file.path, req.file.mimetype, file.shortId).catch(() => {});
 
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
+  const apiUploaderId = String(req.apiUser._id);
+  broadcast('file:uploaded', { shortId: file.shortId, uploaderId: apiUploaderId }, (c) => c.userId === apiUploaderId);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   const base = BASE_URL();
   res.json({
     url: `${base}/f/${file.shortId}`,
