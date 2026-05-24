@@ -11,7 +11,7 @@ const SiteSettings = require('./src/models/SiteSettings');
 const uploadMiddleware = require('./src/middleware/upload');
 const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
-const { initWS } = require('./src/ws');
+const { initWS, broadcast } = require('./src/ws');
 
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
@@ -119,6 +119,9 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
     uploader: user._id,
   });
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
+  const uploaderId = String(user._id);
+  broadcast('file:uploaded', { shortId: file.shortId, uploaderId }, (c) => c.userId === uploaderId);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   const base = process.env.BASE_URL || 'http://localhost:3000';
   res.json({
     url: `${base}/f/${file.shortId}`,
