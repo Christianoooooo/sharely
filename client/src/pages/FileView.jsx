@@ -224,7 +224,7 @@ function FileViewInner() {
                 <span className="flex items-center gap-1"><FontAwesomeIcon icon={faCalendar} className="h-3.5 w-3.5" />{fmtDate(file.createdAt)}</span>
               </div>
             </div>
-            <div className="flex gap-2 shrink-0 flex-wrap">
+            <div className="flex gap-2 flex-wrap w-full sm:w-auto">
               <Button variant="outline" size="sm" onClick={copyUrl} className="gap-1.5">
                 <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />{t('fileView.copyUrl')}
               </Button>
