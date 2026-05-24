@@ -16,6 +16,7 @@ const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/gene
 const { logAudit } = require('../utils/audit');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
+const { broadcast } = require('../ws');
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -123,6 +124,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
   }
 
   const created = [];
+  const uploaderId = String(req.session.user.id);
   for (const f of req.files) {
     // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
     const storedName = path.relative(UPLOAD_DIR, f.path);
@@ -136,7 +138,9 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
     generateThumbnail(f.path, f.mimetype, doc.shortId).catch(() => {});
     created.push(doc.toObject());
     await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
+    broadcast('file:uploaded', { shortId: doc.shortId, uploaderId }, (c) => c.userId === uploaderId);
   }
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
 
   res.json({ files: created });
 });
@@ -151,7 +155,11 @@ router.delete('/delete/:shortId', requireApiKey, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  const ownerId = file.uploader.toString();
+  const { shortId } = file;
   await deleteFileRecord(req, file);
+  broadcast('file:deleted', { shortId, uploaderId: ownerId }, (c) => c.userId === ownerId);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.json({ success: true });
 });
 
@@ -165,7 +173,11 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  const ownerId = file.uploader.toString();
+  const { shortId } = file;
   await deleteFileRecord(req, file);
+  broadcast('file:deleted', { shortId, uploaderId: ownerId }, (c) => c.userId === ownerId);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.json({ success: true });
 });
 
@@ -886,6 +898,10 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
 
   generateThumbnail(finalPath, meta.mimeType, doc.shortId).catch(() => {});
   await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
+
+  const chunkUploaderId = String(meta.userId);
+  broadcast('file:uploaded', { shortId: doc.shortId, uploaderId: chunkUploaderId }, (c) => c.userId === chunkUploaderId);
+  broadcast('stats:invalidate', {}, (c) => c.isAdmin);
 
   res.json({ files: [doc.toObject()] });
 });

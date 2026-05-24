@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -25,6 +26,10 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => { load(); }, []);
+
+  useWebSocket((event) => {
+    if (event === 'stats:invalidate') load();
+  });
 
   async function deleteFile(shortId, name) {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
