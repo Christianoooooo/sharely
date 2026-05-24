@@ -313,7 +313,7 @@ export default function Upload() {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={`
-          rounded-lg border-2 border-dashed transition-all p-10 text-center
+          rounded-lg border-2 border-dashed transition-all p-6 sm:p-10 text-center
           ${dragging ? 'border-primary bg-primary/5' : 'border-border'}
         `}
       >

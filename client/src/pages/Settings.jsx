@@ -265,6 +265,7 @@ export default function Settings() {
       <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
       <Tabs defaultValue="profile">
+        <div className="overflow-x-auto pb-1">
         <TabsList>
           <TabsTrigger value="profile">
             <FontAwesomeIcon icon={faUser} className="mr-2 h-3.5 w-3.5" />
@@ -283,6 +284,7 @@ export default function Settings() {
             {t('settings.tabPrivacy')}
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* ── Profile ── */}
         <TabsContent value="profile" className="space-y-4">

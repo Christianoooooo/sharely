@@ -85,7 +85,7 @@ function CodeViewer({ shortId, lang }) {
   }, [code]);
 
   return (
-    <ScrollArea className="h-[70vh] w-full">
+    <ScrollArea className="h-[50vh] sm:h-[70vh] w-full">
       <pre className="p-4 text-sm leading-relaxed">
         <code ref={codeRef} className={`language-${lang || 'plaintext'}`}>{code}</code>
       </pre>

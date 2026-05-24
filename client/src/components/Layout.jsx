@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -54,7 +54,8 @@ export function Layout({ children }) {
           <div className="flex items-center gap-6">
             <Link to="/" className="font-bold text-primary text-sm tracking-widest uppercase">sharely</Link>
             <Separator orientation="vertical" className="h-5" />
-            <nav className="flex items-center gap-1">
+            {/* Desktop nav */}
+            <nav className="hidden sm:flex items-center gap-1">
               <NavLink to="/gallery" icon={faImages}>{t('nav.gallery')}</NavLink>
               <NavLink to="/upload" icon={faUpload}>{t('nav.upload')}</NavLink>
               {user?.role === 'admin' && (
@@ -65,6 +66,34 @@ export function Layout({ children }) {
 
           <div className="flex items-center gap-1">
             <LanguageSelector />
+
+            {/* Mobile hamburger nav */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="flex sm:hidden h-8 w-8">
+                  <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem asChild>
+                  <Link to="/gallery" className="flex items-center gap-2 cursor-pointer">
+                    <FontAwesomeIcon icon={faImages} className="h-4 w-4" />{t('nav.gallery')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/upload" className="flex items-center gap-2 cursor-pointer">
+                    <FontAwesomeIcon icon={faUpload} className="h-4 w-4" />{t('nav.upload')}
+                  </Link>
+                </DropdownMenuItem>
+                {user?.role === 'admin' && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center gap-2 cursor-pointer">
+                      <FontAwesomeIcon icon={faTableCellsLarge} className="h-4 w-4" />{t('nav.admin')}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
