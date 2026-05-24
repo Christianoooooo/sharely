@@ -1,4 +1,5 @@
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
@@ -10,6 +11,7 @@ const SiteSettings = require('./src/models/SiteSettings');
 const uploadMiddleware = require('./src/middleware/upload');
 const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
+const { initWS } = require('./src/ws');
 
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
@@ -49,7 +51,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.use(session({
+const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -60,7 +62,8 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
   },
-}));
+});
+app.use(sessionMiddleware);
 
 // Dynamically apply session duration from SiteSettings (cached for 60 s).
 let _cachedSessionMs = null;
@@ -167,7 +170,9 @@ const PORT = process.env.PORT || 3000;
   await migrateApiKeyHashes();
   await runRetentionCleanup();
   setInterval(runRetentionCleanup, 24 * 60 * 60 * 1000);
-  app.listen(PORT, () => {
+  const server = http.createServer(app);
+  initWS(server, sessionMiddleware);
+  server.listen(PORT, () => {
     console.log(`sharely running on http://localhost:${PORT}`);
   });
 })();

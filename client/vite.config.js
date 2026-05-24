@@ -16,6 +16,7 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
       '/f': { target: 'http://localhost:3000', changeOrigin: true },
+      '/ws': { target: 'ws://localhost:3000', ws: true },
     },
   },
   build: {

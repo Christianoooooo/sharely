@@ -38,6 +38,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -309,6 +310,16 @@ export default function Gallery() {
   }, [page, q, type]);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
+
+  useWebSocket((event, data) => {
+    const uid = user?.id ? String(user.id) : null;
+    if (!uid || data?.uploaderId !== uid) return;
+    if (event === 'file:uploaded') fetchFiles();
+    if (event === 'file:deleted') {
+      setFiles((prev) => prev.filter((f) => f.shortId !== data.shortId));
+      setTotal((prev) => Math.max(0, prev - 1));
+    }
+  });
 
   function handleSearch(e) {
     e.preventDefault();
