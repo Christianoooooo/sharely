@@ -22,13 +22,20 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 
@@ -160,7 +167,49 @@ function FileCard({ file, user, onDelete }) {
                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
                   {file.displayType}
                 </Badge>
-                <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
+                  {/* Touch-friendly actions menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                      <button className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent">
+                        <FontAwesomeIcon icon={faEllipsisVertical} className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem onSelect={() => navigate(`/f/${file.shortId}`)}>
+                        <FontAwesomeIcon icon={faFile} className="h-4 w-4" />
+                        {t('gallery.contextOpen')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={copyLink}>
+                        <FontAwesomeIcon icon={faLink} className="h-4 w-4" />
+                        {t('gallery.contextCopyLink')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => window.open(`/f/${file.shortId}/raw`, '_blank')}>
+                        <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-4 w-4" />
+                        {t('gallery.contextOpenRaw')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <a href={`/f/${file.shortId}/download`} download>
+                          <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />
+                          {t('gallery.contextDownload')}
+                        </a>
+                      </DropdownMenuItem>
+                      {canDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={() => setConfirmDelete(true)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
+                            {t('fileView.delete')}
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               {file.uploader && (
                 <div className="flex items-center gap-1.5 mt-0.5">
