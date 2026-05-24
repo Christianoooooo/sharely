@@ -148,7 +148,7 @@ export default function AdminImport() {
             <CardTitle className="text-base">{t('adminImport.pathsTitle')}</CardTitle>
             <CardDescription>
               {t('adminImport.pathsDesc')}
-              <code className="block font-mono text-xs bg-muted px-2 py-1 rounded mt-1 whitespace-pre">
+              <code className="block font-mono text-xs bg-muted px-2 py-1 rounded mt-1 whitespace-pre overflow-x-auto">
                 volumes:{'\n'}
                 {'  '}- /path/to/xbackbone/database.db:/xbackbone/database.db:ro{'\n'}
                 {'  '}- /path/to/xbackbone/storage:/xbackbone/storage:ro
