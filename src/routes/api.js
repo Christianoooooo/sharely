@@ -546,6 +546,7 @@ router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
 
     user.folderName = trimmed;
     await user.save();
+    broadcast('user:updated', { id: user._id.toString(), folderName: trimmed }, (c) => c.isAdmin);
   }
 
   res.json({ folderName: user.folderName });
@@ -622,7 +623,9 @@ router.delete('/user/account', requireLogin, async (req, res) => {
   );
 
   await logAudit(req, 'delete_account');
+  const selfDeleteId = user._id.toString();
   await user.deleteOne();
+  broadcast('user:deleted', { id: selfDeleteId }, (c) => c.isAdmin);
   broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -651,6 +654,7 @@ router.patch('/user/username', requireLogin, async (req, res) => {
   await user.save();
   req.session.user = { ...req.session.user, username: trimmed };
   await logAudit(req, 'change_username', { oldUsername, newUsername: trimmed });
+  broadcast('user:updated', { id: user._id.toString(), username: trimmed }, (c) => c.isAdmin);
   res.json({ success: true, username: trimmed });
 });
 

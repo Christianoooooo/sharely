@@ -3,6 +3,7 @@ const fs = require('fs');
 const File = require('../models/File');
 const SiteSettings = require('../models/SiteSettings');
 const { deleteThumbnail } = require('../utils/generateThumbnail');
+const { broadcast } = require('../ws');
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads');
 
@@ -33,6 +34,7 @@ async function runRetentionCleanup() {
     }
 
     await File.deleteMany({ _id: { $in: files.map((f) => f._id) } });
+    broadcast('stats:invalidate', {}, (c) => c.isAdmin);
     console.log(`[retention] Deleted ${files.length} file(s) older than ${days} day(s)`);
   } catch (err) {
     console.error('[retention] Cleanup error:', err.message);

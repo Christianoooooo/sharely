@@ -180,6 +180,7 @@ router.get('/verify-email', authLimiter, async (req, res) => {
   user.emailVerificationExpires = null;
   await user.save();
   await logAudit(req, 'verify_email', { username: user.username });
+  broadcast('user:updated', { id: user._id.toString(), emailVerified: true }, (c) => c.isAdmin);
   res.redirect(`${process.env.BASE_URL || ''}/settings?emailVerified=success`);
 });
 
