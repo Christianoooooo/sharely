@@ -21,6 +21,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate, faTrash, faUserPlus, faPowerOff, faPencil, faCheck, faXmark, faKey, faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
@@ -46,6 +47,14 @@ export default function AdminUsers() {
   }
 
   useEffect(() => { load(); }, []);
+
+  useWebSocket((event, data) => {
+    if (event === 'user:created') load();
+    if (event === 'user:deleted') setUsers((prev) => prev.filter((u) => u._id !== data.id));
+    if (event === 'user:updated') {
+      setUsers((prev) => prev.map((u) => u._id === data.id ? { ...u, ...data } : u));
+    }
+  });
 
   async function createUser(e) {
     e.preventDefault();

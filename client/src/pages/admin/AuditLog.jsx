@@ -17,6 +17,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass, faXmark, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 const ACTION_COLORS = {
   login: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -104,6 +105,15 @@ export default function AdminAuditLog() {
 
   useEffect(() => { setUserInput(user); }, [user]);
   useEffect(() => { load(); }, [load]);
+
+  useWebSocket((event, data) => {
+    if (event !== 'audit:log') return;
+    setTotal((prev) => prev + 1);
+    if (page !== 1) return;
+    if (user && !data.username?.toLowerCase().includes(user.toLowerCase())) return;
+    if (action && data.action !== action) return;
+    setLogs((prev) => [data, ...prev].slice(0, 50));
+  });
 
   function handleUserSearch(e) {
     e.preventDefault();

@@ -23,6 +23,7 @@ import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass, faXmark, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -62,6 +63,17 @@ export default function AdminFiles() {
   }, [q, page]);
 
   useEffect(() => { load(); }, [load]);
+
+  useWebSocket((event, data) => {
+    if (event === 'file:uploaded') load();
+    if (event === 'file:deleted') {
+      setFiles((prev) => prev.filter((f) => f.shortId !== data.shortId));
+      setTotal((prev) => Math.max(0, prev - 1));
+    }
+    if (event === 'file:view') {
+      setFiles((prev) => prev.map((f) => f.shortId === data.shortId ? { ...f, views: data.views } : f));
+    }
+  });
 
   async function deleteFile(shortId, name) {
     const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
