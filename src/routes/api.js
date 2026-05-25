@@ -423,7 +423,7 @@ router.post('/admin/users', requireAdmin, async (req, res) => {
   if (exists) return res.status(409).json({ error: 'Username already taken' });
   const user = await User.create({ username, password, role: role === 'admin' ? 'admin' : 'user' });
   await logAudit(req, 'admin_create_user', { targetUsername: username, role: user.role });
-  broadcast('user:created', { id: user._id.toString(), username: user.username, role: user.role }, (c) => c.isAdmin);
+  broadcast('user:created', { id: user._id.toString(), username: user.username, role: user.role, folderName: user.folderName, isActive: user.isActive, createdAt: user.createdAt, apiKeyPrefix: user.apiKeyPrefix }, (c) => c.isAdmin);
   broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.status(201).json({ user: { id: user._id, username: user.username, role: user.role } });
 });

@@ -49,7 +49,25 @@ export default function AdminUsers() {
   useEffect(() => { load(); }, []);
 
   useWebSocket((event, data) => {
-    if (event === 'user:created') load();
+    if (event === 'user:created') {
+      setUsers((prev) => {
+        if (prev.some((u) => u._id === data.id)) return prev;
+        return [...prev, {
+          _id: data.id,
+          username: data.username,
+          role: data.role,
+          folderName: data.folderName ?? null,
+          isActive: data.isActive ?? true,
+          createdAt: data.createdAt ?? new Date().toISOString(),
+          apiKeyPrefix: data.apiKeyPrefix ?? '',
+          fileCount: 0,
+          storageUsed: 0,
+          email: null,
+          emailVerified: false,
+          avatarUrl: null,
+        }];
+      });
+    }
     if (event === 'user:deleted') setUsers((prev) => prev.filter((u) => u._id !== data.id));
     if (event === 'user:updated') {
       setUsers((prev) => prev.map((u) => u._id === data.id ? { ...u, ...data } : u));
