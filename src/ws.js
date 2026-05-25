@@ -505,7 +505,7 @@ async function handleAction(client, { id, action, payload = {} }) {
       if (exists) return err('Username already taken', 409);
       const user = await User.create({ username, password, role: role === 'admin' ? 'admin' : 'user' });
       await wsAudit(client, 'admin_create_user', { targetUsername: username, role: user.role });
-      broadcast('user:created', { id: user._id.toString(), username: user.username, role: user.role }, (c) => c.isAdmin);
+      broadcast('user:created', { id: user._id.toString(), username: user.username, role: user.role, folderName: user.folderName, isActive: user.isActive, createdAt: user.createdAt, apiKeyPrefix: user.apiKeyPrefix }, (c) => c.isAdmin);
       broadcast('stats:invalidate', {}, (c) => c.isAdmin);
       return ok({ user: { id: user._id, username: user.username, role: user.role } });
     }
