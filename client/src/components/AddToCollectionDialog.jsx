@@ -87,7 +87,7 @@ export function AddToCollectionDialog({ shortId, children }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+        <div className="overflow-y-auto flex-1 space-y-3 p-0.5">
           {/* Quick create */}
           <form onSubmit={createAndAdd} className="flex gap-2">
             <Input
@@ -96,7 +96,7 @@ export function AddToCollectionDialog({ shortId, children }) {
               placeholder={t('addToCollection.newPlaceholder')}
               className="flex-1"
             />
-            <Button type="submit" size="sm" disabled={creating || !newName.trim()} className="gap-1">
+            <Button type="submit" disabled={creating || !newName.trim()} className="h-10 w-10 shrink-0 p-0">
               {creating
                 ? <FontAwesomeIcon icon={faCircleNotch} className="h-3.5 w-3.5 animate-spin" />
                 : <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />}
