@@ -48,8 +48,8 @@ const collectionSchema = new mongoose.Schema({
   },
 });
 
-// Auto-delete expired collections
-collectionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
+// Keep expired collections for 7 days so visitors still see the "Abgelaufen" message.
+collectionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 604800, sparse: true });
 
 collectionSchema.statics.createUnique = async function (data, maxAttempts = 5) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
