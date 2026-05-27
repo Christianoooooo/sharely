@@ -218,7 +218,7 @@ export function ShareLinkDialog({ shortId, children }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 space-y-4 pr-1">
+        <div className="overflow-y-auto flex-1 space-y-4 p-0.5">
           <CreateLinkForm shortId={shortId} onCreated={handleCreated} />
 
           {(links.length > 0 || loading) && <Separator />}

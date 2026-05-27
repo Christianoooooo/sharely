@@ -87,7 +87,7 @@ export function AddToCollectionDialog({ shortId, children }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+        <div className="overflow-y-auto flex-1 space-y-3 p-0.5">
           {/* Quick create */}
           <form onSubmit={createAndAdd} className="flex gap-2">
             <Input
