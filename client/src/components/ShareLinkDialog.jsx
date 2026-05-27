@@ -31,7 +31,7 @@ function CreateLinkForm({ shortId, onCreated }) {
     try {
       const body = { label };
       if (password) body.password = password;
-      if (expiresAt) body.expiresAt = expiresAt;
+      if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
       if (downloadLimit) body.downloadLimit = parseInt(downloadLimit, 10);
 
       const r = await fetch(`/api/file/${shortId}/share-links`, {

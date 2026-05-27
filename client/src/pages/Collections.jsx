@@ -40,7 +40,7 @@ function CreateCollectionDialog({ onCreated }) {
     try {
       const body = { name: name.trim(), description: description.trim() };
       if (password) body.password = password;
-      if (expiresAt) body.expiresAt = expiresAt;
+      if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
 
       const r = await fetch('/api/collections', {
         method: 'POST',
