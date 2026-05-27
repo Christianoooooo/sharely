@@ -25,11 +25,15 @@ import Settings from '@/pages/Settings';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
 import Install from '@/pages/Install';
+import ShareView from '@/pages/ShareView';
+import CollectionView from '@/pages/CollectionView';
+import Collections from '@/pages/Collections';
 
 const PAGE_TITLES = {
   '/gallery': 'Gallery',
   '/upload': 'Upload',
   '/settings': 'Settings',
+  '/collections': 'Collections',
   '/admin': 'Dashboard',
   '/admin/users': 'Users',
   '/admin/files': 'Files',
@@ -93,11 +97,14 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/f/:shortId" element={<FileView />} />
+            <Route path="/s/:token" element={<ShareView />} />
+            <Route path="/c/:id" element={<CollectionView />} />
 
             {/* Protected */}
             <Route path="/gallery" element={<ProtectedRoute><Layout><Gallery /></Layout></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><Layout><Upload /></Layout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+            <Route path="/collections" element={<ProtectedRoute><Layout><Collections /></Layout></ProtectedRoute>} />
 
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute adminOnly><Layout><AdminDashboard /></Layout></ProtectedRoute>} />

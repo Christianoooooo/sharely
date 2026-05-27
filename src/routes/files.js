@@ -183,3 +183,5 @@ router.get('/:shortId/download', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.resolveUploadPath = resolveUploadPath;
+module.exports.serveFile = serveFile;

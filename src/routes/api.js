@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
 const { requireLogin, requireAdmin, requireApiKey } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -11,6 +12,8 @@ const { isBlockedFile } = require('../middleware/upload');
 const File = require('../models/File');
 const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
+const ShareLink = require('../models/ShareLink');
+const Collection = require('../models/Collection');
 const sanitizeFilename = require('../utils/sanitizeFilename');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { logAudit } = require('../utils/audit');
@@ -1061,6 +1064,358 @@ router.get('/admin/files', requireAdmin, async (req, res) => {
     page,
     pages,
   });
+});
+
+// ── Share links ─────────────────────────────────────────────────────────────
+
+// List share links for a file (owner / admin only)
+router.get('/file/:shortId/share-links', requireLogin, async (req, res) => {
+  const file = await File.findOne({ shortId: req.params.shortId });
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  const isOwner = file.uploader.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const links = await ShareLink.find({ file: file._id }).sort({ createdAt: -1 });
+  const base = BASE_URL();
+  res.json({
+    links: links.map((l) => ({
+      token: l.token,
+      label: l.label,
+      hasPassword: !!l.password,
+      expiresAt: l.expiresAt,
+      downloadLimit: l.downloadLimit,
+      downloadCount: l.downloadCount,
+      createdAt: l.createdAt,
+      expired: l.expiresAt ? l.expiresAt < new Date() : false,
+      limitReached: l.downloadLimit !== -1 && l.downloadCount >= l.downloadLimit,
+      url: `${base}/s/${l.token}`,
+    })),
+  });
+});
+
+// Create a share link for a file (owner / admin only)
+router.post('/file/:shortId/share-links', requireLogin, async (req, res) => {
+  const file = await File.findOne({ shortId: req.params.shortId });
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  const isOwner = file.uploader.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { password, expiresAt, downloadLimit, label } = req.body;
+
+  const linkData = {
+    file: file._id,
+    createdBy: req.session.user.id,
+    label: (label || '').trim().slice(0, 100),
+    downloadLimit: typeof downloadLimit === 'number' && downloadLimit > 0
+      ? Math.floor(downloadLimit) : -1,
+  };
+
+  if (password) linkData.password = await bcrypt.hash(password, 10);
+
+  if (expiresAt) {
+    const date = new Date(expiresAt);
+    if (isNaN(date.getTime()) || date <= new Date()) {
+      return res.status(400).json({ error: 'Invalid expiry date' });
+    }
+    linkData.expiresAt = date;
+  }
+
+  const link = await ShareLink.create(linkData);
+  const base = BASE_URL();
+  res.status(201).json({
+    token: link.token,
+    label: link.label,
+    hasPassword: !!link.password,
+    expiresAt: link.expiresAt,
+    downloadLimit: link.downloadLimit,
+    downloadCount: 0,
+    createdAt: link.createdAt,
+    expired: false,
+    limitReached: false,
+    url: `${base}/s/${link.token}`,
+  });
+});
+
+// Delete a share link (owner / creator / admin)
+router.delete('/share-links/:token', requireLogin, async (req, res) => {
+  const link = await ShareLink.findOne({ token: req.params.token }).populate('file', 'uploader');
+  if (!link) return res.status(404).json({ error: 'Share link not found' });
+
+  const isOwner = link.file?.uploader?.toString() === req.session.user.id.toString();
+  const isCreator = link.createdBy?.toString() === req.session.user.id.toString();
+  if (!isOwner && !isCreator && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  await link.deleteOne();
+  res.json({ success: true });
+});
+
+// Get share link metadata — public, used by ShareView page
+router.get('/share-links/:token', async (req, res) => {
+  const link = await ShareLink.findOne({ token: req.params.token }).populate('file', 'originalName mimeType size shortId');
+  if (!link) return res.status(404).json({ error: 'Share link not found' });
+
+  if (link.expiresAt && link.expiresAt < new Date()) {
+    return res.status(410).json({ error: 'expired' });
+  }
+  if (link.downloadLimit !== -1 && link.downloadCount >= link.downloadLimit) {
+    return res.status(403).json({ error: 'limit_reached' });
+  }
+
+  res.json({
+    hasPassword: !!link.password,
+    expiresAt: link.expiresAt,
+    downloadLimit: link.downloadLimit,
+    downloadCount: link.downloadCount,
+    label: link.label,
+    file: {
+      originalName: link.file?.originalName,
+      size: link.file?.size,
+      mimeType: link.file?.mimeType,
+      shortId: link.file?.shortId,
+    },
+  });
+});
+
+// Verify share link password — stores result in session
+router.post('/share-links/:token/verify', async (req, res) => {
+  const link = await ShareLink.findOne({ token: req.params.token });
+  if (!link) return res.status(404).json({ error: 'Share link not found' });
+
+  if (link.expiresAt && link.expiresAt < new Date()) {
+    return res.status(410).json({ error: 'expired' });
+  }
+  if (!link.password) return res.json({ success: true });
+
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password required' });
+
+  const valid = await bcrypt.compare(password, link.password);
+  if (!valid) return res.status(401).json({ error: 'Invalid password' });
+
+  if (!req.session.verifiedShareLinks) req.session.verifiedShareLinks = [];
+  if (!req.session.verifiedShareLinks.includes(req.params.token)) {
+    req.session.verifiedShareLinks.push(req.params.token);
+  }
+
+  res.json({ success: true });
+});
+
+// ── Collections ─────────────────────────────────────────────────────────────
+
+// List collections (owner sees their own; admin sees all)
+router.get('/collections', requireLogin, async (req, res) => {
+  const isAdmin = req.session.user.role === 'admin';
+  const filter = isAdmin ? {} : { owner: req.session.user.id };
+  const collections = await Collection.find(filter).sort({ createdAt: -1 });
+
+  res.json({
+    collections: collections.map((c) => ({
+      shortId: c.shortId,
+      name: c.name,
+      description: c.description,
+      fileCount: c.files.length,
+      hasPassword: !!c.password,
+      expiresAt: c.expiresAt,
+      createdAt: c.createdAt,
+      expired: c.expiresAt ? c.expiresAt < new Date() : false,
+    })),
+  });
+});
+
+// Create a collection
+router.post('/collections', requireLogin, async (req, res) => {
+  const { name, description, password, expiresAt } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+
+  const collData = {
+    name: name.trim().slice(0, 100),
+    description: (description || '').trim().slice(0, 500),
+    owner: req.session.user.id,
+  };
+
+  if (password) collData.password = await bcrypt.hash(password, 10);
+
+  if (expiresAt) {
+    const date = new Date(expiresAt);
+    if (!isNaN(date.getTime()) && date > new Date()) collData.expiresAt = date;
+  }
+
+  const collection = await Collection.createUnique(collData);
+  const base = BASE_URL();
+  res.status(201).json({
+    shortId: collection.shortId,
+    name: collection.name,
+    description: collection.description,
+    fileCount: 0,
+    hasPassword: !!collection.password,
+    expiresAt: collection.expiresAt,
+    createdAt: collection.createdAt,
+    expired: false,
+    url: `${base}/c/${collection.shortId}`,
+  });
+});
+
+// Get collection (public — returns files if password verified or not set)
+router.get('/collections/:id', async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id })
+    .populate('owner', 'username')
+    .populate('files', 'shortId originalName mimeType size createdAt');
+
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  if (collection.expiresAt && collection.expiresAt < new Date()) {
+    return res.status(410).json({ error: 'expired' });
+  }
+
+  const isOwnerOrAdmin = req.session?.user &&
+    (req.session.user.id.toString() === collection.owner._id.toString() ||
+      req.session.user.role === 'admin');
+
+  const verified = Array.isArray(req.session?.verifiedCollections) &&
+    req.session.verifiedCollections.includes(req.params.id);
+
+  const needsPassword = collection.password && !verified && !isOwnerOrAdmin;
+
+  const files = needsPassword ? [] : collection.files.map((f) => ({
+    shortId: f.shortId,
+    originalName: f.originalName,
+    mimeType: f.mimeType,
+    size: f.size,
+    createdAt: f.createdAt,
+    hasThumbnail: fs.existsSync(thumbPath(f.shortId)),
+  }));
+
+  res.json({
+    shortId: collection.shortId,
+    name: collection.name,
+    description: collection.description,
+    owner: collection.owner.username,
+    hasPassword: !!collection.password,
+    needsPassword,
+    expiresAt: collection.expiresAt,
+    createdAt: collection.createdAt,
+    files,
+  });
+});
+
+// Update a collection (owner / admin)
+router.patch('/collections/:id', requireLogin, async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id });
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  const isOwner = collection.owner.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { name, description, password, clearPassword, expiresAt, clearExpiry } = req.body;
+  if (name !== undefined) collection.name = name.trim().slice(0, 100);
+  if (description !== undefined) collection.description = description.trim().slice(0, 500);
+
+  if (clearPassword) collection.password = null;
+  else if (password) collection.password = await bcrypt.hash(password, 10);
+
+  if (clearExpiry) collection.expiresAt = null;
+  else if (expiresAt) {
+    const date = new Date(expiresAt);
+    if (!isNaN(date.getTime()) && date > new Date()) collection.expiresAt = date;
+  }
+
+  await collection.save();
+  res.json({
+    shortId: collection.shortId,
+    name: collection.name,
+    description: collection.description,
+    fileCount: collection.files.length,
+    hasPassword: !!collection.password,
+    expiresAt: collection.expiresAt,
+    createdAt: collection.createdAt,
+  });
+});
+
+// Delete a collection (owner / admin)
+router.delete('/collections/:id', requireLogin, async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id });
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  const isOwner = collection.owner.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  await collection.deleteOne();
+  res.json({ success: true });
+});
+
+// Add a file to a collection (owner / admin; file must belong to owner)
+router.post('/collections/:id/files', requireLogin, async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id });
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  const isOwner = collection.owner.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { shortId } = req.body;
+  const fileFilter = { shortId };
+  if (req.session.user.role !== 'admin') fileFilter.uploader = req.session.user.id;
+  const file = await File.findOne(fileFilter);
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  if (!collection.files.some((f) => f.toString() === file._id.toString())) {
+    collection.files.push(file._id);
+    await collection.save();
+  }
+
+  res.json({ success: true, fileCount: collection.files.length });
+});
+
+// Remove a file from a collection (owner / admin)
+router.delete('/collections/:id/files/:fileShortId', requireLogin, async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id });
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  const isOwner = collection.owner.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const file = await File.findOne({ shortId: req.params.fileShortId });
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  collection.files = collection.files.filter((f) => f.toString() !== file._id.toString());
+  await collection.save();
+  res.json({ success: true, fileCount: collection.files.length });
+});
+
+// Verify collection password — stores result in session
+router.post('/collections/:id/verify', async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id });
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  if (!collection.password) return res.json({ success: true });
+
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password required' });
+
+  const valid = await bcrypt.compare(password, collection.password);
+  if (!valid) return res.status(401).json({ error: 'Invalid password' });
+
+  if (!req.session.verifiedCollections) req.session.verifiedCollections = [];
+  if (!req.session.verifiedCollections.includes(req.params.id)) {
+    req.session.verifiedCollections.push(req.params.id);
+  }
+
+  res.json({ success: true });
 });
 
 module.exports = router;

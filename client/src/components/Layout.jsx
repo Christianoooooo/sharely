@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars } from '@fortawesome/free-solid-svg-icons';
+import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars, faFolderOpen } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -58,6 +58,7 @@ export function Layout({ children }) {
             <nav className="hidden sm:flex items-center gap-1">
               <NavLink to="/gallery" icon={faImages}>{t('nav.gallery')}</NavLink>
               <NavLink to="/upload" icon={faUpload}>{t('nav.upload')}</NavLink>
+              <NavLink to="/collections" icon={faFolderOpen}>{t('nav.collections')}</NavLink>
               {user?.role === 'admin' && (
                 <NavLink to="/admin" icon={faTableCellsLarge}>{t('nav.admin')}</NavLink>
               )}
@@ -83,6 +84,11 @@ export function Layout({ children }) {
                 <DropdownMenuItem asChild>
                   <Link to="/upload" className="flex items-center gap-2 cursor-pointer">
                     <FontAwesomeIcon icon={faUpload} className="h-4 w-4" />{t('nav.upload')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/collections" className="flex items-center gap-2 cursor-pointer">
+                    <FontAwesomeIcon icon={faFolderOpen} className="h-4 w-4" />{t('nav.collections')}
                   </Link>
                 </DropdownMenuItem>
                 {user?.role === 'admin' && (

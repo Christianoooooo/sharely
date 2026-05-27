@@ -63,10 +63,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { ShareLinkDialog } from '@/components/ShareLinkDialog';
+import { AddToCollectionDialog } from '@/components/AddToCollectionDialog';
 
 function CodeViewer({ shortId, lang }) {
   const [code, setCode] = useState('');
@@ -243,6 +245,20 @@ function FileViewInner() {
                   <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3.5 w-3.5" />{t('fileView.raw')}
                 </a>
               </Button>
+              {user && (
+                <ShareLinkDialog shortId={shortId}>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <FontAwesomeIcon icon={faLink} className="h-3.5 w-3.5" />{t('fileView.shareLink')}
+                  </Button>
+                </ShareLinkDialog>
+              )}
+              {user && (
+                <AddToCollectionDialog shortId={shortId}>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <FontAwesomeIcon icon={faFolderPlus} className="h-3.5 w-3.5" />{t('fileView.addToCollection')}
+                  </Button>
+                </AddToCollectionDialog>
+              )}
               {canDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
