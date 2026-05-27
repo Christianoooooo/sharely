@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -188,6 +189,16 @@ export function ShareLinkDialog({ shortId, children }) {
   const [open, setOpen] = useState(false);
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useWebSocket(useCallback((event, data) => {
+    if (event === 'sharelink:download') {
+      setLinks((prev) => prev.map((l) =>
+        l.token === data.token
+          ? { ...l, downloadCount: data.downloadCount, limitReached: data.limitReached }
+          : l,
+      ));
+    }
+  }, []));
 
   useEffect(() => {
     if (!open) return;

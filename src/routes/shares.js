@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const ShareLink = require('../models/ShareLink');
 const { resolveUploadPath, serveFile } = require('./files');
+const { broadcast } = require('../ws');
 const fs = require('fs');
 
 function isVerified(req, token) {
@@ -56,6 +57,15 @@ router.get('/:token/download', async (req, res) => {
 
   link.downloadCount += 1;
   await link.save();
+
+  const ownerId = link.createdBy?.toString();
+  if (ownerId) {
+    broadcast('sharelink:download', {
+      token: link.token,
+      downloadCount: link.downloadCount,
+      limitReached: link.downloadLimit !== -1 && link.downloadCount >= link.downloadLimit,
+    }, (c) => c.userId === ownerId);
+  }
 
   serveFile(req, res, filePath, file, true);
 });

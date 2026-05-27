@@ -44,7 +44,8 @@ const shareLinkSchema = new mongoose.Schema({
   },
 });
 
-// Auto-delete expired links (MongoDB TTL, fires ~60s after expiresAt)
-shareLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
+// Keep expired links for 7 days so the owner can still see them as "Abgelaufen"
+// before MongoDB cleans them up automatically.
+shareLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 604800, sparse: true });
 
 module.exports = mongoose.model('ShareLink', shareLinkSchema);
