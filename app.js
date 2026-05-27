@@ -153,6 +153,9 @@ app.use('/api', requireSameOrigin, require('./src/routes/api'));
 // Raw file serving (not JSON)
 app.use('/f', require('./src/routes/files'));
 
+// Share link file serving (password/expiry/download-limit checked server-side)
+app.use('/s', require('./src/routes/shares'));
+
 // Serve React SPA in production
 const clientDist = path.join(__dirname, 'client/dist');
 app.use(express.static(clientDist));
