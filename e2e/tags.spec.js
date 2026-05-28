@@ -28,9 +28,8 @@ test.describe('Predefined Tag Management', () => {
     await page.getByRole('tab', { name: /preferences/i }).click();
     await expect(page.getByText('RemoveMe')).toBeVisible();
 
-    // Click the X button inside the RemoveMe badge
-    const badge = page.locator('text=RemoveMe').locator('..');
-    await badge.getByRole('button').click();
+    // Each remove button has aria-label="Remove tag <name>"
+    await page.getByRole('button', { name: 'Remove tag RemoveMe' }).click();
     await expect(page.getByText('RemoveMe')).not.toBeVisible();
     await expect(page.getByText('KeepMe')).toBeVisible();
   });
@@ -56,9 +55,9 @@ test.describe('Predefined Tag Management', () => {
     await page.locator('a[href^="/f/"]').first().click();
     await page.waitForURL(/\/f\//);
 
-    // Tag select dropdown should appear
-    const tagSelect = page.locator('[data-radix-select-trigger]');
-    await expect(tagSelect.first()).toBeVisible({ timeout: 5_000 });
+    // Tag select dropdown: SelectTrigger renders as role="combobox"
+    const tagSelect = page.locator('[role="combobox"]');
+    await expect(tagSelect.first()).toBeVisible({ timeout: 10_000 });
     await tagSelect.first().click();
     await expect(page.getByRole('option', { name: 'Design' })).toBeVisible();
     await expect(page.getByRole('option', { name: 'Code' })).toBeVisible();

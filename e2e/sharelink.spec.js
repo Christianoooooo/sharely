@@ -25,7 +25,8 @@ test.describe('Share Links – download limit', () => {
     });
     expect(linkR.ok()).toBeTruthy();
     const linkData = await linkR.json();
-    const token = linkData.link?.token;
+    // API returns { token, url, ... } directly — not wrapped in { link: { token } }
+    const token = linkData.token;
     expect(token).toBeTruthy();
 
     // First download via API (simulate non-browser client)

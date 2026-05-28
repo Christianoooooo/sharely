@@ -3,7 +3,8 @@ const { test, expect } = require('@playwright/test');
 test.describe('Gallery – UI & Bulk Actions', () => {
   test('Upload and Select buttons are the same height', async ({ page }) => {
     await page.goto('/gallery');
-    const uploadBtn = page.getByRole('link', { name: /^upload$/i });
+    // Scope to main content — nav also has an Upload link which causes strict-mode violation
+    const uploadBtn = page.getByRole('main').getByRole('link', { name: /^upload$/i });
     const selectBtn = page.getByRole('button', { name: /^select$/i });
 
     await expect(uploadBtn).toBeVisible();
@@ -17,9 +18,11 @@ test.describe('Gallery – UI & Bulk Actions', () => {
   test('Search input, All Types and Search button are the same height', async ({ page }) => {
     await page.goto('/gallery');
     const searchInput = page.locator('input[placeholder*="earch"]').first();
-    const typeSelect = page.locator('[data-radix-select-trigger]').first();
+    // SelectTrigger renders with role="combobox", not data-radix-select-trigger
+    const typeSelect = page.locator('[role="combobox"]').first();
     const searchBtn = page.getByRole('button', { name: /^search$/i });
 
+    await expect(typeSelect).toBeVisible({ timeout: 10_000 });
     const inputBox = await searchInput.boundingBox();
     const selectBox = await typeSelect.boundingBox();
     const btnBox = await searchBtn.boundingBox();
@@ -40,10 +43,11 @@ test.describe('Gallery – UI & Bulk Actions', () => {
     await page.goto('/gallery');
     await page.getByRole('button', { name: /^select$/i }).click();
 
-    await expect(page.getByRole('button', { name: /select all/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /deselect all/i })).toBeVisible();
+    // Use exact names — "Deselect all" also matches /select all/i
+    await expect(page.getByRole('button', { name: 'Select all' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Deselect all' })).toBeVisible();
 
-    await page.getByRole('button', { name: /select all/i }).click();
+    await page.getByRole('button', { name: 'Select all' }).click();
     await expect(page.locator('text=/\\d+ selected/')).toBeVisible();
   });
 
@@ -59,8 +63,8 @@ test.describe('Gallery – UI & Bulk Actions', () => {
     await page.goto('/gallery');
     await page.getByRole('button', { name: /^select$/i }).click();
 
-    // Check the first checkbox
-    await page.locator('[data-radix-checkbox-root]').first().click();
+    // Radix Checkbox renders with role="checkbox", not data-radix-checkbox-root
+    await page.locator('[role="checkbox"]').first().click();
     await expect(page.locator('text=/1 selected/')).toBeVisible();
 
     // Bulk delete
