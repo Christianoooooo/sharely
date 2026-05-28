@@ -196,6 +196,22 @@ function FileViewInner() {
     fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setTagSuggestions(d.tags));
   }, [canEdit]);
 
+  async function handleDelete() {
+    const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
+    if (r.ok) {
+      toast({ title: t('fileView.fileDeleted') });
+      navigate('/gallery');
+    } else {
+      toast({ title: t('fileView.deleteFailed'), variant: 'destructive' });
+    }
+  }
+
+  function copyUrl() {
+    const url = `${window.location.origin}/f/${shortId}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: t('fileView.urlCopied') });
+  }
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
