@@ -89,7 +89,9 @@ export function DateTimePicker({ onChange, className }) {
             <FontAwesomeIcon icon={faCalendar} className="mr-2 h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{dateLabel ?? t('dateTimePicker.pickDate')}</span>
             {date && (
-              <FontAwesomeIcon icon={faXmark} className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 hover:opacity-100" onClick={handleClear} />
+              <span onClick={handleClear} className="ml-auto flex items-center opacity-50 hover:opacity-100">
+                <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+              </span>
             )}
           </Button>
         </PopoverTrigger>
