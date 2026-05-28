@@ -43,11 +43,11 @@ test.describe('Gallery – UI & Bulk Actions', () => {
     await page.goto('/gallery');
     await page.getByRole('button', { name: /^select$/i }).click();
 
-    // Use exact names — "Deselect all" also matches /select all/i
-    await expect(page.getByRole('button', { name: 'Select all' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Deselect all' })).toBeVisible();
+    // Use exact: true — without it Playwright does substring match, so "Deselect all" also matches
+    await expect(page.getByRole('button', { name: 'Select all', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Deselect all', exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Select all' }).click();
+    await page.getByRole('button', { name: 'Select all', exact: true }).click();
     await expect(page.locator('text=/\\d+ selected/')).toBeVisible();
   });
 
