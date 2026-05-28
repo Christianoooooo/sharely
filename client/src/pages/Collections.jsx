@@ -22,6 +22,7 @@ import {
   faArrowUpRightFromSquare,
 } from '@fortawesome/free-solid-svg-icons';
 import { fmtDate } from '@/lib/utils';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 function CreateCollectionDialog({ onCreated }) {
   const { t } = useTranslation();
@@ -30,7 +31,7 @@ function CreateCollectionDialog({ onCreated }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [password, setPassword] = useState('');
-  const [expiresAt, setExpiresAt] = useState('');
+  const [expiresAt, setExpiresAt] = useState(null);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
@@ -40,7 +41,7 @@ function CreateCollectionDialog({ onCreated }) {
     try {
       const body = { name: name.trim(), description: description.trim() };
       if (password) body.password = password;
-      if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
+      if (expiresAt) body.expiresAt = expiresAt;
 
       const r = await fetch('/api/collections', {
         method: 'POST',
@@ -63,8 +64,6 @@ function CreateCollectionDialog({ onCreated }) {
       setSaving(false);
     }
   }
-
-  const minDateTime = new Date(Date.now() + 60_000).toISOString().slice(0, 16);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -95,11 +94,11 @@ function CreateCollectionDialog({ onCreated }) {
             <Input id="coll-pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('shareLink.noPassword')} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="coll-exp">
+            <Label>
               <FontAwesomeIcon icon={faHourglass} className="h-3 w-3 mr-1" />
               {t('shareLink.expiresAt')} <span className="text-muted-foreground">({t('shareLink.optional')})</span>
             </Label>
-            <Input id="coll-exp" type="datetime-local" min={minDateTime} value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+            <DateTimePicker onChange={setExpiresAt} />
           </div>
           <Button type="submit" className="w-full" disabled={saving || !name.trim()}>
             {saving ? t('collections.creating') : t('collections.createBtn')}
