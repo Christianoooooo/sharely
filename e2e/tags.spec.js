@@ -66,4 +66,48 @@ test.describe('Predefined Tag Management', () => {
     await page.getByRole('option', { name: 'Design' }).click();
     await expect(page.locator('text=Design').first()).toBeVisible();
   });
+
+  test('selecting a tag in FileView saves it and shows the badge', async ({ page }) => {
+    await page.request.patch('/api/user/predefined-tags', {
+      data: { tags: ['Frontend', 'Backend'] },
+    });
+
+    // Upload a file
+    await page.goto('/upload');
+    await page.locator('input[type="file"]').first().setInputFiles({
+      name: 'fileview-tag-save.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('fileview tag save test'),
+    });
+    await page.getByRole('button', { name: /upload \d/i }).click();
+    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
+
+    // Navigate to the file
+    await page.goto('/gallery');
+    await page.locator('a[href^="/f/"]').first().click();
+    await page.waitForURL(/\/f\//);
+
+    // Pick "Frontend" from the tag dropdown
+    const tagSelect = page.locator('[role="combobox"]');
+    await expect(tagSelect.first()).toBeVisible({ timeout: 10_000 });
+    await tagSelect.first().click();
+    await page.getByRole('option', { name: 'Frontend' }).click();
+
+    // Toast: "Tags saved"
+    await expect(page.getByText(/tags saved/i)).toBeVisible({ timeout: 5_000 });
+
+    // Tag badge should be visible in the tags card
+    await expect(page.getByText('Frontend').first()).toBeVisible();
+  });
+
+  test('Settings Preferences shows no-tags hint when list is empty', async ({ page }) => {
+    // Clear all predefined tags
+    await page.request.patch('/api/user/predefined-tags', { data: { tags: [] } });
+
+    await page.goto('/settings');
+    await page.getByRole('tab', { name: /preferences/i }).click();
+
+    // "No tags defined yet" hint should be visible
+    await expect(page.getByText(/no tags defined yet/i)).toBeVisible({ timeout: 5_000 });
+  });
 });

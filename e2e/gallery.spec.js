@@ -51,6 +51,57 @@ test.describe('Gallery – UI & Bulk Actions', () => {
     await expect(page.locator('text=/\\d+ selected/')).toBeVisible();
   });
 
+  test('bulk toolbar shows disabled Tag button when no predefined tags', async ({ page }) => {
+    // Ensure no predefined tags exist
+    await page.request.patch('/api/user/predefined-tags', { data: { tags: [] } });
+
+    // Upload a file to ensure the gallery isn't empty
+    await page.goto('/upload');
+    await page.locator('input[type="file"]').first().setInputFiles({
+      name: 'bulk-notag.txt', mimeType: 'text/plain', buffer: Buffer.from('no tag test'),
+    });
+    await page.getByRole('button', { name: /upload \d/i }).click();
+    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
+
+    await page.goto('/gallery');
+    await page.getByRole('button', { name: /^select$/i }).click();
+
+    // Without predefined tags the toolbar renders a plain disabled "Tag" button
+    const tagBtn = page.getByRole('button', { name: /^tag$/i });
+    await expect(tagBtn).toBeVisible({ timeout: 5_000 });
+    await expect(tagBtn).toBeDisabled();
+  });
+
+  test('bulk tag applies a predefined tag to selected files', async ({ page }) => {
+    // Set up predefined tags
+    await page.request.patch('/api/user/predefined-tags', { data: { tags: ['BulkLabel'] } });
+
+    // Upload a file
+    await page.goto('/upload');
+    await page.locator('input[type="file"]').first().setInputFiles({
+      name: 'bulk-tag-test.txt', mimeType: 'text/plain', buffer: Buffer.from('bulk tag test'),
+    });
+    await page.getByRole('button', { name: /upload \d/i }).click();
+    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
+
+    await page.goto('/gallery');
+    await page.getByRole('button', { name: /^select$/i }).click();
+
+    // Select the first file
+    await page.locator('[role="checkbox"]').first().click();
+    await expect(page.locator('text=/1 selected/')).toBeVisible();
+
+    // Open the tag dropdown in the bulk toolbar and pick "BulkLabel"
+    // The bulk toolbar tag trigger is a combobox (SelectTrigger) — last one on the page
+    const tagSelects = page.locator('[role="combobox"]');
+    const count = await tagSelects.count();
+    await tagSelects.nth(count - 1).click();
+    await page.getByRole('option', { name: 'BulkLabel' }).click();
+
+    // Toast: "Tags added"
+    await expect(page.getByText(/tags added/i)).toBeVisible({ timeout: 5_000 });
+  });
+
   test('bulk delete removes selected files', async ({ page }) => {
     // Upload a dedicated file for deletion
     await page.goto('/upload');
