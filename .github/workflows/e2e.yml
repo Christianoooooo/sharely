@@ -19,10 +19,11 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: ciuser
           MONGO_INITDB_ROOT_PASSWORD: cipassword123
         options: >-
-          --health-cmd "mongosh -u ciuser -p cipassword123 --authenticationDatabase admin --eval 'db.adminCommand(\"ping\")'"
+          --health-cmd "mongosh -u ciuser -p cipassword123 --authenticationDatabase admin --eval 'db.adminCommand({ping:1})'"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+          --health-start-period 5s
 
     env:
       MONGODB_URI: mongodb://ciuser:cipassword123@localhost:27017/sharely_e2e?authSource=admin
