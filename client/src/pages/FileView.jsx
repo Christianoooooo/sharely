@@ -171,11 +171,14 @@ function FileViewInner() {
   const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState([]);
 
   useEffect(() => {
     fetch(`/api/file/${shortId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data) => setFile(data.file))
+      .then((data) => { setFile(data.file); setTags(data.file.tags || []); })
       .catch((code) => setError(code === 404 ? t('fileView.fileNotFound') : t('fileView.loadFailed')));
   }, [shortId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -185,21 +188,13 @@ function FileViewInner() {
     }
   });
 
-  async function handleDelete() {
-    const r = await fetch(`/api/file/${shortId}`, { method: 'DELETE' });
-    if (r.ok) {
-      toast({ title: t('fileView.fileDeleted') });
-      navigate('/gallery');
-    } else {
-      toast({ title: t('fileView.deleteFailed'), variant: 'destructive' });
-    }
-  }
+  const canDelete = user && !!file && (user.id === file.uploader?._id || user.role === 'admin');
+  const canEdit = canDelete;
 
-  function copyUrl() {
-    const url = `${window.location.origin}/f/${shortId}`;
-    navigator.clipboard.writeText(url);
-    toast({ title: t('fileView.urlCopied') });
-  }
+  useEffect(() => {
+    if (!canEdit) return;
+    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setTagSuggestions(d.tags));
+  }, [canEdit]);
 
   if (error) {
     return (
@@ -213,18 +208,6 @@ function FileViewInner() {
   if (!file) {
     return <div className="flex justify-center py-24 text-muted-foreground text-sm animate-pulse">{t('fileView.loading')}</div>;
   }
-
-  const canDelete = user && (user.id === file.uploader?._id || user.role === 'admin');
-  const canEdit = canDelete;
-
-  const [tags, setTags] = useState(file.tags || []);
-  const [tagInput, setTagInput] = useState('');
-  const [tagSuggestions, setTagSuggestions] = useState([]);
-
-  useEffect(() => {
-    if (!canEdit) return;
-    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setTagSuggestions(d.tags));
-  }, [canEdit]);
 
   async function saveTags(newTags) {
     const r = await fetch(`/api/file/${shortId}`, {
