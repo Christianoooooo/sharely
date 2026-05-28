@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -31,7 +32,7 @@ function CreateLinkForm({ shortId, onCreated }) {
     try {
       const body = { label };
       if (password) body.password = password;
-      if (expiresAt) body.expiresAt = expiresAt;
+      if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
       if (downloadLimit) body.downloadLimit = parseInt(downloadLimit, 10);
 
       const r = await fetch(`/api/file/${shortId}/share-links`, {
@@ -188,6 +189,16 @@ export function ShareLinkDialog({ shortId, children }) {
   const [open, setOpen] = useState(false);
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useWebSocket(useCallback((event, data) => {
+    if (event === 'sharelink:download') {
+      setLinks((prev) => prev.map((l) =>
+        l.token === data.token
+          ? { ...l, downloadCount: data.downloadCount, limitReached: data.limitReached }
+          : l,
+      ));
+    }
+  }, []));
 
   useEffect(() => {
     if (!open) return;
