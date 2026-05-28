@@ -119,7 +119,7 @@ function EditCollectionDialog({ coll, onUpdated }) {
   const [password, setPassword] = useState('');
   const [clearPassword, setClearPassword] = useState(false);
   const [expiresAt, setExpiresAt] = useState(null);
-  const [clearExpiry, setClearExpiry] = useState(false);
+  const [dialogKey, setDialogKey] = useState(0);
   const [saving, setSaving] = useState(false);
 
   function handleOpen(val) {
@@ -128,8 +128,8 @@ function EditCollectionDialog({ coll, onUpdated }) {
       setDescription(coll.description || '');
       setPassword('');
       setClearPassword(false);
-      setExpiresAt(null);
-      setClearExpiry(false);
+      setExpiresAt(coll.expiresAt ?? null);
+      setDialogKey((k) => k + 1);
     }
     setOpen(val);
   }
@@ -139,9 +139,10 @@ function EditCollectionDialog({ coll, onUpdated }) {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const body = { name: name.trim(), description: description.trim(), clearPassword, clearExpiry };
+      const body = { name: name.trim(), description: description.trim(), clearPassword };
       if (password) body.password = password;
-      if (expiresAt) body.expiresAt = expiresAt;
+      if (coll.expiresAt && !expiresAt) body.clearExpiry = true;
+      else if (expiresAt) body.expiresAt = expiresAt;
 
       const r = await fetch(`/api/collections/${coll.shortId}`, {
         method: 'PATCH',
@@ -203,13 +204,7 @@ function EditCollectionDialog({ coll, onUpdated }) {
               <FontAwesomeIcon icon={faHourglass} className="h-3 w-3 mr-1" />
               {t('shareLink.expiresAt')} <span className="text-muted-foreground">({t('shareLink.optional')})</span>
             </Label>
-            <DateTimePicker onChange={setExpiresAt} />
-            {coll.expiresAt && (
-              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <Checkbox checked={clearExpiry} onCheckedChange={(v) => setClearExpiry(!!v)} />
-                {t('collections.clearExpiry')}
-              </label>
-            )}
+            <DateTimePicker key={dialogKey} defaultValue={coll.expiresAt} onChange={setExpiresAt} />
           </div>
           <Button type="submit" className="w-full" disabled={saving || !name.trim()}>
             {saving ? t('collections.saving') : t('collections.saveBtn')}
