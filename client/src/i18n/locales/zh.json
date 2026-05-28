@@ -722,5 +722,8 @@
     "added": "File added to collection",
     "done": "Added",
     "failed": "Failed to add file"
+  },
+  "dateTimePicker": {
+    "pickDate": "选择日期…"
   }
 }

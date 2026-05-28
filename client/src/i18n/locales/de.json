@@ -722,5 +722,8 @@
     "s8Body": "Diese Nutzungsbedingungen unterliegen dem Recht des Landes, in dem der Betreiber seinen Sitz hat. Bei Fragen wende dich bitte an:",
     "s8Contact": "Kontakt:",
     "version": "Sharely - Open-Source-Dateifreigabe - Nutzungsbedingungen"
+  },
+  "dateTimePicker": {
+    "pickDate": "Datum auswählen…"
   }
 }
