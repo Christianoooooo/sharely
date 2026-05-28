@@ -444,7 +444,7 @@ export default function Gallery() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant={selectMode ? 'secondary' : 'outline'} size="sm" onClick={toggleSelectMode} className="gap-1.5">
+          <Button variant={selectMode ? 'secondary' : 'outline'} onClick={toggleSelectMode} className="gap-1.5">
             <FontAwesomeIcon icon={faCheckSquare} className="h-3.5 w-3.5" />
             {selectMode ? t('gallery.cancelSelect') : t('gallery.selectMode')}
           </Button>
@@ -462,7 +462,7 @@ export default function Gallery() {
             placeholder={t('gallery.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 pr-9"
+            className="h-10 pl-9 pr-9"
           />
           {searchInput && (
             <button type="button" onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -471,7 +471,7 @@ export default function Gallery() {
           )}
         </div>
         <Select value={type} onValueChange={(v) => setSearchParams({ q, type: v, ...(tag && { tag }), page: 1 })}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="h-10 w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -483,7 +483,7 @@ export default function Gallery() {
             <SelectItem value="code">{t('gallery.code')}</SelectItem>
           </SelectContent>
         </Select>
-        <Button type="submit" variant="secondary">{t('gallery.search')}</Button>
+        <Button type="submit" variant="secondary" className="h-10">{t('gallery.search')}</Button>
       </form>
 
       {/* Tag filter chips */}
