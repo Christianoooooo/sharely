@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid } from 'date-fns';
+import { format, isValid, isToday } from 'date-fns';
 import { de, fr, es, it, pt, ja, zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -56,18 +56,30 @@ export function DateTimePicker({ defaultValue, onChange, className }) {
   const [minutes, setMinutes] = useState(initDate ? initDate.getMinutes() : 0);
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
+  const [isPast, setIsPast] = useState(false);
 
   const locale = useMemo(() => getDateFnsLocale(i18n.language), [i18n.language]);
 
   useEffect(() => {
-    if (!date) { onChange(null); return; }
+    if (!date) { setIsPast(false); onChange(null); return; }
     const d = new Date(date);
     d.setHours(hours, minutes, 0, 0);
-    if (!isValid(d)) { onChange(null); return; }
+    if (!isValid(d)) { setIsPast(false); onChange(null); return; }
+    if (d <= new Date()) {
+      setIsPast(true);
+      onChange(null);
+      return;
+    }
+    setIsPast(false);
     onChange(d.toISOString());
   }, [date, hours, minutes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDaySelect(day) {
+    if (day && isToday(day)) {
+      const now = new Date();
+      setHours(now.getHours());
+      setMinutes(now.getMinutes() + 1 > 59 ? 0 : now.getMinutes() + 1);
+    }
     setDate(day ?? null);
     if (day) setCalOpen(false);
   }
@@ -83,48 +95,54 @@ export function DateTimePicker({ defaultValue, onChange, className }) {
   const dateLabel = date ? format(date, 'PP', { locale }) : null;
 
   return (
-    <div className={cn('flex gap-2', className)}>
-      {/* Date picker */}
-      <Popover open={calOpen} onOpenChange={setCalOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className={cn('h-10 flex-1 justify-start text-left font-normal', !date && 'text-muted-foreground')}>
-            <FontAwesomeIcon icon={faCalendar} className="mr-2 h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{dateLabel ?? t('dateTimePicker.pickDate')}</span>
-            {date && (
-              <span onClick={handleClear} className="ml-auto flex items-center opacity-50 hover:opacity-100">
-                <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleDaySelect}
-            disabled={{ before: new Date() }}
-            locale={locale}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+    <div className={cn('space-y-1', className)}>
+      <div className="flex gap-2">
+        {/* Date picker */}
+        <Popover open={calOpen} onOpenChange={setCalOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn('h-10 flex-1 justify-start text-left font-normal', !date && 'text-muted-foreground', isPast && 'border-destructive')}>
+              <FontAwesomeIcon icon={faCalendar} className="mr-2 h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{dateLabel ?? t('dateTimePicker.pickDate')}</span>
+              {date && (
+                <span onClick={handleClear} className="ml-auto flex items-center opacity-50 hover:opacity-100">
+                  <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={handleDaySelect}
+              disabled={{ before: new Date() }}
+              locale={locale}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
 
-      {/* Time picker */}
-      <Popover open={timeOpen} onOpenChange={setTimeOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className={cn('h-10 w-28 font-mono', !date && 'opacity-50 pointer-events-none')}>
-            <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            {timeStr}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3" align="start">
-          <div className="flex items-center gap-2">
-            <Spinner value={hours} max={23} onChange={setHours} />
-            <span className="text-lg font-mono text-muted-foreground select-none mb-0.5">:</span>
-            <Spinner value={minutes} max={59} onChange={setMinutes} />
-          </div>
-        </PopoverContent>
-      </Popover>
+        {/* Time picker */}
+        <Popover open={timeOpen} onOpenChange={setTimeOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn('h-10 w-28 font-mono', !date && 'opacity-50 pointer-events-none', isPast && 'border-destructive text-destructive')}>
+              <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {timeStr}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start">
+            <div className="flex items-center gap-2">
+              <Spinner value={hours} max={23} onChange={setHours} />
+              <span className="text-lg font-mono text-muted-foreground select-none mb-0.5">:</span>
+              <Spinner value={minutes} max={59} onChange={setMinutes} />
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {isPast && (
+        <p className="text-xs text-destructive">{t('dateTimePicker.timeInPast')}</p>
+      )}
     </div>
   );
 }
