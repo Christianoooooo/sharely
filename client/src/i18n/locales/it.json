@@ -69,7 +69,21 @@
     "contextOpen": "Apri",
     "contextCopyLink": "Copia link",
     "contextOpenRaw": "Apri raw",
-    "contextDownload": "Scarica"
+    "contextDownload": "Scarica",
+    "selectMode": "Seleziona",
+    "cancelSelect": "Annulla",
+    "selectedCount": "{{count}} selezionato/i",
+    "bulkDelete": "Elimina",
+    "bulkAddToCollection": "Aggiungi alla raccolta",
+    "bulkTag": "Etichetta",
+    "bulkDeleteConfirmTitle": "Eliminare {{count}} file?",
+    "bulkDeleteConfirmDesc": "Questa azione non può essere annullata.",
+    "bulkDeleted": "{{count}} file eliminati",
+    "bulkTagged": "Tag aggiunti",
+    "bulkAddedToCollection": "Aggiunto alla raccolta",
+    "filterByTag": "Filtra per tag",
+    "allTags": "Tutti i tag",
+    "noTags": "Nessun tag"
   },
   "upload": {
     "title": "Carica",
@@ -95,7 +109,9 @@
     "uploadFailed": "Caricamento fallito",
     "selectFiles": "Carica",
     "openFolder": "Apri",
-    "folderDropHint": "Le cartelle possono essere aggiunte tramite trascinamento"
+    "folderDropHint": "Le cartelle possono essere aggiunte tramite trascinamento",
+    "pasteHint": "Puoi anche incollare immagini o testo dagli appunti (Ctrl+V)",
+    "pastedFiles": "{{count}} file aggiunto/i dagli appunti"
   },
   "settings": {
     "tabProfile": "Profilo",
@@ -190,7 +206,11 @@
     "loadFailed": "Impossibile caricare il file",
     "backToGallery": "Torna alla galleria",
     "shareLink": "Link di condivisione",
-    "addToCollection": "Aggiungi alla raccolta"
+    "addToCollection": "Aggiungi alla raccolta",
+    "tags": "Tag",
+    "addTag": "Aggiungi tag…",
+    "tagSaved": "Tag salvati",
+    "tagFailed": "Salvataggio tag fallito"
   },
   "admin": {
     "dashboard": "Dashboard",

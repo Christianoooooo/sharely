@@ -187,6 +187,83 @@ router.delete('/file/:shortId', requireLogin, async (req, res) => {
   res.json({ success: true });
 });
 
+// ── Update file tags / name ─────────────────────────────────────────────────
+router.patch('/file/:shortId', requireLogin, async (req, res) => {
+  const file = await File.findOne({ shortId: req.params.shortId });
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  const isOwner = file.uploader.toString() === req.session.user.id.toString();
+  if (!isOwner && req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (Array.isArray(req.body.tags)) {
+    file.tags = req.body.tags.slice(0, 20).map((t) => t.trim().slice(0, 50)).filter(Boolean);
+  }
+  if (req.body.originalName !== undefined) {
+    const name = sanitizeFilename(req.body.originalName.trim()).slice(0, 255);
+    if (name) file.originalName = name;
+  }
+
+  await file.save();
+  res.json({ tags: file.tags, originalName: file.originalName });
+});
+
+// ── Bulk operations ──────────────────────────────────────────────────────────
+router.post('/files/bulk', requireLogin, async (req, res) => {
+  const { action, shortIds, tags, collectionId } = req.body;
+  if (!Array.isArray(shortIds) || shortIds.length === 0) {
+    return res.status(400).json({ error: 'No files specified' });
+  }
+
+  const isAdmin = req.session.user.role === 'admin';
+  const filter = { shortId: { $in: shortIds } };
+  if (!isAdmin) filter.uploader = req.session.user.id;
+
+  if (action === 'delete') {
+    const files = await File.find(filter);
+    for (const file of files) {
+      const ownerId = file.uploader.toString();
+      const { shortId } = file;
+      await deleteFileRecord(req, file);
+      broadcast('file:deleted', { shortId, uploaderId: ownerId }, (c) => c.userId === ownerId);
+    }
+    broadcast('stats:invalidate', {}, (c) => c.isAdmin);
+    return res.json({ success: true, count: shortIds.length });
+  }
+
+  if (action === 'tag') {
+    const newTags = (tags || []).slice(0, 20).map((t) => t.trim().slice(0, 50)).filter(Boolean);
+    await File.updateMany(filter, { $addToSet: { tags: { $each: newTags } } });
+    return res.json({ success: true });
+  }
+
+  if (action === 'addToCollection') {
+    if (!collectionId) return res.status(400).json({ error: 'Collection ID required' });
+    const collection = await Collection.findOne({ shortId: collectionId });
+    if (!collection) return res.status(404).json({ error: 'Collection not found' });
+    const isCollOwner = collection.owner.toString() === req.session.user.id.toString();
+    if (!isCollOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    const files = await File.find(filter);
+    for (const file of files) {
+      if (!collection.files.some((f) => f.toString() === file._id.toString())) {
+        collection.files.push(file._id);
+      }
+    }
+    await collection.save();
+    return res.json({ success: true });
+  }
+
+  res.status(400).json({ error: 'Invalid action' });
+});
+
+// ── Tag suggestions for current user ────────────────────────────────────────
+router.get('/tags', requireLogin, async (req, res) => {
+  const filter = req.session.user.role === 'admin' ? {} : { uploader: req.session.user.id };
+  const tags = await File.distinct('tags', filter);
+  res.json({ tags: tags.filter(Boolean).sort() });
+});
+
 // ── File metadata ───────────────────────────────────────────────────────────
 router.get('/file/:shortId', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId }).populate('uploader', 'username avatarExt');
@@ -203,7 +280,7 @@ router.get('/file/:shortId', async (req, res) => {
 
 // ── Gallery ─────────────────────────────────────────────────────────────────
 router.get('/gallery', requireLogin, async (req, res) => {
-  const { q, type, page: pageStr } = req.query;
+  const { q, type, tag, page: pageStr } = req.query;
   const page = Math.max(1, parseInt(pageStr || '1', 10));
   const PAGE_SIZE = 24;
   const isAdmin = req.session.user.role === 'admin';
@@ -211,6 +288,7 @@ router.get('/gallery', requireLogin, async (req, res) => {
   const filter = {};
   if (!isAdmin) filter.uploader = req.session.user.id;
   if (q) filter.originalName = { $regex: escapeRegex(q), $options: 'i' };
+  if (tag) filter.tags = tag;
 
   if (type && type !== 'all') {
     const typeMap = { image: /^image\//, video: /^video\//, audio: /^audio\//, pdf: /^application\/pdf$/ };
@@ -260,6 +338,7 @@ router.get('/gallery', requireLogin, async (req, res) => {
 });
 
 // ── ShareX config ───────────────────────────────────────────────────────────
+
 // Regenerates the API key and embeds the new plaintext into the .sxcu file.
 // The plaintext is never persisted — this is the only moment it is visible.
 router.get('/sharex-config', requireLogin, async (req, res) => {

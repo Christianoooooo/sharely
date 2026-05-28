@@ -69,7 +69,21 @@
     "contextOpen": "打开",
     "contextCopyLink": "复制链接",
     "contextOpenRaw": "打开原始文件",
-    "contextDownload": "下载"
+    "contextDownload": "下载",
+    "selectMode": "选择",
+    "cancelSelect": "取消",
+    "selectedCount": "已选 {{count}} 个",
+    "bulkDelete": "删除",
+    "bulkAddToCollection": "添加到合集",
+    "bulkTag": "添加标签",
+    "bulkDeleteConfirmTitle": "删除 {{count}} 个文件？",
+    "bulkDeleteConfirmDesc": "此操作无法撤销。",
+    "bulkDeleted": "已删除 {{count}} 个文件",
+    "bulkTagged": "已添加标签",
+    "bulkAddedToCollection": "已添加到合集",
+    "filterByTag": "按标签筛选",
+    "allTags": "所有标签",
+    "noTags": "无标签"
   },
   "upload": {
     "title": "上传",
@@ -95,7 +109,9 @@
     "uploadFailed": "上传失败",
     "selectFiles": "上传",
     "openFolder": "打开",
-    "folderDropHint": "文件夹可以通过拖放添加"
+    "folderDropHint": "文件夹可以通过拖放添加",
+    "pasteHint": "也可以从剪贴板粘贴图片或文本（Ctrl+V）",
+    "pastedFiles": "已从剪贴板添加 {{count}} 个文件"
   },
   "settings": {
     "tabProfile": "个人资料",
@@ -190,7 +206,11 @@
     "loadFailed": "文件加载失败",
     "backToGallery": "返回图库",
     "shareLink": "分享链接",
-    "addToCollection": "添加到集合"
+    "addToCollection": "添加到集合",
+    "tags": "标签",
+    "addTag": "添加标签…",
+    "tagSaved": "标签已保存",
+    "tagFailed": "标签保存失败"
   },
   "admin": {
     "dashboard": "仪表板",

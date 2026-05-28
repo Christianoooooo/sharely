@@ -69,7 +69,21 @@
     "contextOpen": "開く",
     "contextCopyLink": "リンクをコピー",
     "contextOpenRaw": "Rawで開く",
-    "contextDownload": "ダウンロード"
+    "contextDownload": "ダウンロード",
+    "selectMode": "選択",
+    "cancelSelect": "キャンセル",
+    "selectedCount": "{{count}}件選択中",
+    "bulkDelete": "削除",
+    "bulkAddToCollection": "コレクションに追加",
+    "bulkTag": "タグ付け",
+    "bulkDeleteConfirmTitle": "{{count}}件のファイルを削除しますか？",
+    "bulkDeleteConfirmDesc": "この操作は元に戻せません。",
+    "bulkDeleted": "{{count}}件のファイルを削除しました",
+    "bulkTagged": "タグを追加しました",
+    "bulkAddedToCollection": "コレクションに追加しました",
+    "filterByTag": "タグで絞り込む",
+    "allTags": "すべてのタグ",
+    "noTags": "タグなし"
   },
   "upload": {
     "title": "アップロード",
@@ -95,7 +109,9 @@
     "uploadFailed": "アップロードに失敗しました",
     "selectFiles": "アップロード",
     "openFolder": "開く",
-    "folderDropHint": "フォルダはドラッグ＆ドロップで追加できます"
+    "folderDropHint": "フォルダはドラッグ＆ドロップで追加できます",
+    "pasteHint": "クリップボードから画像やテキストを貼り付けることもできます（Ctrl+V）",
+    "pastedFiles": "クリップボードから{{count}}件のファイルを追加しました"
   },
   "settings": {
     "tabProfile": "プロフィール",
@@ -190,7 +206,11 @@
     "loadFailed": "ファイルの読み込みに失敗しました",
     "backToGallery": "ギャラリーに戻る",
     "shareLink": "共有リンク",
-    "addToCollection": "コレクションに追加"
+    "addToCollection": "コレクションに追加",
+    "tags": "タグ",
+    "addTag": "タグを追加…",
+    "tagSaved": "タグを保存しました",
+    "tagFailed": "タグの保存に失敗しました"
   },
   "admin": {
     "dashboard": "ダッシュボード",

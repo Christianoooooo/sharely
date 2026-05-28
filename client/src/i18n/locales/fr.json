@@ -69,7 +69,21 @@
     "contextOpen": "Ouvrir",
     "contextCopyLink": "Copier le lien",
     "contextOpenRaw": "Ouvrir en brut",
-    "contextDownload": "Télécharger"
+    "contextDownload": "Télécharger",
+    "selectMode": "Sélectionner",
+    "cancelSelect": "Annuler",
+    "selectedCount": "{{count}} sélectionné(s)",
+    "bulkDelete": "Supprimer",
+    "bulkAddToCollection": "Ajouter à la collection",
+    "bulkTag": "Étiquetter",
+    "bulkDeleteConfirmTitle": "Supprimer {{count}} fichiers ?",
+    "bulkDeleteConfirmDesc": "Cette action est irréversible.",
+    "bulkDeleted": "{{count}} fichiers supprimés",
+    "bulkTagged": "Tags ajoutés",
+    "bulkAddedToCollection": "Ajouté à la collection",
+    "filterByTag": "Filtrer par tag",
+    "allTags": "Tous les tags",
+    "noTags": "Aucun tag"
   },
   "upload": {
     "title": "Téléverser",
@@ -95,7 +109,9 @@
     "uploadFailed": "Échec du téléversement",
     "selectFiles": "Télécharger",
     "openFolder": "Ouvrir",
-    "folderDropHint": "Les dossiers peuvent être ajoutés par glisser-déposer"
+    "folderDropHint": "Les dossiers peuvent être ajoutés par glisser-déposer",
+    "pasteHint": "Vous pouvez aussi coller des images ou du texte depuis le presse-papiers (Ctrl+V)",
+    "pastedFiles": "{{count}} fichier(s) ajouté(s) depuis le presse-papiers"
   },
   "settings": {
     "tabProfile": "Profil",
@@ -190,7 +206,11 @@
     "loadFailed": "Impossible de charger le fichier",
     "backToGallery": "Retour à la galerie",
     "shareLink": "Lien de partage",
-    "addToCollection": "Ajouter à la collection"
+    "addToCollection": "Ajouter à la collection",
+    "tags": "Tags",
+    "addTag": "Ajouter un tag…",
+    "tagSaved": "Tags enregistrés",
+    "tagFailed": "Échec de l'enregistrement des tags"
   },
   "admin": {
     "dashboard": "Tableau de bord",
