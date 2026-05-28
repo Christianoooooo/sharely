@@ -81,6 +81,10 @@
     "bulkDeleted": "{{count}}件のファイルを削除しました",
     "bulkTagged": "タグを追加しました",
     "bulkAddedToCollection": "コレクションに追加しました",
+    "bulkRemoveTag": "タグを削除",
+    "bulkMoveToCollection": "コレクションに移動",
+    "bulkTagRemoved": "タグを削除しました",
+    "bulkMoved": "コレクションに移動しました",
     "filterByTag": "タグで絞り込む",
     "allTags": "すべてのタグ",
     "noTags": "タグなし"

@@ -35,7 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical, faCheckSquare, faTag, faFolderPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical, faCheckSquare, faTag, faFolderPlus, faMinus, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -338,6 +338,7 @@ export default function Gallery() {
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkCollOpen, setBulkCollOpen] = useState(false);
+  const [bulkMoveCollOpen, setBulkMoveCollOpen] = useState(false);
   const [myCollections, setMyCollections] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [predefinedTags, setPredefinedTags] = useState([]);
@@ -385,12 +386,19 @@ export default function Gallery() {
     } else if (action === 'tag') {
       toast({ title: t('gallery.bulkTagged') });
       fetchFiles();
+    } else if (action === 'removeTag') {
+      toast({ title: t('gallery.bulkTagRemoved') });
+      fetchFiles();
     } else if (action === 'addToCollection') {
       toast({ title: t('gallery.bulkAddedToCollection') });
+    } else if (action === 'moveToCollection') {
+      toast({ title: t('gallery.bulkMoved') });
+      fetchFiles();
     }
     setSelected(new Set());
     setBulkDeleteOpen(false);
     setBulkCollOpen(false);
+    setBulkMoveCollOpen(false);
   }
 
   const fetchFiles = useCallback(async () => {
@@ -525,7 +533,7 @@ export default function Gallery() {
           <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs">{t('common.selectAll') || 'Select all'}</Button>
           <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={selected.size === 0} className="text-xs">{t('common.deselectAll') || 'Deselect all'}</Button>
 
-          {/* Tag */}
+          {/* Tag hinzufügen */}
           {predefinedTags.length > 0 ? (
             <Select onValueChange={(tag) => bulkAction('tag', { tags: [tag] })} disabled={selected.size === 0} value="">
               <SelectTrigger className="h-8 w-44 text-xs" disabled={selected.size === 0}>
@@ -542,7 +550,28 @@ export default function Gallery() {
             </Button>
           )}
 
-          {/* Add to collection */}
+          {/* Tag entfernen */}
+          {allTags.length > 0 ? (
+            <Select onValueChange={(tag) => bulkAction('removeTag', { tags: [tag] })} disabled={selected.size === 0} value="">
+              <SelectTrigger className="h-8 w-44 text-xs" disabled={selected.size === 0}>
+                <span className="flex items-center gap-1 shrink-0">
+                  <FontAwesomeIcon icon={faMinus} className="h-2.5 w-2.5" />
+                  <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 mr-1" />
+                </span>
+                <SelectValue placeholder={t('gallery.bulkRemoveTag')} />
+              </SelectTrigger>
+              <SelectContent>
+                {allTags.map((tag) => <SelectItem key={tag} value={tag}>{tag}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Button size="sm" variant="outline" disabled className="gap-1.5">
+              <FontAwesomeIcon icon={faMinus} className="h-2.5 w-2.5" />
+              <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5" />{t('gallery.bulkRemoveTag')}
+            </Button>
+          )}
+
+          {/* Zur Sammlung hinzufügen */}
           {bulkCollOpen ? (
             <div className="flex gap-1 items-center">
               <Select onValueChange={(collId) => { bulkAction('addToCollection', { collectionId: collId }); setBulkCollOpen(false); }}>
@@ -556,6 +585,23 @@ export default function Gallery() {
           ) : (
             <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setBulkCollOpen(true)} className="gap-1.5">
               <FontAwesomeIcon icon={faFolderPlus} className="h-3.5 w-3.5" />{t('gallery.bulkAddToCollection')}
+            </Button>
+          )}
+
+          {/* In Sammlung verschieben */}
+          {bulkMoveCollOpen ? (
+            <div className="flex gap-1 items-center">
+              <Select onValueChange={(collId) => { bulkAction('moveToCollection', { collectionId: collId }); setBulkMoveCollOpen(false); }}>
+                <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder={t('gallery.bulkMoveToCollection')} /></SelectTrigger>
+                <SelectContent>
+                  {myCollections.map((c) => <SelectItem key={c.shortId} value={c.shortId}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="ghost" onClick={() => setBulkMoveCollOpen(false)}><FontAwesomeIcon icon={faXmark} /></Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" disabled={selected.size === 0 || myCollections.length === 0} onClick={() => setBulkMoveCollOpen(true)} className="gap-1.5">
+              <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />{t('gallery.bulkMoveToCollection')}
             </Button>
           )}
 

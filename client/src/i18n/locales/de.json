@@ -107,6 +107,10 @@
     "bulkDeleted": "{{count}} Dateien gelöscht",
     "bulkTagged": "Tags hinzugefügt",
     "bulkAddedToCollection": "Zur Sammlung hinzugefügt",
+    "bulkRemoveTag": "Tag entfernen",
+    "bulkMoveToCollection": "In Sammlung verschieben",
+    "bulkTagRemoved": "Tags entfernt",
+    "bulkMoved": "In Sammlung verschoben",
     "filterByTag": "Nach Tag filtern",
     "allTags": "Alle Tags",
     "noTags": "Keine Tags"

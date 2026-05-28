@@ -81,6 +81,10 @@
     "bulkDeleted": "已删除 {{count}} 个文件",
     "bulkTagged": "已添加标签",
     "bulkAddedToCollection": "已添加到合集",
+    "bulkRemoveTag": "移除标签",
+    "bulkMoveToCollection": "移动到合集",
+    "bulkTagRemoved": "标签已移除",
+    "bulkMoved": "已移动到合集",
     "filterByTag": "按标签筛选",
     "allTags": "所有标签",
     "noTags": "无标签"
