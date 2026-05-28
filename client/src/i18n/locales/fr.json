@@ -187,7 +187,12 @@
     "currentEmail": "E-mail actuel",
     "newEmail": "Nouvelle adresse e-mail",
     "noEmail": "Aucune adresse e-mail définie",
-    "saveEmail": "Enregistrer l'adresse e-mail"
+    "saveEmail": "Enregistrer l'adresse e-mail",
+    "tagManagement": "Gestion des tags",
+    "tagManagementDesc": "Définissez des tags pour organiser rapidement vos fichiers",
+    "tagPlaceholder": "Nouveau tag…",
+    "addTag": "Ajouter",
+    "noTags": "Aucun tag défini"
   },
   "fileView": {
     "copyUrl": "Copier l'URL",
@@ -210,7 +215,8 @@
     "tags": "Tags",
     "addTag": "Ajouter un tag…",
     "tagSaved": "Tags enregistrés",
-    "tagFailed": "Échec de l'enregistrement des tags"
+    "tagFailed": "Échec de l'enregistrement des tags",
+    "noPredefTags": "Aucun tag défini — ajoutez des tags dans les Paramètres"
   },
   "admin": {
     "dashboard": "Tableau de bord",
@@ -506,7 +512,9 @@
     "copiedToClipboard": "Copié dans le presse-papiers",
     "copyToClipboard": "Cliquer pour copier",
     "apiKeyRegenerated": "Clé API régénérée",
-    "or": "ou"
+    "or": "ou",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner"
   },
   "language": {
     "label": "Langue",
@@ -553,26 +561,26 @@
     "version": "Sharely - Partage de fichiers open source - Conditions d'utilisation"
   },
   "forgotPassword": {
-    "title": "Réinitialiser votre mot de passe",
-    "description": "Entrez votre nom d'utilisateur et nous vous enverrons un lien de réinitialisation à votre adresse e-mail enregistrée.",
+    "title": "Réinitialiser le mot de passe",
+    "description": "Entrez votre nom d'utilisateur et nous vous enverrons un lien de réinitialisation à votre adresse e-mail.",
     "username": "Nom d'utilisateur",
-    "submit": "Envoyer le lien de réinitialisation",
+    "submit": "Envoyer le lien",
     "submitting": "Envoi…",
     "backToLogin": "Retour à la connexion",
     "sentTitle": "Vérifiez votre e-mail",
-    "sentDescription": "Si un compte avec ce nom d'utilisateur existe et possède une adresse e-mail vérifiée, un lien de réinitialisation a été envoyé. Le lien est valide pendant 1 heure."
+    "sentDescription": "Si un compte avec ce nom d'utilisateur existe et a une adresse e-mail vérifiée, un lien de réinitialisation a été envoyé. Le lien est valable 1 heure."
   },
   "resetPassword": {
-    "title": "Définir un nouveau mot de passe",
+    "title": "Nouveau mot de passe",
     "description": "Entrez un nouveau mot de passe pour votre compte.",
     "newPassword": "Nouveau mot de passe",
-    "confirmPassword": "Confirmer le nouveau mot de passe",
-    "submit": "Définir le nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "submit": "Enregistrer",
     "submitting": "Enregistrement…",
     "successTitle": "Mot de passe réinitialisé",
     "successDescription": "Votre mot de passe a été modifié avec succès.",
     "backToLogin": "Retour à la connexion",
-    "invalidToken": "Ce lien de réinitialisation est invalide ou a expiré.",
+    "invalidToken": "Ce lien est invalide ou expiré.",
     "requestNew": "Demander un nouveau lien",
     "passwordMismatch": "Les mots de passe ne correspondent pas",
     "passwordTooShort": "Le mot de passe doit contenir au moins 12 caractères",
@@ -580,16 +588,16 @@
   },
   "requireEmailDialog": {
     "title": "Adresse e-mail requise",
-    "description": "La réinitialisation du mot de passe est activée sur cette instance. Veuillez ajouter et vérifier votre adresse e-mail pour continuer.",
+    "description": "La réinitialisation du mot de passe est activée. Ajoutez et vérifiez votre adresse e-mail pour continuer.",
     "emailLabel": "Adresse e-mail",
     "passwordLabel": "Confirmer avec votre mot de passe actuel",
     "submit": "Enregistrer et envoyer l'e-mail de vérification",
     "submitting": "Enregistrement…",
     "waitingTitle": "Vérifiez votre boîte de réception",
-    "waitingDescription": "Un e-mail de vérification a été envoyé à {{email}}. Veuillez cliquer sur le lien dans l'e-mail pour vérifier votre adresse.",
+    "waitingDescription": "Un e-mail de vérification a été envoyé à {{email}}. Cliquez sur le lien pour vérifier votre adresse.",
     "resend": "Renvoyer l'e-mail de vérification",
     "resending": "Envoi…",
-    "changeEmail": "Utiliser une adresse e-mail différente",
+    "changeEmail": "Utiliser une autre adresse e-mail",
     "verifiedTitle": "E-mail vérifié !",
     "verifiedDescription": "Votre adresse e-mail a été vérifiée avec succès."
   },

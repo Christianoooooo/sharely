@@ -187,7 +187,12 @@
     "currentEmail": "E-mail attuale",
     "newEmail": "Nuovo indirizzo e-mail",
     "noEmail": "Nessun indirizzo e-mail impostato",
-    "saveEmail": "Salva indirizzo e-mail"
+    "saveEmail": "Salva indirizzo e-mail",
+    "tagManagement": "Gestione tag",
+    "tagManagementDesc": "Definisci tag per organizzare rapidamente i tuoi file",
+    "tagPlaceholder": "Nuovo tag…",
+    "addTag": "Aggiungi",
+    "noTags": "Nessun tag definito"
   },
   "fileView": {
     "copyUrl": "Copia URL",
@@ -210,7 +215,8 @@
     "tags": "Tag",
     "addTag": "Aggiungi tag…",
     "tagSaved": "Tag salvati",
-    "tagFailed": "Salvataggio tag fallito"
+    "tagFailed": "Salvataggio tag fallito",
+    "noPredefTags": "Nessun tag definito — aggiungi tag nelle Impostazioni"
   },
   "admin": {
     "dashboard": "Dashboard",
@@ -506,7 +512,9 @@
     "copiedToClipboard": "Copiato negli appunti",
     "copyToClipboard": "Clicca per copiare",
     "apiKeyRegenerated": "Chiave API rigenerata",
-    "or": "o"
+    "or": "o",
+    "selectAll": "Seleziona tutto",
+    "deselectAll": "Deseleziona tutto"
   },
   "language": {
     "label": "Lingua",
@@ -553,45 +561,45 @@
     "version": "Sharely - Condivisione file open source - Termini di servizio"
   },
   "forgotPassword": {
-    "title": "Reimposta la password",
-    "description": "Inserisci il tuo nome utente e ti invieremo un link di reimpostazione al tuo indirizzo e-mail registrato.",
+    "title": "Reimposta password",
+    "description": "Inserisci il tuo nome utente e ti invieremo un link di reimpostazione alla tua email.",
     "username": "Nome utente",
-    "submit": "Invia link di reimpostazione",
+    "submit": "Invia link",
     "submitting": "Invio…",
     "backToLogin": "Torna al login",
-    "sentTitle": "Controlla la tua posta",
-    "sentDescription": "Se esiste un account con quel nome utente e ha un indirizzo e-mail verificato, è stato inviato un link di reimpostazione. Il link è valido per 1 ora."
+    "sentTitle": "Controlla la tua email",
+    "sentDescription": "Se esiste un account con quel nome utente e ha un'email verificata, è stato inviato un link. Il link è valido per 1 ora."
   },
   "resetPassword": {
-    "title": "Imposta nuova password",
+    "title": "Nuova password",
     "description": "Inserisci una nuova password per il tuo account.",
     "newPassword": "Nuova password",
-    "confirmPassword": "Conferma nuova password",
-    "submit": "Imposta nuova password",
+    "confirmPassword": "Conferma password",
+    "submit": "Salva",
     "submitting": "Salvataggio…",
     "successTitle": "Password reimpostata",
-    "successDescription": "La tua password è stata modificata con successo.",
+    "successDescription": "La tua password è stata cambiata con successo.",
     "backToLogin": "Torna al login",
-    "invalidToken": "Questo link di reimpostazione non è valido o è scaduto.",
-    "requestNew": "Richiedi un nuovo link",
+    "invalidToken": "Questo link non è valido o è scaduto.",
+    "requestNew": "Richiedi nuovo link",
     "passwordMismatch": "Le password non corrispondono",
     "passwordTooShort": "La password deve contenere almeno 12 caratteri",
-    "checking": "Verifica del link…"
+    "checking": "Verifica link…"
   },
   "requireEmailDialog": {
-    "title": "Indirizzo e-mail richiesto",
-    "description": "Il ripristino della password è abilitato su questa istanza. Aggiungi e verifica il tuo indirizzo e-mail per continuare.",
-    "emailLabel": "Indirizzo e-mail",
+    "title": "Indirizzo email richiesto",
+    "description": "Il ripristino della password è attivo. Aggiungi e verifica il tuo indirizzo email per continuare.",
+    "emailLabel": "Indirizzo email",
     "passwordLabel": "Conferma con la tua password attuale",
-    "submit": "Salva e invia e-mail di verifica",
+    "submit": "Salva e invia email di verifica",
     "submitting": "Salvataggio…",
-    "waitingTitle": "Controlla la tua posta",
-    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
-    "resend": "Reinvia e-mail di verifica",
+    "waitingTitle": "Controlla la tua casella",
+    "waitingDescription": "È stata inviata un'email di verifica a {{email}}. Clicca sul link per verificare il tuo indirizzo.",
+    "resend": "Invia di nuovo l'email di verifica",
     "resending": "Invio…",
-    "changeEmail": "Usa un indirizzo e-mail diverso",
-    "verifiedTitle": "E-mail verificata!",
-    "verifiedDescription": "Il tuo indirizzo e-mail è stato verificato con successo."
+    "changeEmail": "Usa un altro indirizzo email",
+    "verifiedTitle": "Email verificata!",
+    "verifiedDescription": "Il tuo indirizzo email è stato verificato con successo."
   },
   "install": {
     "adminDescription": "Questo account avrà accesso amministrativo completo alla tua istanza di Sharely.",

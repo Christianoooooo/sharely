@@ -187,7 +187,12 @@
     "currentEmail": "当前邮件",
     "newEmail": "新电子邮件地址",
     "noEmail": "未设置电子邮件地址",
-    "saveEmail": "保存电子邮件地址"
+    "saveEmail": "保存电子邮件地址",
+    "tagManagement": "标签管理",
+    "tagManagementDesc": "定义标签以快速整理您的文件",
+    "tagPlaceholder": "新标签…",
+    "addTag": "添加",
+    "noTags": "尚未定义标签"
   },
   "fileView": {
     "copyUrl": "复制链接",
@@ -210,7 +215,8 @@
     "tags": "标签",
     "addTag": "添加标签…",
     "tagSaved": "标签已保存",
-    "tagFailed": "标签保存失败"
+    "tagFailed": "标签保存失败",
+    "noPredefTags": "未定义标签 — 请在设置中添加标签"
   },
   "admin": {
     "dashboard": "仪表板",
@@ -506,7 +512,9 @@
     "copiedToClipboard": "已复制到剪贴板",
     "copyToClipboard": "点击复制",
     "apiKeyRegenerated": "API 密钥已重新生成",
-    "or": "或"
+    "or": "或",
+    "selectAll": "全选",
+    "deselectAll": "取消全选"
   },
   "language": {
     "label": "语言",
@@ -554,44 +562,44 @@
   },
   "forgotPassword": {
     "title": "重置密码",
-    "description": "请输入您的用户名，我们将向您的注册邮箱发送重置链接。",
+    "description": "输入您的用户名，我们将向您注册的邮箱发送重置链接。",
     "username": "用户名",
     "submit": "发送重置链接",
     "submitting": "发送中…",
     "backToLogin": "返回登录",
-    "sentTitle": "请查收邮件",
-    "sentDescription": "如果该用户名的账户存在且有已验证的邮箱，则已发送重置链接。链接有效期为1小时。"
+    "sentTitle": "请查看您的邮箱",
+    "sentDescription": "如果该用户名的账户存在且绑定了已验证的邮箱，重置链接已发送。链接有效期为1小时。"
   },
   "resetPassword": {
     "title": "设置新密码",
-    "description": "请为您的账户输入新密码。",
+    "description": "请输入您账户的新密码。",
     "newPassword": "新密码",
     "confirmPassword": "确认新密码",
-    "submit": "设置新密码",
+    "submit": "保存密码",
     "submitting": "保存中…",
     "successTitle": "密码已重置",
     "successDescription": "您的密码已成功更改。",
     "backToLogin": "返回登录",
     "invalidToken": "此重置链接无效或已过期。",
-    "requestNew": "申请新链接",
-    "passwordMismatch": "两次密码不一致",
-    "passwordTooShort": "密码至少需要12个字符",
+    "requestNew": "请求新链接",
+    "passwordMismatch": "密码不匹配",
+    "passwordTooShort": "密码长度至少需要12个字符",
     "checking": "正在验证链接…"
   },
   "requireEmailDialog": {
-    "title": "需要电子邮件地址",
-    "description": "此实例已启用密码重置功能。请添加并验证您的电子邮件地址以继续。",
-    "emailLabel": "电子邮件地址",
-    "passwordLabel": "使用当前密码确认",
+    "title": "需要邮箱地址",
+    "description": "此实例已启用密码重置功能。请添加并验证您的邮箱以继续。",
+    "emailLabel": "邮箱地址",
+    "passwordLabel": "用当前密码确认",
     "submit": "保存并发送验证邮件",
     "submitting": "保存中…",
-    "waitingTitle": "请查收邮件",
-    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
+    "waitingTitle": "请查看您的收件箱",
+    "waitingDescription": "已向 {{email}} 发送验证邮件。请点击邮件中的链接验证您的地址。",
     "resend": "重新发送验证邮件",
     "resending": "发送中…",
-    "changeEmail": "使用不同的电子邮件地址",
-    "verifiedTitle": "邮件已验证！",
-    "verifiedDescription": "您的电子邮件地址已成功验证。"
+    "changeEmail": "使用其他邮箱地址",
+    "verifiedTitle": "邮箱已验证！",
+    "verifiedDescription": "您的邮箱地址已成功验证。"
   },
   "install": {
     "adminDescription": "此账户将拥有对您的 Sharely 实例的完整管理员权限。",

@@ -50,8 +50,8 @@
     "backToLogin": "Zur Anmeldung",
     "invalidToken": "Dieser Reset-Link ist ungültig oder abgelaufen.",
     "requestNew": "Neuen Link anfordern",
-    "passwordMismatch": "Die Passwörter stimmen nicht überein",
-    "passwordTooShort": "Das Passwort muss mindestens 12 Zeichen lang sein",
+    "passwordMismatch": "Passwörter stimmen nicht überein",
+    "passwordTooShort": "Passwort muss mindestens 12 Zeichen lang sein",
     "checking": "Link wird überprüft…"
   },
   "register": {
@@ -213,18 +213,23 @@
     "emailResend": "Bestätigungs-E-Mail erneut senden",
     "emailResent": "Bestätigungs-E-Mail erneut gesendet",
     "emailVerifiedSuccess": "E-Mail-Adresse erfolgreich verifiziert!",
-    "emailVerifiedError": "Der Verifizierungslink ist ungültig oder abgelaufen. Bitte fordere einen neuen an."
+    "emailVerifiedError": "Der Verifizierungslink ist ungültig oder abgelaufen. Bitte fordere einen neuen an.",
+    "tagManagement": "Tag-Verwaltung",
+    "tagManagementDesc": "Definiere Tags, um deine Dateien schnell zu organisieren",
+    "tagPlaceholder": "Neuer Tag…",
+    "addTag": "Hinzufügen",
+    "noTags": "Noch keine Tags definiert"
   },
   "requireEmailDialog": {
     "title": "E-Mail-Adresse erforderlich",
-    "description": "Auf dieser Instanz ist der Passwort-Reset aktiviert. Bitte hinterlege und verifiziere deine E-Mail-Adresse, um fortzufahren.",
+    "description": "Passwort-Reset ist auf dieser Instanz aktiviert. Bitte füge eine verifizierte E-Mail-Adresse hinzu, um fortzufahren.",
     "emailLabel": "E-Mail-Adresse",
-    "passwordLabel": "Mit deinem aktuellen Passwort bestätigen",
-    "submit": "Speichern & Bestätigungs-E-Mail senden",
+    "passwordLabel": "Mit aktuellem Passwort bestätigen",
+    "submit": "Speichern & Bestätigungsmail senden",
     "submitting": "Speichern…",
-    "waitingTitle": "Posteingang überprüfen",
-    "waitingDescription": "Eine Bestätigungs-E-Mail wurde an {{email}} gesendet. Bitte klicke auf den Link in der E-Mail.",
-    "resend": "Bestätigungs-E-Mail erneut senden",
+    "waitingTitle": "Posteingang prüfen",
+    "waitingDescription": "Eine Bestätigungsmail wurde an {{email}} gesendet. Bitte klicke auf den Link in der E-Mail, um die Adresse zu verifizieren.",
+    "resend": "Bestätigungsmail erneut senden",
     "resending": "Wird gesendet…",
     "changeEmail": "Andere E-Mail-Adresse verwenden",
     "verifiedTitle": "E-Mail verifiziert!",
@@ -251,7 +256,8 @@
     "tags": "Tags",
     "addTag": "Tag hinzufügen…",
     "tagSaved": "Tags gespeichert",
-    "tagFailed": "Speichern fehlgeschlagen"
+    "tagFailed": "Speichern fehlgeschlagen",
+    "noPredefTags": "Keine Tags definiert – füge Tags in den Einstellungen hinzu"
   },
   "shareLink": {
     "title": "Freigabe-Links",
@@ -657,7 +663,9 @@
     "copiedToClipboard": "In Zwischenablage kopiert",
     "copyToClipboard": "Klicken zum Kopieren",
     "apiKeyRegenerated": "API-Schlüssel neu generiert",
-    "or": "oder"
+    "or": "oder",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Auswahl aufheben"
   },
   "language": {
     "label": "Sprache",

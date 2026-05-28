@@ -187,7 +187,12 @@
     "currentEmail": "現在のメールアドレス",
     "newEmail": "新しいメールアドレス",
     "noEmail": "メールアドレスが設定されていません",
-    "saveEmail": "メールアドレスを保存"
+    "saveEmail": "メールアドレスを保存",
+    "tagManagement": "タグ管理",
+    "tagManagementDesc": "ファイルをすばやく整理するためのタグを定義します",
+    "tagPlaceholder": "新しいタグ…",
+    "addTag": "追加",
+    "noTags": "タグが定義されていません"
   },
   "fileView": {
     "copyUrl": "URLをコピー",
@@ -210,7 +215,8 @@
     "tags": "タグ",
     "addTag": "タグを追加…",
     "tagSaved": "タグを保存しました",
-    "tagFailed": "タグの保存に失敗しました"
+    "tagFailed": "タグの保存に失敗しました",
+    "noPredefTags": "タグが未定義です — 設定でタグを追加してください"
   },
   "admin": {
     "dashboard": "ダッシュボード",
@@ -506,7 +512,9 @@
     "copiedToClipboard": "クリップボードにコピーしました",
     "copyToClipboard": "クリックしてコピー",
     "apiKeyRegenerated": "APIキーを再生成しました",
-    "or": "または"
+    "or": "または",
+    "selectAll": "すべて選択",
+    "deselectAll": "選択解除"
   },
   "language": {
     "label": "言語",
@@ -553,44 +561,44 @@
     "version": "Sharely - オープンソースファイル共有 - 利用規約"
   },
   "forgotPassword": {
-    "title": "パスワードのリセット",
-    "description": "ユーザー名を入力してください。登録済みのメールアドレスにリセットリンクをお送りします。",
+    "title": "パスワードをリセット",
+    "description": "ユーザー名を入力してください。登録済みのメールアドレスにリセットリンクを送信します。",
     "username": "ユーザー名",
     "submit": "リセットリンクを送信",
     "submitting": "送信中…",
     "backToLogin": "ログインに戻る",
-    "sentTitle": "メールをご確認ください",
-    "sentDescription": "そのユーザー名のアカウントが存在し、確認済みのメールアドレスが登録されている場合、リセットリンクが送信されました。リンクの有効期限は1時間です。"
+    "sentTitle": "メールを確認してください",
+    "sentDescription": "そのユーザー名のアカウントが存在し、確認済みのメールアドレスが登録されている場合、リセットリンクが送信されました。リンクは1時間有効です。"
   },
   "resetPassword": {
     "title": "新しいパスワードを設定",
     "description": "アカウントの新しいパスワードを入力してください。",
     "newPassword": "新しいパスワード",
-    "confirmPassword": "新しいパスワードの確認",
-    "submit": "新しいパスワードを設定",
+    "confirmPassword": "パスワードを確認",
+    "submit": "パスワードを変更",
     "submitting": "保存中…",
-    "successTitle": "パスワードがリセットされました",
+    "successTitle": "パスワードをリセットしました",
     "successDescription": "パスワードが正常に変更されました。",
     "backToLogin": "ログインに戻る",
     "invalidToken": "このリセットリンクは無効または期限切れです。",
     "requestNew": "新しいリンクをリクエスト",
     "passwordMismatch": "パスワードが一致しません",
-    "passwordTooShort": "パスワードは12文字以上にしてください",
+    "passwordTooShort": "パスワードは12文字以上必要です",
     "checking": "リンクを確認中…"
   },
   "requireEmailDialog": {
     "title": "メールアドレスが必要です",
-    "description": "このインスタンスではパスワードリセットが有効です。続行するにはメールアドレスを追加して確認してください。",
+    "description": "パスワードリセットが有効になっています。続行するにはメールアドレスを追加・確認してください。",
     "emailLabel": "メールアドレス",
     "passwordLabel": "現在のパスワードで確認",
     "submit": "保存して確認メールを送信",
     "submitting": "保存中…",
-    "waitingTitle": "受信トレイを確認してください",
-    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
+    "waitingTitle": "受信ボックスを確認してください",
+    "waitingDescription": "{{email}} に確認メールを送信しました。メール内のリンクをクリックしてアドレスを確認してください。",
     "resend": "確認メールを再送信",
     "resending": "送信中…",
     "changeEmail": "別のメールアドレスを使用",
-    "verifiedTitle": "メールが確認されました！",
+    "verifiedTitle": "メールを確認しました！",
     "verifiedDescription": "メールアドレスが正常に確認されました。"
   },
   "install": {

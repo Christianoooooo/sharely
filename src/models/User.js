@@ -85,6 +85,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  predefinedTags: {
+    type: [{ type: String, trim: true, maxlength: 50 }],
+    default: [],
+  },
 });
 
 userSchema.pre('save', async function (next) {
