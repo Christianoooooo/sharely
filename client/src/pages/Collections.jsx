@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -189,7 +190,10 @@ function EditCollectionDialog({ coll, onUpdated }) {
             <Input id="edit-pw" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setClearPassword(false); }} placeholder={coll.hasPassword ? '••••••••' : t('shareLink.noPassword')} />
             {coll.hasPassword && (
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={clearPassword} onChange={(e) => { setClearPassword(e.target.checked); if (e.target.checked) setPassword(''); }} className="rounded" />
+                <Checkbox
+                  checked={clearPassword}
+                  onCheckedChange={(v) => { setClearPassword(!!v); if (v) setPassword(''); }}
+                />
                 {t('collections.clearPassword')}
               </label>
             )}
@@ -202,7 +206,7 @@ function EditCollectionDialog({ coll, onUpdated }) {
             <DateTimePicker onChange={setExpiresAt} />
             {coll.expiresAt && (
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={clearExpiry} onChange={(e) => setClearExpiry(e.target.checked)} className="rounded" />
+                <Checkbox checked={clearExpiry} onCheckedChange={(v) => setClearExpiry(!!v)} />
                 {t('collections.clearExpiry')}
               </label>
             )}
