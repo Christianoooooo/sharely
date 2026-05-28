@@ -11,26 +11,36 @@ function isVerified(req, token) {
     req.session.verifiedShareLinks.includes(token);
 }
 
+function isBrowser(req) {
+  return req.headers.accept?.includes('text/html');
+}
+
 async function resolveLink(req, res, token) {
   const link = await ShareLink.findOne({ token }).populate('file');
-  if (!link) { res.status(404).json({ error: 'Share link not found' }); return null; }
+  if (!link) {
+    if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
+    res.status(404).json({ error: 'Share link not found' }); return null;
+  }
 
   if (link.expiresAt && link.expiresAt < new Date()) {
-    res.status(410).json({ error: 'This link has expired' });
-    return null;
+    if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
+    res.status(410).json({ error: 'This link has expired' }); return null;
   }
 
   if (link.downloadLimit !== -1 && link.downloadCount >= link.downloadLimit) {
-    res.status(403).json({ error: 'Download limit reached' });
-    return null;
+    if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
+    res.status(403).json({ error: 'Download limit reached' }); return null;
   }
 
   if (link.password && !isVerified(req, token)) {
-    res.status(401).json({ error: 'Password required' });
-    return null;
+    if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
+    res.status(401).json({ error: 'Password required' }); return null;
   }
 
-  if (!link.file) { res.status(404).json({ error: 'File not found' }); return null; }
+  if (!link.file) {
+    if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
+    res.status(404).json({ error: 'File not found' }); return null;
+  }
   return link;
 }
 
