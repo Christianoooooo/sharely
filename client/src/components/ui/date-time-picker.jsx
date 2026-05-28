@@ -47,11 +47,13 @@ function Spinner({ value, max, onChange }) {
   );
 }
 
-export function DateTimePicker({ onChange, className }) {
+export function DateTimePicker({ defaultValue, onChange, className }) {
   const { t, i18n } = useTranslation();
-  const [date, setDate] = useState(null);
-  const [hours, setHours] = useState(0);
-  const [minutes, setMinutes] = useState(0);
+
+  const initDate = defaultValue ? new Date(defaultValue) : null;
+  const [date, setDate] = useState(initDate);
+  const [hours, setHours] = useState(initDate ? initDate.getHours() : 0);
+  const [minutes, setMinutes] = useState(initDate ? initDate.getMinutes() : 0);
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
 
