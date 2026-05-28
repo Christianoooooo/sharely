@@ -187,7 +187,12 @@
     "currentEmail": "E-mail atual",
     "newEmail": "Novo endereço de e-mail",
     "noEmail": "Nenhum endereço de e-mail definido",
-    "saveEmail": "Salvar endereço de e-mail"
+    "saveEmail": "Salvar endereço de e-mail",
+    "tagManagement": "Gestão de tags",
+    "tagManagementDesc": "Defina tags para organizar rapidamente os seus ficheiros",
+    "tagPlaceholder": "Nova tag…",
+    "addTag": "Adicionar",
+    "noTags": "Nenhuma tag definida"
   },
   "fileView": {
     "copyUrl": "Copiar URL",
@@ -210,7 +215,8 @@
     "tags": "Tags",
     "addTag": "Adicionar tag…",
     "tagSaved": "Tags salvas",
-    "tagFailed": "Falha ao salvar tags"
+    "tagFailed": "Falha ao salvar tags",
+    "noPredefTags": "Nenhuma tag definida — adicione tags nas Definições"
   },
   "admin": {
     "dashboard": "Painel",
@@ -506,7 +512,9 @@
     "copiedToClipboard": "Copiado para a área de transferência",
     "copyToClipboard": "Clique para copiar",
     "apiKeyRegenerated": "Chave API regenerada",
-    "or": "ou"
+    "or": "ou",
+    "selectAll": "Selecionar tudo",
+    "deselectAll": "Desselecionar tudo"
   },
   "language": {
     "label": "Idioma",
@@ -553,45 +561,45 @@
     "version": "Sharely - Partilha de ficheiros open source - Termos de serviço"
   },
   "forgotPassword": {
-    "title": "Redefinir sua senha",
-    "description": "Insira seu nome de usuário e enviaremos um link de redefinição para o seu e-mail cadastrado.",
-    "username": "Nome de usuário",
-    "submit": "Enviar link de redefinição",
-    "submitting": "Enviando…",
-    "backToLogin": "Voltar ao login",
-    "sentTitle": "Verifique seu e-mail",
-    "sentDescription": "Se existir uma conta com esse nome de usuário e tiver um e-mail verificado cadastrado, um link de redefinição foi enviado. O link é válido por 1 hora."
+    "title": "Redefinir palavra-passe",
+    "description": "Introduza o seu nome de utilizador e enviaremos um link de redefinição para o seu e-mail.",
+    "username": "Nome de utilizador",
+    "submit": "Enviar link",
+    "submitting": "A enviar…",
+    "backToLogin": "Voltar ao início de sessão",
+    "sentTitle": "Verifique o seu e-mail",
+    "sentDescription": "Se existir uma conta com esse nome de utilizador e tiver um e-mail verificado, foi enviado um link. O link é válido durante 1 hora."
   },
   "resetPassword": {
-    "title": "Definir nova senha",
-    "description": "Insira uma nova senha para sua conta.",
-    "newPassword": "Nova senha",
-    "confirmPassword": "Confirmar nova senha",
-    "submit": "Definir nova senha",
-    "submitting": "Salvando…",
-    "successTitle": "Senha redefinida",
-    "successDescription": "Sua senha foi alterada com sucesso.",
-    "backToLogin": "Voltar ao login",
-    "invalidToken": "Este link de redefinição é inválido ou expirou.",
-    "requestNew": "Solicitar um novo link",
-    "passwordMismatch": "As senhas não coincidem",
-    "passwordTooShort": "A senha deve ter pelo menos 12 caracteres",
-    "checking": "Verificando link…"
+    "title": "Nova palavra-passe",
+    "description": "Introduza uma nova palavra-passe para a sua conta.",
+    "newPassword": "Nova palavra-passe",
+    "confirmPassword": "Confirmar palavra-passe",
+    "submit": "Guardar",
+    "submitting": "A guardar…",
+    "successTitle": "Palavra-passe redefinida",
+    "successDescription": "A sua palavra-passe foi alterada com sucesso.",
+    "backToLogin": "Voltar ao início de sessão",
+    "invalidToken": "Este link é inválido ou expirou.",
+    "requestNew": "Solicitar novo link",
+    "passwordMismatch": "As palavras-passe não coincidem",
+    "passwordTooShort": "A palavra-passe deve ter pelo menos 12 caracteres",
+    "checking": "A verificar link…"
   },
   "requireEmailDialog": {
-    "title": "Endereço de e-mail obrigatório",
-    "description": "A redefinição de senha está habilitada nesta instância. Adicione e verifique seu endereço de e-mail para continuar.",
+    "title": "Endereço de e-mail necessário",
+    "description": "A redefinição de palavra-passe está ativa. Adicione e verifique o seu e-mail para continuar.",
     "emailLabel": "Endereço de e-mail",
-    "passwordLabel": "Confirmar com sua senha atual",
-    "submit": "Salvar e enviar e-mail de verificação",
-    "submitting": "Salvando…",
-    "waitingTitle": "Verifique sua caixa de entrada",
-    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
+    "passwordLabel": "Confirmar com a sua palavra-passe atual",
+    "submit": "Guardar e enviar e-mail de verificação",
+    "submitting": "A guardar…",
+    "waitingTitle": "Verifique a sua caixa de entrada",
+    "waitingDescription": "Foi enviado um e-mail de verificação para {{email}}. Clique no link para verificar o seu endereço.",
     "resend": "Reenviar e-mail de verificação",
-    "resending": "Enviando…",
-    "changeEmail": "Usar um endereço de e-mail diferente",
+    "resending": "A enviar…",
+    "changeEmail": "Usar outro endereço de e-mail",
     "verifiedTitle": "E-mail verificado!",
-    "verifiedDescription": "Seu endereço de e-mail foi verificado com sucesso."
+    "verifiedDescription": "O seu endereço de e-mail foi verificado com sucesso."
   },
   "install": {
     "adminDescription": "Esta conta terá acesso administrativo completo à sua instância do Sharely.",

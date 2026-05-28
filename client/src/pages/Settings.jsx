@@ -21,11 +21,12 @@ import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes,
-  faShield, faDownload, faPencil, faEnvelope, faCircleCheck, faCircleExclamation,
+  faShield, faDownload, faPencil, faEnvelope, faCircleCheck, faCircleExclamation, faTag, faXmark, faPlus,
 } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -49,6 +50,9 @@ export default function Settings() {
 
   const [embedMode, setEmbedMode] = useState(user?.embedMode || 'embed');
   const [savingEmbed, setSavingEmbed] = useState(false);
+
+  const [predefinedTags, setPredefinedTags] = useState([]);
+  const [newTagInput, setNewTagInput] = useState('');
 
   const [exporting, setExporting] = useState(false);
 
@@ -76,6 +80,36 @@ export default function Settings() {
       .then((data) => setOperatorEmail(data.operatorEmail || ''))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch('/api/user/predefined-tags')
+      .then((r) => r.ok ? r.json() : { tags: [] })
+      .then((d) => setPredefinedTags(d.tags || []));
+  }, []);
+
+  async function savePredefinedTags(tags) {
+    await fetch('/api/user/predefined-tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags }),
+    });
+  }
+
+  function addPredefinedTag(e) {
+    e.preventDefault();
+    const trimmed = newTagInput.trim().slice(0, 50);
+    if (!trimmed || predefinedTags.includes(trimmed) || predefinedTags.length >= 100) return;
+    const next = [...predefinedTags, trimmed];
+    setPredefinedTags(next);
+    setNewTagInput('');
+    savePredefinedTags(next);
+  }
+
+  function removePredefinedTag(tag) {
+    const next = predefinedTags.filter((t) => t !== tag);
+    setPredefinedTags(next);
+    savePredefinedTags(next);
+  }
 
   async function handleEmbedModeChange(val) {
     setEmbedMode(val);
@@ -437,6 +471,43 @@ export default function Settings() {
                   ))}
                 </SelectContent>
               </Select>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faTag} className="h-4 w-4" />{t('settings.tagManagement')}
+              </CardTitle>
+              <CardDescription>{t('settings.tagManagementDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2 min-h-[2rem]">
+                {predefinedTags.length === 0 && (
+                  <p className="text-xs text-muted-foreground">{t('settings.noTags')}</p>
+                )}
+                {predefinedTags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                    {tag}
+                    <button onClick={() => removePredefinedTag(tag)} className="ml-0.5 hover:text-destructive">
+                      <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <form onSubmit={addPredefinedTag} className="flex gap-2">
+                <Input
+                  value={newTagInput}
+                  onChange={(e) => setNewTagInput(e.target.value)}
+                  placeholder={t('settings.tagPlaceholder')}
+                  className="h-9 max-w-xs text-sm"
+                  maxLength={50}
+                />
+                <Button type="submit" size="sm" disabled={!newTagInput.trim()} className="gap-1.5">
+                  <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
+                  {t('settings.addTag')}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

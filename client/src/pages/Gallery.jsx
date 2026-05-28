@@ -337,16 +337,20 @@ export default function Gallery() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const [bulkTagInput, setBulkTagInput] = useState('');
-  const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [bulkCollOpen, setBulkCollOpen] = useState(false);
   const [myCollections, setMyCollections] = useState([]);
   const [allTags, setAllTags] = useState([]);
+  const [predefinedTags, setPredefinedTags] = useState([]);
 
-  // Tag suggestions & user collections (loaded lazily)
+  // File tags (for filter chips) – always loaded so filter chips are always visible
+  useEffect(() => {
+    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setAllTags(d.tags || []));
+  }, []);
+
+  // Predefined tags & user collections (loaded lazily when select mode activates)
   useEffect(() => {
     if (!selectMode) return;
-    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setAllTags(d.tags));
+    fetch('/api/user/predefined-tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setPredefinedTags(d.tags || []));
     fetch('/api/collections').then((r) => r.ok ? r.json() : { collections: [] }).then((d) => setMyCollections(d.collections || []));
   }, [selectMode]);
 
@@ -386,7 +390,6 @@ export default function Gallery() {
     }
     setSelected(new Set());
     setBulkDeleteOpen(false);
-    setBulkTagOpen(false);
     setBulkCollOpen(false);
   }
 
@@ -523,16 +526,18 @@ export default function Gallery() {
           <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={selected.size === 0} className="text-xs">{t('common.deselectAll') || 'Deselect all'}</Button>
 
           {/* Tag */}
-          {bulkTagOpen ? (
-            <form onSubmit={(e) => { e.preventDefault(); if (bulkTagInput.trim()) bulkAction('tag', { tags: bulkTagInput.split(',').map((s) => s.trim()) }); }}
-              className="flex gap-1">
-              <Input autoFocus value={bulkTagInput} onChange={(e) => setBulkTagInput(e.target.value)} placeholder={t('fileView.addTag')} className="h-8 w-40 text-xs" list="bulk-tag-suggestions" />
-              <datalist id="bulk-tag-suggestions">{allTags.map((t_) => <option key={t_} value={t_} />)}</datalist>
-              <Button size="sm" type="submit" disabled={!bulkTagInput.trim() || selected.size === 0}>{t('gallery.bulkTag')}</Button>
-              <Button size="sm" variant="ghost" type="button" onClick={() => setBulkTagOpen(false)}><FontAwesomeIcon icon={faXmark} /></Button>
-            </form>
+          {predefinedTags.length > 0 ? (
+            <Select onValueChange={(tag) => bulkAction('tag', { tags: [tag] })} disabled={selected.size === 0} value="">
+              <SelectTrigger className="h-8 w-44 text-xs" disabled={selected.size === 0}>
+                <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                <SelectValue placeholder={t('gallery.bulkTag')} />
+              </SelectTrigger>
+              <SelectContent>
+                {predefinedTags.map((tag) => <SelectItem key={tag} value={tag}>{tag}</SelectItem>)}
+              </SelectContent>
+            </Select>
           ) : (
-            <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setBulkTagOpen(true)} className="gap-1.5">
+            <Button size="sm" variant="outline" disabled className="gap-1.5">
               <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5" />{t('gallery.bulkTag')}
             </Button>
           )}

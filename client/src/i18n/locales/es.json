@@ -187,7 +187,12 @@
     "currentEmail": "Correo actual",
     "newEmail": "Nueva dirección de correo",
     "noEmail": "No hay dirección de correo configurada",
-    "saveEmail": "Guardar dirección de correo"
+    "saveEmail": "Guardar dirección de correo",
+    "tagManagement": "Gestión de etiquetas",
+    "tagManagementDesc": "Define etiquetas para organizar rápidamente tus archivos",
+    "tagPlaceholder": "Nueva etiqueta…",
+    "addTag": "Añadir",
+    "noTags": "Ninguna etiqueta definida"
   },
   "fileView": {
     "copyUrl": "Copiar URL",
@@ -210,7 +215,8 @@
     "tags": "Etiquetas",
     "addTag": "Añadir etiqueta…",
     "tagSaved": "Etiquetas guardadas",
-    "tagFailed": "Error al guardar las etiquetas"
+    "tagFailed": "Error al guardar las etiquetas",
+    "noPredefTags": "Ninguna etiqueta definida — añade etiquetas en Ajustes"
   },
   "admin": {
     "dashboard": "Panel",
@@ -506,7 +512,9 @@
     "copiedToClipboard": "Copiado al portapapeles",
     "copyToClipboard": "Clic para copiar",
     "apiKeyRegenerated": "Clave API regenerada",
-    "or": "o"
+    "or": "o",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo"
   },
   "language": {
     "label": "Idioma",
@@ -554,42 +562,42 @@
   },
   "forgotPassword": {
     "title": "Restablecer contraseña",
-    "description": "Introduce tu nombre de usuario y te enviaremos un enlace de restablecimiento a tu correo registrado.",
+    "description": "Introduce tu nombre de usuario y te enviaremos un enlace de restablecimiento a tu dirección de correo.",
     "username": "Nombre de usuario",
-    "submit": "Enviar enlace de restablecimiento",
+    "submit": "Enviar enlace",
     "submitting": "Enviando…",
     "backToLogin": "Volver al inicio de sesión",
     "sentTitle": "Revisa tu correo",
-    "sentDescription": "Si existe una cuenta con ese nombre de usuario y tiene una dirección de correo verificada, se ha enviado un enlace de restablecimiento. El enlace es válido durante 1 hora."
+    "sentDescription": "Si existe una cuenta con ese nombre de usuario y tiene una dirección de correo verificada, se ha enviado un enlace. El enlace es válido durante 1 hora."
   },
   "resetPassword": {
-    "title": "Establecer nueva contraseña",
+    "title": "Nueva contraseña",
     "description": "Introduce una nueva contraseña para tu cuenta.",
     "newPassword": "Nueva contraseña",
-    "confirmPassword": "Confirmar nueva contraseña",
-    "submit": "Establecer nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "submit": "Guardar",
     "submitting": "Guardando…",
     "successTitle": "Contraseña restablecida",
     "successDescription": "Tu contraseña ha sido cambiada correctamente.",
     "backToLogin": "Volver al inicio de sesión",
-    "invalidToken": "Este enlace de restablecimiento no es válido o ha expirado.",
-    "requestNew": "Solicitar un nuevo enlace",
+    "invalidToken": "Este enlace no es válido o ha expirado.",
+    "requestNew": "Solicitar nuevo enlace",
     "passwordMismatch": "Las contraseñas no coinciden",
     "passwordTooShort": "La contraseña debe tener al menos 12 caracteres",
-    "checking": "Verificando enlace…"
+    "checking": "Comprobando enlace…"
   },
   "requireEmailDialog": {
-    "title": "Dirección de correo requerida",
-    "description": "El restablecimiento de contraseña está habilitado en esta instancia. Por favor, añade y verifica tu correo para continuar.",
-    "emailLabel": "Dirección de correo electrónico",
+    "title": "Se requiere dirección de correo",
+    "description": "El restablecimiento de contraseña está activado. Añade y verifica tu dirección de correo para continuar.",
+    "emailLabel": "Dirección de correo",
     "passwordLabel": "Confirmar con tu contraseña actual",
     "submit": "Guardar y enviar correo de verificación",
     "submitting": "Guardando…",
     "waitingTitle": "Revisa tu bandeja de entrada",
-    "waitingDescription": "A verification email has been sent to {{email}}. Please click the link in the email to verify your address.",
+    "waitingDescription": "Se ha enviado un correo de verificación a {{email}}. Haz clic en el enlace para verificar tu dirección.",
     "resend": "Reenviar correo de verificación",
     "resending": "Enviando…",
-    "changeEmail": "Usar una dirección de correo diferente",
+    "changeEmail": "Usar otra dirección de correo",
     "verifiedTitle": "¡Correo verificado!",
     "verifiedDescription": "Tu dirección de correo ha sido verificada correctamente."
   },

@@ -213,7 +213,12 @@
     "emailResend": "Resend verification email",
     "emailResent": "Verification email resent",
     "emailVerifiedSuccess": "Email address verified successfully!",
-    "emailVerifiedError": "The verification link is invalid or has expired. Please request a new one."
+    "emailVerifiedError": "The verification link is invalid or has expired. Please request a new one.",
+    "tagManagement": "Tag Management",
+    "tagManagementDesc": "Define tags to quickly organise your files",
+    "tagPlaceholder": "New tag…",
+    "addTag": "Add",
+    "noTags": "No tags defined yet"
   },
   "requireEmailDialog": {
     "title": "Email address required",
@@ -251,7 +256,8 @@
     "tags": "Tags",
     "addTag": "Add tag…",
     "tagSaved": "Tags saved",
-    "tagFailed": "Failed to save tags"
+    "tagFailed": "Failed to save tags",
+    "noPredefTags": "No tags defined — add tags in Settings"
   },
   "shareLink": {
     "title": "Share Links",
@@ -657,7 +663,9 @@
     "copiedToClipboard": "Copied to clipboard",
     "copyToClipboard": "Click to copy",
     "apiKeyRegenerated": "API key regenerated",
-    "or": "or"
+    "or": "or",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all"
   },
   "language": {
     "label": "Language",

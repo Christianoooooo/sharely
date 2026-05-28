@@ -65,6 +65,7 @@ import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -172,7 +173,6 @@ function FileViewInner() {
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
   const [tags, setTags] = useState([]);
-  const [tagInput, setTagInput] = useState('');
   const [tagSuggestions, setTagSuggestions] = useState([]);
 
   useEffect(() => {
@@ -193,7 +193,7 @@ function FileViewInner() {
 
   useEffect(() => {
     if (!canEdit) return;
-    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setTagSuggestions(d.tags));
+    fetch('/api/user/predefined-tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setTagSuggestions(d.tags));
   }, [canEdit]);
 
   async function handleDelete() {
@@ -243,7 +243,6 @@ function FileViewInner() {
     if (!trimmed || tags.includes(trimmed) || tags.length >= 20) return;
     const next = [...tags, trimmed];
     setTags(next);
-    setTagInput('');
     saveTags(next);
   }
 
@@ -341,19 +340,20 @@ function FileViewInner() {
                   )}
                 </Badge>
               ))}
-              {canEdit && (
-                <form onSubmit={(e) => { e.preventDefault(); addTag(tagInput); }} className="flex gap-1">
-                  <Input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    placeholder={t('fileView.addTag')}
-                    className="h-7 w-32 text-xs"
-                    list="tag-suggestions"
-                  />
-                  <datalist id="tag-suggestions">
-                    {tagSuggestions.filter((s) => !tags.includes(s)).map((s) => <option key={s} value={s} />)}
-                  </datalist>
-                </form>
+              {canEdit && tagSuggestions.length > 0 && (
+                <Select onValueChange={addTag} value="">
+                  <SelectTrigger className="h-7 w-36 text-xs">
+                    <SelectValue placeholder={t('fileView.addTag')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tagSuggestions.filter((s) => !tags.includes(s)).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {canEdit && tagSuggestions.length === 0 && (
+                <span className="text-xs text-muted-foreground">{t('fileView.noPredefTags')}</span>
               )}
             </div>
           </CardContent>

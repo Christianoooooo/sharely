@@ -635,6 +635,19 @@ router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
 });
 
 // ── User: export data (GDPR Art. 20) ───────────────────────────────────────
+router.get('/user/predefined-tags', requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.user.id).select('predefinedTags');
+  res.json({ tags: user?.predefinedTags || [] });
+});
+
+router.patch('/user/predefined-tags', requireLogin, async (req, res) => {
+  let { tags } = req.body;
+  if (!Array.isArray(tags)) return res.status(400).json({ error: 'tags must be an array' });
+  tags = [...new Set(tags.map((t) => String(t).trim().slice(0, 50)).filter(Boolean))].slice(0, 100);
+  await User.findByIdAndUpdate(req.session.user.id, { predefinedTags: tags });
+  res.json({ tags });
+});
+
 router.get('/user/export', requireLogin, async (req, res) => {
   const user = await User.findById(req.session.user.id)
     .select('username role createdAt embedMode');
