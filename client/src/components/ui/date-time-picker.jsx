@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
 import { de, fr, es, it, pt, ja, zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -10,62 +10,37 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
 const LOCALE_MAP = { de, fr, es, it, pt, ja, zh: zhCN };
-
 function getDateFnsLocale(lang) {
   return LOCALE_MAP[lang?.split('-')[0]] ?? enUS;
 }
 
-function TimeSpinner({ value, max, onChange }) {
-  const inputRef = useRef(null);
-
+function Spinner({ value, max, onChange }) {
   function clamp(v) {
     if (v < 0) return max;
     if (v > max) return 0;
     return v;
   }
-
-  function handleKey(e) {
-    if (e.key === 'ArrowUp') { e.preventDefault(); onChange(clamp(value + 1)); }
-    if (e.key === 'ArrowDown') { e.preventDefault(); onChange(clamp(value - 1)); }
-  }
-
-  function handleChange(e) {
-    const n = parseInt(e.target.value, 10);
-    if (!isNaN(n)) onChange(clamp(n));
-  }
-
-  function handleBlur(e) {
-    const n = parseInt(e.target.value, 10);
-    onChange(isNaN(n) ? 0 : clamp(n));
-  }
-
   return (
-    <div className="flex flex-col items-center">
-      <button
-        type="button"
-        tabIndex={-1}
-        className="p-0.5 text-muted-foreground hover:text-foreground"
-        onClick={() => onChange(clamp(value + 1))}
-      >
+    <div className="flex flex-col items-center gap-1">
+      <button type="button" tabIndex={-1} onClick={() => onChange(clamp(value + 1))}
+        className="flex h-7 w-7 items-center justify-center rounded hover:bg-accent">
         <FontAwesomeIcon icon={faChevronUp} className="h-3 w-3" />
       </button>
       <input
-        ref={inputRef}
         type="text"
         inputMode="numeric"
-        className="w-8 text-center text-sm font-mono bg-transparent focus:outline-none focus:ring-1 focus:ring-ring rounded"
-        value={String(value).padStart(2, '0')}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onKeyDown={handleKey}
         maxLength={2}
+        className="w-9 rounded border text-center text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring bg-background py-1"
+        value={String(value).padStart(2, '0')}
+        onChange={(e) => { const n = parseInt(e.target.value, 10); if (!isNaN(n)) onChange(clamp(n)); }}
+        onBlur={(e) => { const n = parseInt(e.target.value, 10); onChange(isNaN(n) ? 0 : clamp(n)); }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowUp') { e.preventDefault(); onChange(clamp(value + 1)); }
+          if (e.key === 'ArrowDown') { e.preventDefault(); onChange(clamp(value - 1)); }
+        }}
       />
-      <button
-        type="button"
-        tabIndex={-1}
-        className="p-0.5 text-muted-foreground hover:text-foreground"
-        onClick={() => onChange(clamp(value - 1))}
-      >
+      <button type="button" tabIndex={-1} onClick={() => onChange(clamp(value - 1))}
+        className="flex h-7 w-7 items-center justify-center rounded hover:bg-accent">
         <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3" />
       </button>
     </div>
@@ -77,7 +52,8 @@ export function DateTimePicker({ onChange, className }) {
   const [date, setDate] = useState(null);
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
-  const [open, setOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
 
   const locale = useMemo(() => getDateFnsLocale(i18n.language), [i18n.language]);
 
@@ -91,7 +67,7 @@ export function DateTimePicker({ onChange, className }) {
 
   function handleDaySelect(day) {
     setDate(day ?? null);
-    if (day) setOpen(false);
+    if (day) setCalOpen(false);
   }
 
   function handleClear(e) {
@@ -102,24 +78,18 @@ export function DateTimePicker({ onChange, className }) {
   }
 
   const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  const label = date ? `${format(date, 'PP', { locale })} ${timeStr}` : null;
+  const dateLabel = date ? format(date, 'PP', { locale }) : null;
 
   return (
     <div className={cn('flex gap-2', className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      {/* Date picker */}
+      <Popover open={calOpen} onOpenChange={setCalOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn('flex-1 justify-start text-left font-normal', !date && 'text-muted-foreground')}
-          >
+          <Button variant="outline" className={cn('h-10 flex-1 justify-start text-left font-normal', !date && 'text-muted-foreground')}>
             <FontAwesomeIcon icon={faCalendar} className="mr-2 h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{label ?? t('dateTimePicker.pickDate')}</span>
+            <span className="truncate">{dateLabel ?? t('dateTimePicker.pickDate')}</span>
             {date && (
-              <FontAwesomeIcon
-                icon={faXmark}
-                className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 hover:opacity-100"
-                onClick={handleClear}
-              />
+              <FontAwesomeIcon icon={faXmark} className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 hover:opacity-100" onClick={handleClear} />
             )}
           </Button>
         </PopoverTrigger>
@@ -135,15 +105,22 @@ export function DateTimePicker({ onChange, className }) {
         </PopoverContent>
       </Popover>
 
-      <div className={cn(
-        'flex items-center gap-1 rounded-md border px-2 h-10 w-28',
-        !date && 'opacity-50 pointer-events-none',
-      )}>
-        <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <TimeSpinner value={hours} max={23} onChange={setHours} />
-        <span className="text-sm font-mono text-muted-foreground select-none">:</span>
-        <TimeSpinner value={minutes} max={59} onChange={setMinutes} />
-      </div>
+      {/* Time picker */}
+      <Popover open={timeOpen} onOpenChange={setTimeOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className={cn('h-10 w-28 font-mono', !date && 'opacity-50 pointer-events-none')}>
+            <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            {timeStr}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-3" align="start">
+          <div className="flex items-center gap-2">
+            <Spinner value={hours} max={23} onChange={setHours} />
+            <span className="text-lg font-mono text-muted-foreground select-none mb-0.5">:</span>
+            <Spinner value={minutes} max={59} onChange={setMinutes} />
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
