@@ -8,3 +8,5 @@ uploads/*
 .DS_Store
 /src-tauri/target/
 /src-tauri/binaries/*.exe
+e2e/.auth/
+playwright-report/

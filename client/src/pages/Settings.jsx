@@ -489,7 +489,7 @@ export default function Settings() {
                 {predefinedTags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="gap-1 pr-1">
                     {tag}
-                    <button onClick={() => removePredefinedTag(tag)} className="ml-0.5 hover:text-destructive">
+                    <button onClick={() => removePredefinedTag(tag)} className="ml-0.5 hover:text-destructive" aria-label={`Remove tag ${tag}`}>
                       <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
                     </button>
                   </Badge>

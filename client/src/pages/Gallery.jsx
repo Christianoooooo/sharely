@@ -158,7 +158,7 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
       >
         <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden relative">
           <FileThumbnail file={file} icon={TYPE_ICONS[file.displayType] || faFile} />
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2" onClick={(e) => e.stopPropagation()}>
             <Checkbox checked={selected} onCheckedChange={() => onToggleSelect(file.shortId)} />
           </div>
         </div>

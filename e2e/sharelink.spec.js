@@ -1,39 +1,40 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsAdmin } = require('./helpers');
 
-test.describe('Share Links', () => {
-  let fileShortId;
-
-  test.beforeEach(async ({ page, request }) => {
-    await loginAsAdmin(page);
-
-    // Upload a file via API to use for share link tests
-    const r = await request.post('/api/web-upload', {
-      multipart: {
-        files: { name: 'share-test.txt', mimeType: 'text/plain', buffer: Buffer.from('share link test') },
-      },
+test.describe('Share Links – download limit', () => {
+  test('browser redirect to share page when limit reached', async ({ page }) => {
+    // Upload a file
+    await page.goto('/upload');
+    await page.locator('input[type="file"]').first().setInputFiles({
+      name: 'share-limit-test.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('share link limit test'),
     });
-    const data = await r.json();
-    fileShortId = data.files?.[0]?.shortId;
-  });
+    await page.getByRole('button', { name: /upload \d/i }).click();
+    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
 
-  test('download limit=1: second browser visit redirects to share page', async ({ page, request }) => {
-    if (!fileShortId) test.skip();
+    // Get the file shortId from the gallery
+    await page.goto('/gallery');
+    const fileLink = page.locator('a[href^="/f/"]').first();
+    const href = await fileLink.getAttribute('href');
+    const shortId = href?.split('/f/')[1];
+    expect(shortId).toBeTruthy();
 
-    // Create share link with limit=1 via API
-    const linkR = await request.post('/api/share', {
-      data: { fileShortId, downloadLimit: 1 },
+    // Create share link with downloadLimit=1 via API
+    const linkR = await page.request.post(`/api/file/${shortId}/share-links`, {
+      data: { downloadLimit: 1 },
     });
-    const { link } = await linkR.json();
-    const token = link.token;
+    expect(linkR.ok()).toBeTruthy();
+    const linkData = await linkR.json();
+    // API returns { token, url, ... } directly — not wrapped in { link: { token } }
+    const token = linkData.token;
+    expect(token).toBeTruthy();
 
-    // First download (use fetch to not navigate away)
-    const dl1 = await request.get(`/s/${token}/download`);
+    // First download via API (simulate non-browser client)
+    const dl1 = await page.request.get(`/s/${token}/download`);
     expect(dl1.ok()).toBeTruthy();
 
-    // Second visit in browser — should redirect to share view, not show raw JSON
-    const response = await page.goto(`/s/${token}/download`);
-    // Should end up at the share view page, not a JSON error
+    // Second visit via browser — should redirect to share view, not raw JSON
+    await page.goto(`/s/${token}/download`);
     await expect(page).toHaveURL(new RegExp(`/s/${token}$`));
     await expect(page.getByText(/limit reached|download limit/i)).toBeVisible();
   });

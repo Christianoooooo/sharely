@@ -15,15 +15,19 @@ jobs:
         image: mongo:7
         ports:
           - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: ciuser
+          MONGO_INITDB_ROOT_PASSWORD: cipassword123
         options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-cmd "mongosh -u ciuser -p cipassword123 --authenticationDatabase admin --eval 'db.adminCommand({ping:1})'"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+          --health-start-period 5s
 
     env:
-      MONGODB_URI: mongodb://localhost:27017/sharely_e2e
-      SESSION_SECRET: ci-test-secret-that-is-long-enough-for-ci
+      MONGODB_URI: mongodb://ciuser:cipassword123@localhost:27017/sharely_e2e?authSource=admin
+      SESSION_SECRET: ci-test-secret-that-is-long-enough-for-ci-123456
       PORT: 3099
       E2E_PORT: 3099
       BASE_URL: http://localhost:3099
@@ -42,10 +46,7 @@ jobs:
         run: npm ci
 
       - name: Install frontend dependencies & build
-        run: |
-          cd client
-          npm ci
-          npm run build
+        run: cd client && npm ci && npm run build
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
