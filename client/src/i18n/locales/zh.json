@@ -693,7 +693,18 @@
     "deleteFailed": "Failed to delete",
     "deleteTitle": "Delete collection?",
     "deleteDesc": "\"{{name}}\" will be permanently deleted.",
-    "confirmDelete": "Delete"
+    "confirmDelete": "Delete",
+    "edit": "编辑",
+    "editTitle": "编辑集合",
+    "saving": "保存中…",
+    "saveBtn": "保存",
+    "saved": "集合已更新",
+    "saveFailed": "保存失败",
+    "clearPassword": "删除密码",
+    "clearExpiry": "删除过期时间",
+    "removeFile": "从集合中移除",
+    "fileRemoved": "文件已移除",
+    "fileRemoveFailed": "移除失败"
   },
   "collectionView": {
     "loading": "Loading…",

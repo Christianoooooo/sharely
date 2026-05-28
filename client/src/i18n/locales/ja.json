@@ -693,7 +693,18 @@
     "deleteFailed": "Failed to delete",
     "deleteTitle": "Delete collection?",
     "deleteDesc": "\"{{name}}\" will be permanently deleted.",
-    "confirmDelete": "Delete"
+    "confirmDelete": "Delete",
+    "edit": "編集",
+    "editTitle": "コレクションを編集",
+    "saving": "保存中…",
+    "saveBtn": "保存",
+    "saved": "コレクションを更新しました",
+    "saveFailed": "保存に失敗しました",
+    "clearPassword": "パスワードを削除",
+    "clearExpiry": "有効期限を削除",
+    "removeFile": "コレクションから削除",
+    "fileRemoved": "ファイルを削除しました",
+    "fileRemoveFailed": "削除に失敗しました"
   },
   "collectionView": {
     "loading": "Loading…",

@@ -9,13 +9,16 @@ import { Label } from '@/components/ui/label';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faDownload, faLock, faHourglass, faCircleXmark, faFolder,
-  faArrowUpRightFromSquare,
+  faArrowUpRightFromSquare, faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Layout } from '@/components/Layout';
+import { useToast } from '@/hooks/use-toast';
 
-function FileCard({ file }) {
+function FileCard({ file, collShortId, isOwner, onRemoved }) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
   const hasThumbnail = file.hasThumbnail;
   const isImage = file.mimeType?.startsWith('image/');
   const showThumbnail = hasThumbnail || isImage;
@@ -24,6 +27,18 @@ function FileCard({ file }) {
     : isImage
       ? `/f/${file.shortId}/raw`
       : null;
+
+  async function handleRemove(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = await fetch(`/api/collections/${collShortId}/files/${file.shortId}`, { method: 'DELETE' });
+    if (r.ok) {
+      toast({ title: t('collections.fileRemoved') });
+      onRemoved(file.shortId);
+    } else {
+      toast({ title: t('collections.fileRemoveFailed'), variant: 'destructive' });
+    }
+  }
 
   return (
     <div className="group relative bg-card border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
@@ -61,6 +76,11 @@ function FileCard({ file }) {
             <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3 w-3" />
           </a>
         </Button>
+        {isOwner && (
+          <Button size="icon" variant="destructive" className="h-6 w-6" onClick={handleRemove} title={t('collections.removeFile')}>
+            <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -204,7 +224,15 @@ function CollectionViewInner() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {coll.files.map((file) => <FileCard key={file.shortId} file={file} />)}
+          {coll.files.map((file) => (
+            <FileCard
+              key={file.shortId}
+              file={file}
+              collShortId={coll.shortId}
+              isOwner={coll.isOwner}
+              onRemoved={(shortId) => setColl((prev) => ({ ...prev, files: prev.files.filter((f) => f.shortId !== shortId) }))}
+            />
+          ))}
         </div>
       )}
     </div>

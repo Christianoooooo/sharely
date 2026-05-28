@@ -302,7 +302,18 @@
     "deleteFailed": "Löschen fehlgeschlagen",
     "deleteTitle": "Sammlung löschen?",
     "deleteDesc": "\"{{name}}\" wird dauerhaft gelöscht.",
-    "confirmDelete": "Löschen"
+    "confirmDelete": "Löschen",
+    "edit": "Bearbeiten",
+    "editTitle": "Sammlung bearbeiten",
+    "saving": "Wird gespeichert…",
+    "saveBtn": "Speichern",
+    "saved": "Sammlung aktualisiert",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "clearPassword": "Passwort entfernen",
+    "clearExpiry": "Ablaufdatum entfernen",
+    "removeFile": "Aus Sammlung entfernen",
+    "fileRemoved": "Datei entfernt",
+    "fileRemoveFailed": "Entfernen fehlgeschlagen"
   },
   "collectionView": {
     "loading": "Laden…",
