@@ -35,7 +35,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical, faCheckSquare, faTag, faFolderPlus } from '@fortawesome/free-solid-svg-icons';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -126,7 +127,7 @@ function FileThumbnail({ file, icon }) {
   return <FilePlaceholder file={file} icon={icon} />;
 }
 
-function FileCard({ file, user, onDelete }) {
+function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -147,6 +148,36 @@ function FileCard({ file, user, onDelete }) {
     } else {
       toast({ title: t('fileView.deleteFailed'), variant: 'destructive' });
     }
+  }
+
+  if (selectMode) {
+    return (
+      <div
+        onClick={() => onToggleSelect(file.shortId)}
+        className={`group rounded-lg border bg-card overflow-hidden flex flex-col cursor-pointer transition-colors ${selected ? 'border-primary ring-2 ring-primary/40' : 'hover:border-primary/60'}`}
+      >
+        <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden relative">
+          <FileThumbnail file={file} icon={TYPE_ICONS[file.displayType] || faFile} />
+          <div className="absolute top-2 left-2">
+            <Checkbox checked={selected} onCheckedChange={() => onToggleSelect(file.shortId)} />
+          </div>
+        </div>
+        <div className="p-3 space-y-1">
+          <p className="text-sm font-medium truncate" title={file.originalName}>{file.originalName}</p>
+          <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="text-xs px-1.5 py-0">{file.displayType}</Badge>
+            <span className="text-xs text-muted-foreground">{fmtSize(file.size)}</span>
+          </div>
+          {file.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {file.tags.slice(0, 3).map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs px-1 py-0">{tag}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -212,6 +243,13 @@ function FileCard({ file, user, onDelete }) {
                   </DropdownMenu>
                 </div>
               </div>
+              {file.tags?.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {file.tags.slice(0, 3).map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-xs px-1 py-0">{tag}</Badge>
+                  ))}
+                </div>
+              )}
               {file.uploader && (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <UserAvatar avatarUrl={file.uploader.avatarUrl} size="xs" />
@@ -281,6 +319,7 @@ function FileCard({ file, user, onDelete }) {
 export default function Gallery() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState([]);
   const [total, setTotal] = useState(0);
@@ -289,13 +328,72 @@ export default function Gallery() {
 
   const q = searchParams.get('q') || '';
   const type = searchParams.get('type') || 'all';
+  const tag = searchParams.get('tag') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
 
   const [searchInput, setSearchInput] = useState(q);
 
+  // Bulk selection
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkTagInput, setBulkTagInput] = useState('');
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const [bulkCollOpen, setBulkCollOpen] = useState(false);
+  const [myCollections, setMyCollections] = useState([]);
+  const [allTags, setAllTags] = useState([]);
+
+  // Tag suggestions & user collections (loaded lazily)
+  useEffect(() => {
+    if (!selectMode) return;
+    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setAllTags(d.tags));
+    fetch('/api/collections').then((r) => r.ok ? r.json() : { collections: [] }).then((d) => setMyCollections(d.collections || []));
+  }, [selectMode]);
+
+  function toggleSelectMode() {
+    setSelectMode((v) => !v);
+    setSelected(new Set());
+  }
+
+  function toggleSelect(shortId) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(shortId) ? next.delete(shortId) : next.add(shortId);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(files.map((f) => f.shortId)));
+  }
+
+  async function bulkAction(action, extra = {}) {
+    const shortIds = Array.from(selected);
+    const r = await fetch('/api/files/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, shortIds, ...extra }),
+    });
+    if (!r.ok) { toast({ title: 'Failed', variant: 'destructive' }); return; }
+    if (action === 'delete') {
+      toast({ title: t('gallery.bulkDeleted', { count: shortIds.length }) });
+      fetchFiles();
+    } else if (action === 'tag') {
+      toast({ title: t('gallery.bulkTagged') });
+      fetchFiles();
+    } else if (action === 'addToCollection') {
+      toast({ title: t('gallery.bulkAddedToCollection') });
+    }
+    setSelected(new Set());
+    setBulkDeleteOpen(false);
+    setBulkTagOpen(false);
+    setBulkCollOpen(false);
+  }
+
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ page, q, type });
+    if (tag) params.set('tag', tag);
     try {
       const r = await fetch(`/api/gallery?${params}`);
       if (r.ok) {
@@ -307,7 +405,7 @@ export default function Gallery() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, type]);
+  }, [page, q, type, tag]);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
@@ -323,12 +421,12 @@ export default function Gallery() {
 
   function handleSearch(e) {
     e.preventDefault();
-    setSearchParams({ q: searchInput, type, page: 1 });
+    setSearchParams({ q: searchInput, type, ...(tag && { tag }), page: 1 });
   }
 
   function clearSearch() {
     setSearchInput('');
-    setSearchParams({ type, page: 1 });
+    setSearchParams({ type, ...(tag && { tag }), page: 1 });
   }
 
   return (
@@ -342,9 +440,15 @@ export default function Gallery() {
             {user?.role !== 'admin' ? ` ${t('gallery.filesOwned')}` : ''}
           </p>
         </div>
-        <Button asChild>
-          <Link to="/upload"><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />{t('gallery.upload')}</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant={selectMode ? 'secondary' : 'outline'} size="sm" onClick={toggleSelectMode} className="gap-1.5">
+            <FontAwesomeIcon icon={faCheckSquare} className="h-3.5 w-3.5" />
+            {selectMode ? t('gallery.cancelSelect') : t('gallery.selectMode')}
+          </Button>
+          <Button asChild>
+            <Link to="/upload"><FontAwesomeIcon icon={faUpload} className="h-4 w-4 mr-2" />{t('gallery.upload')}</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Search & filter */}
@@ -363,7 +467,7 @@ export default function Gallery() {
             </button>
           )}
         </div>
-        <Select value={type} onValueChange={(v) => setSearchParams({ q, type: v, page: 1 })}>
+        <Select value={type} onValueChange={(v) => setSearchParams({ q, type: v, ...(tag && { tag }), page: 1 })}>
           <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
@@ -378,6 +482,100 @@ export default function Gallery() {
         </Select>
         <Button type="submit" variant="secondary">{t('gallery.search')}</Button>
       </form>
+
+      {/* Tag filter chips */}
+      {allTags.length === 0 && tag && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => setSearchParams({ q, type, page: 1 })}>
+            <FontAwesomeIcon icon={faXmark} className="h-2.5 w-2.5" />
+            {tag}
+          </Badge>
+        </div>
+      )}
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">{t('gallery.filterByTag')}:</span>
+          {allTags.map((t_) => (
+            <Badge
+              key={t_}
+              variant={tag === t_ ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setSearchParams({ q, type, tag: tag === t_ ? '' : t_, page: 1 })}
+            >
+              {t_}
+            </Badge>
+          ))}
+          {tag && (
+            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSearchParams({ q, type, page: 1 })}>
+              <FontAwesomeIcon icon={faXmark} className="h-3 w-3 mr-0.5" />{t('gallery.allTags')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Bulk toolbar */}
+      {selectMode && (
+        <div className="flex items-center gap-2 flex-wrap p-3 rounded-lg border bg-muted/40">
+          <span className="text-sm font-medium mr-auto">
+            {selected.size > 0 ? t('gallery.selectedCount', { count: selected.size }) : t('gallery.selectMode')}
+          </span>
+          <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs">{t('common.selectAll') || 'Select all'}</Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={selected.size === 0} className="text-xs">{t('common.deselectAll') || 'Deselect all'}</Button>
+
+          {/* Tag */}
+          {bulkTagOpen ? (
+            <form onSubmit={(e) => { e.preventDefault(); if (bulkTagInput.trim()) bulkAction('tag', { tags: bulkTagInput.split(',').map((s) => s.trim()) }); }}
+              className="flex gap-1">
+              <Input autoFocus value={bulkTagInput} onChange={(e) => setBulkTagInput(e.target.value)} placeholder={t('fileView.addTag')} className="h-8 w-40 text-xs" list="bulk-tag-suggestions" />
+              <datalist id="bulk-tag-suggestions">{allTags.map((t_) => <option key={t_} value={t_} />)}</datalist>
+              <Button size="sm" type="submit" disabled={!bulkTagInput.trim() || selected.size === 0}>{t('gallery.bulkTag')}</Button>
+              <Button size="sm" variant="ghost" type="button" onClick={() => setBulkTagOpen(false)}><FontAwesomeIcon icon={faXmark} /></Button>
+            </form>
+          ) : (
+            <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setBulkTagOpen(true)} className="gap-1.5">
+              <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5" />{t('gallery.bulkTag')}
+            </Button>
+          )}
+
+          {/* Add to collection */}
+          {bulkCollOpen ? (
+            <div className="flex gap-1 items-center">
+              <Select onValueChange={(collId) => { bulkAction('addToCollection', { collectionId: collId }); setBulkCollOpen(false); }}>
+                <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder={t('addToCollection.title')} /></SelectTrigger>
+                <SelectContent>
+                  {myCollections.map((c) => <SelectItem key={c.shortId} value={c.shortId}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="ghost" onClick={() => setBulkCollOpen(false)}><FontAwesomeIcon icon={faXmark} /></Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setBulkCollOpen(true)} className="gap-1.5">
+              <FontAwesomeIcon icon={faFolderPlus} className="h-3.5 w-3.5" />{t('gallery.bulkAddToCollection')}
+            </Button>
+          )}
+
+          {/* Delete */}
+          <Button size="sm" variant="destructive" disabled={selected.size === 0} onClick={() => setBulkDeleteOpen(true)} className="gap-1.5">
+            <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />{t('gallery.bulkDelete')}
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('gallery.bulkDeleteConfirmTitle', { count: selected.size })}</AlertDialogTitle>
+            <AlertDialogDescription>{t('gallery.bulkDeleteConfirmDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('fileView.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => bulkAction('delete')} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t('gallery.bulkDelete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Grid */}
       {loading ? (
@@ -402,7 +600,17 @@ export default function Gallery() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {files.map((f) => <FileCard key={f._id} file={f} user={user} onDelete={fetchFiles} />)}
+          {files.map((f) => (
+            <FileCard
+              key={f._id}
+              file={f}
+              user={user}
+              onDelete={fetchFiles}
+              selectMode={selectMode}
+              selected={selected.has(f.shortId)}
+              onToggleSelect={toggleSelect}
+            />
+          ))}
         </div>
       )}
 

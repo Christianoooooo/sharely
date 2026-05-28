@@ -95,7 +95,21 @@
     "contextOpen": "Open",
     "contextCopyLink": "Copy link",
     "contextOpenRaw": "Open raw",
-    "contextDownload": "Download"
+    "contextDownload": "Download",
+    "selectMode": "Select",
+    "cancelSelect": "Cancel",
+    "selectedCount": "{{count}} selected",
+    "bulkDelete": "Delete",
+    "bulkAddToCollection": "Add to collection",
+    "bulkTag": "Tag",
+    "bulkDeleteConfirmTitle": "Delete {{count}} files?",
+    "bulkDeleteConfirmDesc": "This action cannot be undone.",
+    "bulkDeleted": "{{count}} files deleted",
+    "bulkTagged": "Tags added",
+    "bulkAddedToCollection": "Added to collection",
+    "filterByTag": "Filter by tag",
+    "allTags": "All tags",
+    "noTags": "No tags"
   },
   "upload": {
     "title": "Upload",
@@ -121,7 +135,9 @@
     "uploadFailed": "Upload failed",
     "selectFiles": "Upload",
     "openFolder": "Open folder",
-    "folderDropHint": "Folders can be added via drag & drop"
+    "folderDropHint": "Folders can be added via drag & drop",
+    "pasteHint": "You can also paste images or text from the clipboard (Ctrl+V)",
+    "pastedFiles": "Added {{count}} file(s) from clipboard"
   },
   "settings": {
     "title": "Settings",
@@ -231,7 +247,11 @@
     "loadFailed": "Failed to load file",
     "backToGallery": "Back to gallery",
     "shareLink": "Share Link",
-    "addToCollection": "Add to Collection"
+    "addToCollection": "Add to Collection",
+    "tags": "Tags",
+    "addTag": "Add tag…",
+    "tagSaved": "Tags saved",
+    "tagFailed": "Failed to save tags"
   },
   "shareLink": {
     "title": "Share Links",

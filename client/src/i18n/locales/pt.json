@@ -69,7 +69,21 @@
     "contextOpen": "Abrir",
     "contextCopyLink": "Copiar link",
     "contextOpenRaw": "Abrir raw",
-    "contextDownload": "Descarregar"
+    "contextDownload": "Descarregar",
+    "selectMode": "Selecionar",
+    "cancelSelect": "Cancelar",
+    "selectedCount": "{{count}} selecionado(s)",
+    "bulkDelete": "Excluir",
+    "bulkAddToCollection": "Adicionar à coleção",
+    "bulkTag": "Etiquetar",
+    "bulkDeleteConfirmTitle": "Excluir {{count}} arquivos?",
+    "bulkDeleteConfirmDesc": "Esta ação não pode ser desfeita.",
+    "bulkDeleted": "{{count}} arquivos excluídos",
+    "bulkTagged": "Tags adicionadas",
+    "bulkAddedToCollection": "Adicionado à coleção",
+    "filterByTag": "Filtrar por tag",
+    "allTags": "Todas as tags",
+    "noTags": "Sem tags"
   },
   "upload": {
     "title": "Enviar",
@@ -95,7 +109,9 @@
     "uploadFailed": "Falha no envio",
     "selectFiles": "Carregar",
     "openFolder": "Abrir",
-    "folderDropHint": "Pastas podem ser adicionadas via arrastar e soltar"
+    "folderDropHint": "Pastas podem ser adicionadas via arrastar e soltar",
+    "pasteHint": "Você também pode colar imagens ou texto da área de transferência (Ctrl+V)",
+    "pastedFiles": "{{count}} arquivo(s) adicionado(s) da área de transferência"
   },
   "settings": {
     "tabProfile": "Perfil",
@@ -190,7 +206,11 @@
     "loadFailed": "Não foi possível carregar o ficheiro",
     "backToGallery": "Voltar à galeria",
     "shareLink": "Link de compartilhamento",
-    "addToCollection": "Adicionar à coleção"
+    "addToCollection": "Adicionar à coleção",
+    "tags": "Tags",
+    "addTag": "Adicionar tag…",
+    "tagSaved": "Tags salvas",
+    "tagFailed": "Falha ao salvar tags"
   },
   "admin": {
     "dashboard": "Painel",

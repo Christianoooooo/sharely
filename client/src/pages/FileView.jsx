@@ -63,7 +63,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -214,6 +215,44 @@ function FileViewInner() {
   }
 
   const canDelete = user && (user.id === file.uploader?._id || user.role === 'admin');
+  const canEdit = canDelete;
+
+  const [tags, setTags] = useState(file.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState([]);
+
+  useEffect(() => {
+    if (!canEdit) return;
+    fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setTagSuggestions(d.tags));
+  }, [canEdit]);
+
+  async function saveTags(newTags) {
+    const r = await fetch(`/api/file/${shortId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: newTags }),
+    });
+    if (r.ok) {
+      toast({ title: t('fileView.tagSaved') });
+    } else {
+      toast({ title: t('fileView.tagFailed'), variant: 'destructive' });
+    }
+  }
+
+  function addTag(tag) {
+    const trimmed = tag.trim().slice(0, 50);
+    if (!trimmed || tags.includes(trimmed) || tags.length >= 20) return;
+    const next = [...tags, trimmed];
+    setTags(next);
+    setTagInput('');
+    saveTags(next);
+  }
+
+  function removeTag(tag) {
+    const next = tags.filter((t_) => t_ !== tag);
+    setTags(next);
+    saveTags(next);
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -286,6 +325,41 @@ function FileViewInner() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Tags */}
+      {(canEdit || tags.length > 0) && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              {tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                  {tag}
+                  {canEdit && (
+                    <button onClick={() => removeTag(tag)} className="ml-0.5 hover:text-destructive">
+                      <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
+                    </button>
+                  )}
+                </Badge>
+              ))}
+              {canEdit && (
+                <form onSubmit={(e) => { e.preventDefault(); addTag(tagInput); }} className="flex gap-1">
+                  <Input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    placeholder={t('fileView.addTag')}
+                    className="h-7 w-32 text-xs"
+                    list="tag-suggestions"
+                  />
+                  <datalist id="tag-suggestions">
+                    {tagSuggestions.filter((s) => !tags.includes(s)).map((s) => <option key={s} value={s} />)}
+                  </datalist>
+                </form>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Viewer */}
       <Card className="overflow-hidden">

@@ -161,13 +161,34 @@ export default function Upload() {
   const fileInputRef = useRef(null);
 
   const addFiles = useCallback((incoming) => {
-    // incoming: { file: File, path: string }[]
     setFiles((prev) => {
       const existing = new Set(prev.map((item) => item.path + item.file.size));
       const news = incoming.filter((item) => !existing.has(item.path + item.file.size));
       return [...prev, ...news];
     });
   }, []);
+
+  useEffect(() => {
+    async function handlePaste(e) {
+      const items = Array.from(e.clipboardData?.items || []);
+      const collected = [];
+      for (const item of items) {
+        if (item.kind !== 'file') continue;
+        const raw = item.getAsFile();
+        if (!raw) continue;
+        const isGenericName = raw.name === 'image.png' || raw.name === 'image.jpeg';
+        const ext = raw.type.split('/')[1] || 'bin';
+        const name = isGenericName ? `clipboard-${Date.now()}.${ext}` : raw.name;
+        collected.push({ file: new File([raw], name, { type: raw.type }), path: name });
+      }
+      if (collected.length > 0) {
+        addFiles(collected);
+        toast({ title: t('upload.pastedFiles', { count: collected.length }) });
+      }
+    }
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [addFiles, toast, t]);
 
   function removeFile(idx) {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
@@ -331,6 +352,7 @@ export default function Upload() {
             {t('upload.selectFiles')}
           </Button>
           <p className="text-xs text-muted-foreground mt-3">{t('upload.folderDropHint')}</p>
+        <p className="text-xs text-muted-foreground mt-1">{t('upload.pasteHint')}</p>
         </div>
 
         <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileSelect} />

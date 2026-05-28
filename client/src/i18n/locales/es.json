@@ -69,7 +69,21 @@
     "contextOpen": "Abrir",
     "contextCopyLink": "Copiar enlace",
     "contextOpenRaw": "Abrir en crudo",
-    "contextDownload": "Descargar"
+    "contextDownload": "Descargar",
+    "selectMode": "Seleccionar",
+    "cancelSelect": "Cancelar",
+    "selectedCount": "{{count}} seleccionado(s)",
+    "bulkDelete": "Eliminar",
+    "bulkAddToCollection": "Añadir a colección",
+    "bulkTag": "Etiquetar",
+    "bulkDeleteConfirmTitle": "¿Eliminar {{count}} archivos?",
+    "bulkDeleteConfirmDesc": "Esta acción no se puede deshacer.",
+    "bulkDeleted": "{{count}} archivos eliminados",
+    "bulkTagged": "Etiquetas añadidas",
+    "bulkAddedToCollection": "Añadido a la colección",
+    "filterByTag": "Filtrar por etiqueta",
+    "allTags": "Todas las etiquetas",
+    "noTags": "Sin etiquetas"
   },
   "upload": {
     "title": "Subir",
@@ -95,7 +109,9 @@
     "uploadFailed": "Error al subir",
     "selectFiles": "Subir",
     "openFolder": "Abrir",
-    "folderDropHint": "Las carpetas se pueden añadir arrastrando y soltando"
+    "folderDropHint": "Las carpetas se pueden añadir arrastrando y soltando",
+    "pasteHint": "También puedes pegar imágenes o texto desde el portapapeles (Ctrl+V)",
+    "pastedFiles": "{{count}} archivo(s) añadido(s) desde el portapapeles"
   },
   "settings": {
     "tabProfile": "Perfil",
@@ -190,7 +206,11 @@
     "loadFailed": "No se pudo cargar el archivo",
     "backToGallery": "Volver a la galería",
     "shareLink": "Enlace de compartir",
-    "addToCollection": "Añadir a colección"
+    "addToCollection": "Añadir a colección",
+    "tags": "Etiquetas",
+    "addTag": "Añadir etiqueta…",
+    "tagSaved": "Etiquetas guardadas",
+    "tagFailed": "Error al guardar las etiquetas"
   },
   "admin": {
     "dashboard": "Panel",

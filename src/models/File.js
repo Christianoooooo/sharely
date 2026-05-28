@@ -45,6 +45,10 @@ const fileSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  tags: {
+    type: [{ type: String, trim: true, maxlength: 50 }],
+    default: [],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -95,7 +95,21 @@
     "contextOpen": "Öffnen",
     "contextCopyLink": "Link kopieren",
     "contextOpenRaw": "Roh öffnen",
-    "contextDownload": "Herunterladen"
+    "contextDownload": "Herunterladen",
+    "selectMode": "Auswählen",
+    "cancelSelect": "Abbrechen",
+    "selectedCount": "{{count}} ausgewählt",
+    "bulkDelete": "Löschen",
+    "bulkAddToCollection": "Zur Sammlung hinzufügen",
+    "bulkTag": "Tags",
+    "bulkDeleteConfirmTitle": "{{count}} Dateien löschen?",
+    "bulkDeleteConfirmDesc": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "bulkDeleted": "{{count}} Dateien gelöscht",
+    "bulkTagged": "Tags hinzugefügt",
+    "bulkAddedToCollection": "Zur Sammlung hinzugefügt",
+    "filterByTag": "Nach Tag filtern",
+    "allTags": "Alle Tags",
+    "noTags": "Keine Tags"
   },
   "upload": {
     "title": "Hochladen",
@@ -121,7 +135,9 @@
     "uploadFailed": "Hochladen fehlgeschlagen",
     "selectFiles": "Hochladen",
     "openFolder": "Öffnen",
-    "folderDropHint": "Ordner können per Drag & Drop hinzugefügt werden"
+    "folderDropHint": "Ordner können per Drag & Drop hinzugefügt werden",
+    "pasteHint": "Du kannst auch Bilder oder Text aus der Zwischenablage einfügen (Strg+V)",
+    "pastedFiles": "{{count}} Datei(en) aus Zwischenablage hinzugefügt"
   },
   "settings": {
     "title": "Einstellungen",
@@ -231,7 +247,11 @@
     "loadFailed": "Datei konnte nicht geladen werden",
     "backToGallery": "Zurück zur Galerie",
     "shareLink": "Freigabe-Link",
-    "addToCollection": "Zu Sammlung hinzufügen"
+    "addToCollection": "Zu Sammlung hinzufügen",
+    "tags": "Tags",
+    "addTag": "Tag hinzufügen…",
+    "tagSaved": "Tags gespeichert",
+    "tagFailed": "Speichern fehlgeschlagen"
   },
   "shareLink": {
     "title": "Freigabe-Links",
