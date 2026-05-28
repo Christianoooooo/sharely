@@ -735,6 +735,7 @@
     "version": "Sharely - Open-Source-Dateifreigabe - Nutzungsbedingungen"
   },
   "dateTimePicker": {
-    "pickDate": "Datum auswählen…"
+    "pickDate": "Datum auswählen…",
+    "timeInPast": "Uhrzeit liegt in der Vergangenheit"
   }
 }

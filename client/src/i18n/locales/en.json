@@ -735,6 +735,7 @@
     "version": "Sharely - Open-Source File Sharing - Terms of Service"
   },
   "dateTimePicker": {
-    "pickDate": "Pick a date…"
+    "pickDate": "Pick a date…",
+    "timeInPast": "Time is in the past"
   }
 }

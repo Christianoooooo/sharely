@@ -735,6 +735,7 @@
     "failed": "Failed to add file"
   },
   "dateTimePicker": {
-    "pickDate": "Seleccionar fecha…"
+    "pickDate": "Seleccionar fecha…",
+    "timeInPast": "La hora es en el pasado"
   }
 }

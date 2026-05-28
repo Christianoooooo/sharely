@@ -735,6 +735,7 @@
     "failed": "Failed to add file"
   },
   "dateTimePicker": {
-    "pickDate": "日付を選択…"
+    "pickDate": "日付を選択…",
+    "timeInPast": "時刻が過去です"
   }
 }

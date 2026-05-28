@@ -735,6 +735,7 @@
     "failed": "Failed to add file"
   },
   "dateTimePicker": {
-    "pickDate": "选择日期…"
+    "pickDate": "选择日期…",
+    "timeInPast": "时间已过去"
   }
 }
