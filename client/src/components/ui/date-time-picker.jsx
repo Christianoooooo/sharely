@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
+import { de, fr, es, it, pt, ja, zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendar, faClock, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -9,11 +10,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
+const LOCALE_MAP = { de, fr, es, it, pt, ja, zh: zhCN };
+
+function getDateFnsLocale(lang) {
+  const base = lang?.split('-')[0];
+  return LOCALE_MAP[base] ?? enUS;
+}
+
 export function DateTimePicker({ onChange, className }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [date, setDate] = useState(null);
   const [time, setTime] = useState('00:00');
   const [open, setOpen] = useState(false);
+
+  const locale = useMemo(() => getDateFnsLocale(i18n.language), [i18n.language]);
 
   useEffect(() => {
     if (!date) { onChange(null); return; }
@@ -35,10 +45,7 @@ export function DateTimePicker({ onChange, className }) {
     setTime('00:00');
   }
 
-  const locale = i18n.language?.startsWith('de') ? undefined : undefined;
-  const label = date
-    ? `${format(date, 'PP', { locale })} ${time}`
-    : null;
+  const label = date ? `${format(date, 'PP', { locale })} ${time}` : null;
 
   return (
     <div className={cn('flex gap-2', className)}>
@@ -49,7 +56,7 @@ export function DateTimePicker({ onChange, className }) {
             className={cn('flex-1 justify-start text-left font-normal', !date && 'text-muted-foreground')}
           >
             <FontAwesomeIcon icon={faCalendar} className="mr-2 h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{label ?? 'Pick a date…'}</span>
+            <span className="truncate">{label ?? t('dateTimePicker.pickDate')}</span>
             {date && (
               <FontAwesomeIcon
                 icon={faXmark}
@@ -65,6 +72,7 @@ export function DateTimePicker({ onChange, className }) {
             selected={date}
             onSelect={handleDaySelect}
             disabled={{ before: new Date() }}
+            locale={locale}
             initialFocus
           />
         </PopoverContent>

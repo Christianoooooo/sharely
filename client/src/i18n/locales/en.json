@@ -722,5 +722,8 @@
     "s8Body": "These terms are governed by the laws of the jurisdiction where the operator is located. For questions about these terms, please contact:",
     "s8Contact": "Contact:",
     "version": "Sharely - Open-Source File Sharing - Terms of Service"
+  },
+  "dateTimePicker": {
+    "pickDate": "Pick a date…"
   }
 }
