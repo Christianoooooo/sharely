@@ -211,6 +211,7 @@ export default function AdminUsers() {
             <div className="space-y-1.5 flex-1 min-w-[140px]">
               <Label>{t('adminUsers.username')}</Label>
               <Input
+                className="h-10"
                 value={newUser.username}
                 onChange={(e) => setNewUser((p) => ({ ...p, username: e.target.value }))}
                 minLength={3} maxLength={32} required
@@ -219,6 +220,7 @@ export default function AdminUsers() {
             <div className="space-y-1.5 flex-1 min-w-[140px]">
               <Label>{t('adminUsers.password')}</Label>
               <Input
+                className="h-10"
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser((p) => ({ ...p, password: e.target.value }))}
@@ -228,14 +230,14 @@ export default function AdminUsers() {
             <div className="space-y-1.5 w-32">
               <Label>{t('adminUsers.role')}</Label>
               <Select value={newUser.role} onValueChange={(v) => setNewUser((p) => ({ ...p, role: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">{t('adminUsers.roleUser')}</SelectItem>
                   <SelectItem value="admin">{t('adminUsers.roleAdmin')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={creating}>
+            <Button type="submit" className="h-10" disabled={creating}>
               {creating ? t('adminUsers.creating') : t('adminUsers.create')}
             </Button>
           </form>
