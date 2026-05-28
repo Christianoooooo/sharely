@@ -16,13 +16,14 @@ import {
   faDownload, faCircleCheck, faCircleXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { fmtDate } from '@/lib/utils';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 function CreateLinkForm({ shortId, onCreated }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [label, setLabel] = useState('');
   const [password, setPassword] = useState('');
-  const [expiresAt, setExpiresAt] = useState('');
+  const [expiresAt, setExpiresAt] = useState(null);
   const [downloadLimit, setDownloadLimit] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -32,7 +33,7 @@ function CreateLinkForm({ shortId, onCreated }) {
     try {
       const body = { label };
       if (password) body.password = password;
-      if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
+      if (expiresAt) body.expiresAt = expiresAt;
       if (downloadLimit) body.downloadLimit = parseInt(downloadLimit, 10);
 
       const r = await fetch(`/api/file/${shortId}/share-links`, {
@@ -55,9 +56,6 @@ function CreateLinkForm({ shortId, onCreated }) {
       setSaving(false);
     }
   }
-
-  // Minimum datetime for the expiry input (now + 1 min)
-  const minDateTime = new Date(Date.now() + 60_000).toISOString().slice(0, 16);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 pt-1">
@@ -86,11 +84,11 @@ function CreateLinkForm({ shortId, onCreated }) {
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="sl-exp">
+        <Label>
           <FontAwesomeIcon icon={faHourglass} className="h-3 w-3 mr-1" />
           {t('shareLink.expiresAt')} <span className="text-muted-foreground">({t('shareLink.optional')})</span>
         </Label>
-        <Input id="sl-exp" type="datetime-local" min={minDateTime} value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+        <DateTimePicker onChange={setExpiresAt} />
       </div>
 
       <Button type="submit" size="sm" disabled={saving} className="w-full gap-1.5">
