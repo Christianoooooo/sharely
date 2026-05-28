@@ -136,7 +136,7 @@ export function DateTimePicker({ onChange, className }) {
       </Popover>
 
       <div className={cn(
-        'flex items-center gap-1 rounded-md border px-2 w-28',
+        'flex items-center gap-1 rounded-md border px-2 h-10 w-28',
         !date && 'opacity-50 pointer-events-none',
       )}>
         <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
