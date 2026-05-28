@@ -302,7 +302,18 @@
     "deleteFailed": "Failed to delete",
     "deleteTitle": "Delete collection?",
     "deleteDesc": "\"{{name}}\" will be permanently deleted.",
-    "confirmDelete": "Delete"
+    "confirmDelete": "Delete",
+    "edit": "Edit",
+    "editTitle": "Edit collection",
+    "saving": "Saving…",
+    "saveBtn": "Save",
+    "saved": "Collection updated",
+    "saveFailed": "Failed to save",
+    "clearPassword": "Remove password",
+    "clearExpiry": "Remove expiry",
+    "removeFile": "Remove from collection",
+    "fileRemoved": "File removed",
+    "fileRemoveFailed": "Failed to remove file"
   },
   "collectionView": {
     "loading": "Loading…",

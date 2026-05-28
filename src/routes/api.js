@@ -1300,6 +1300,7 @@ router.get('/collections/:id', async (req, res) => {
     owner: collection.owner.username,
     hasPassword: !!collection.password,
     needsPassword,
+    isOwner: !!isOwnerOrAdmin,
     expiresAt: collection.expiresAt,
     createdAt: collection.createdAt,
     files,

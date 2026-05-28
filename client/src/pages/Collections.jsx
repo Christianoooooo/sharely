@@ -109,7 +109,114 @@ function CreateCollectionDialog({ onCreated }) {
   );
 }
 
-function CollectionCard({ coll, onDelete }) {
+function EditCollectionDialog({ coll, onUpdated }) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [password, setPassword] = useState('');
+  const [clearPassword, setClearPassword] = useState(false);
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [clearExpiry, setClearExpiry] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  function handleOpen(val) {
+    if (val) {
+      setName(coll.name);
+      setDescription(coll.description || '');
+      setPassword('');
+      setClearPassword(false);
+      setExpiresAt(null);
+      setClearExpiry(false);
+    }
+    setOpen(val);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const body = { name: name.trim(), description: description.trim(), clearPassword, clearExpiry };
+      if (password) body.password = password;
+      if (expiresAt) body.expiresAt = expiresAt;
+
+      const r = await fetch(`/api/collections/${coll.shortId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        toast({ title: d.error || t('collections.saveFailed'), variant: 'destructive' });
+        return;
+      }
+      const updated = await r.json();
+      toast({ title: t('collections.saved') });
+      onUpdated(updated);
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-7 w-7" title={t('collections.edit')}>
+          <FontAwesomeIcon icon={faPen} className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t('collections.editTitle')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="edit-name">{t('collections.name')}</Label>
+            <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-desc">{t('collections.description')} <span className="text-muted-foreground">({t('shareLink.optional')})</span></Label>
+            <Textarea id="edit-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="resize-none" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-pw">
+              <FontAwesomeIcon icon={faLock} className="h-3 w-3 mr-1" />
+              {t('collections.password')} <span className="text-muted-foreground">({t('shareLink.optional')})</span>
+            </Label>
+            <Input id="edit-pw" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setClearPassword(false); }} placeholder={coll.hasPassword ? '••••••••' : t('shareLink.noPassword')} />
+            {coll.hasPassword && (
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input type="checkbox" checked={clearPassword} onChange={(e) => { setClearPassword(e.target.checked); if (e.target.checked) setPassword(''); }} className="rounded" />
+                {t('collections.clearPassword')}
+              </label>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label>
+              <FontAwesomeIcon icon={faHourglass} className="h-3 w-3 mr-1" />
+              {t('shareLink.expiresAt')} <span className="text-muted-foreground">({t('shareLink.optional')})</span>
+            </Label>
+            <DateTimePicker onChange={setExpiresAt} />
+            {coll.expiresAt && (
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input type="checkbox" checked={clearExpiry} onChange={(e) => setClearExpiry(e.target.checked)} className="rounded" />
+                {t('collections.clearExpiry')}
+              </label>
+            )}
+          </div>
+          <Button type="submit" className="w-full" disabled={saving || !name.trim()}>
+            {saving ? t('collections.saving') : t('collections.saveBtn')}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CollectionCard({ coll, onDelete, onUpdate }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -173,6 +280,7 @@ function CollectionCard({ coll, onDelete }) {
                 <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3.5 w-3.5" />
               </Link>
             </Button>
+            <EditCollectionDialog coll={coll} onUpdated={onUpdate} />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" title={t('collections.delete')}>
@@ -222,6 +330,10 @@ export default function Collections() {
     setCollections((prev) => prev.filter((c) => c.shortId !== shortId));
   }
 
+  function handleUpdated(updated) {
+    setCollections((prev) => prev.map((c) => c.shortId === updated.shortId ? { ...c, ...updated } : c));
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
@@ -249,7 +361,7 @@ export default function Collections() {
       {!loading && collections.length > 0 && (
         <div className="space-y-3">
           {collections.map((coll) => (
-            <CollectionCard key={coll.shortId} coll={coll} onDelete={handleDeleted} />
+            <CollectionCard key={coll.shortId} coll={coll} onDelete={handleDeleted} onUpdate={handleUpdated} />
           ))}
         </div>
       )}

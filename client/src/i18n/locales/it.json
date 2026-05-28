@@ -693,7 +693,18 @@
     "deleteFailed": "Failed to delete",
     "deleteTitle": "Delete collection?",
     "deleteDesc": "\"{{name}}\" will be permanently deleted.",
-    "confirmDelete": "Delete"
+    "confirmDelete": "Delete",
+    "edit": "Modifica",
+    "editTitle": "Modifica raccolta",
+    "saving": "Salvataggio…",
+    "saveBtn": "Salva",
+    "saved": "Raccolta aggiornata",
+    "saveFailed": "Salvataggio fallito",
+    "clearPassword": "Rimuovi password",
+    "clearExpiry": "Rimuovi scadenza",
+    "removeFile": "Rimuovi dalla raccolta",
+    "fileRemoved": "File rimosso",
+    "fileRemoveFailed": "Rimozione fallita"
   },
   "collectionView": {
     "loading": "Loading…",
