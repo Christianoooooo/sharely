@@ -20,6 +20,6 @@ test.describe('Upload Page', () => {
     });
     await expect(page.getByText(/1 file selected/i)).toBeVisible();
     await page.getByRole('button', { name: /upload \d/i }).click();
-    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[role="status"]').filter({ hasText: /uploaded/i })).toBeVisible({ timeout: 15_000 });
   });
 });

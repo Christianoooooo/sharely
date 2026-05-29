@@ -10,7 +10,7 @@ test.describe('Share Links – download limit', () => {
       buffer: Buffer.from('share link limit test'),
     });
     await page.getByRole('button', { name: /upload \d/i }).click();
-    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[role="status"]').filter({ hasText: /uploaded/i })).toBeVisible({ timeout: 10_000 });
 
     // Get the file shortId from the gallery
     await page.goto('/gallery');

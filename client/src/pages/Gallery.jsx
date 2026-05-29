@@ -551,25 +551,30 @@ export default function Gallery() {
           )}
 
           {/* Tag entfernen */}
-          {allTags.length > 0 ? (
-            <Select onValueChange={(tag) => bulkAction('removeTag', { tags: [tag] })} disabled={selected.size === 0} value="">
-              <SelectTrigger className="h-8 w-44 text-xs" disabled={selected.size === 0}>
-                <span className="flex items-center gap-1 shrink-0">
-                  <FontAwesomeIcon icon={faMinus} className="h-2.5 w-2.5" />
-                  <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 mr-1" />
-                </span>
-                <SelectValue placeholder={t('gallery.bulkRemoveTag')} />
-              </SelectTrigger>
-              <SelectContent>
-                {allTags.map((tag) => <SelectItem key={tag} value={tag}>{tag}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Button size="sm" variant="outline" disabled className="gap-1.5">
-              <FontAwesomeIcon icon={faMinus} className="h-2.5 w-2.5" />
-              <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5" />{t('gallery.bulkRemoveTag')}
-            </Button>
-          )}
+          {(() => {
+            const removableTags = [...new Set(
+              files.filter((f) => selected.has(f.shortId)).flatMap((f) => f.tags || []),
+            )].sort();
+            return removableTags.length > 0 ? (
+              <Select onValueChange={(tag) => bulkAction('removeTag', { tags: [tag] })} disabled={selected.size === 0} value="">
+                <SelectTrigger className="h-8 w-44 text-xs" disabled={selected.size === 0}>
+                  <span className="flex items-center gap-1 shrink-0">
+                    <FontAwesomeIcon icon={faMinus} className="h-2.5 w-2.5" />
+                    <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 mr-1" />
+                  </span>
+                  <SelectValue placeholder={t('gallery.bulkRemoveTag')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {removableTags.map((tag) => <SelectItem key={tag} value={tag}>{tag}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Button size="sm" variant="outline" disabled className="gap-1.5">
+                <FontAwesomeIcon icon={faMinus} className="h-2.5 w-2.5" />
+                <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5" />{t('gallery.bulkRemoveTag')}
+              </Button>
+            );
+          })()}
 
           {/* Zur Sammlung hinzufügen */}
           {bulkCollOpen ? (
@@ -583,7 +588,7 @@ export default function Gallery() {
               <Button size="sm" variant="ghost" onClick={() => setBulkCollOpen(false)}><FontAwesomeIcon icon={faXmark} /></Button>
             </div>
           ) : (
-            <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setBulkCollOpen(true)} className="gap-1.5">
+            <Button size="sm" variant="outline" disabled={selected.size === 0 || myCollections.length === 0} onClick={() => setBulkCollOpen(true)} className="gap-1.5">
               <FontAwesomeIcon icon={faFolderPlus} className="h-3.5 w-3.5" />{t('gallery.bulkAddToCollection')}
             </Button>
           )}

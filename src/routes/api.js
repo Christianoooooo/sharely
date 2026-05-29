@@ -239,7 +239,7 @@ router.post('/files/bulk', requireLogin, async (req, res) => {
   }
 
   if (action === 'removeTag') {
-    const tagsToRemove = (tags || []).map((t) => t.trim()).filter(Boolean);
+    const tagsToRemove = (tags || []).slice(0, 20).map((t) => t.trim().slice(0, 50)).filter(Boolean);
     if (tagsToRemove.length === 0) return res.status(400).json({ error: 'No tags specified' });
     await File.updateMany(filter, { $pull: { tags: { $in: tagsToRemove } } });
     return res.json({ success: true });
@@ -269,13 +269,14 @@ router.post('/files/bulk', requireLogin, async (req, res) => {
     if (!isCollOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
     const files = await File.find(filter);
     const fileIds = files.map((f) => f._id);
-    await Collection.updateMany({}, { $pull: { files: { $in: fileIds } } });
-    for (const fileId of fileIds) {
-      if (!collection.files.some((f) => f.toString() === fileId.toString())) {
-        collection.files.push(fileId);
-      }
-    }
-    await collection.save();
+    const pullFilter = isAdmin
+      ? { files: { $in: fileIds } }
+      : { owner: req.session.user.id, files: { $in: fileIds } };
+    await Collection.updateMany(pullFilter, { $pull: { files: { $in: fileIds } } });
+    await Collection.findOneAndUpdate(
+      { shortId: collectionId },
+      { $addToSet: { files: { $each: fileIds } } },
+    );
     return res.json({ success: true });
   }
 
