@@ -107,6 +107,10 @@
     "bulkDeleted": "{{count}} files deleted",
     "bulkTagged": "Tags added",
     "bulkAddedToCollection": "Added to collection",
+    "bulkRemoveTag": "Remove tag",
+    "bulkMoveToCollection": "Move to collection",
+    "bulkTagRemoved": "Tags removed",
+    "bulkMoved": "Moved to collection",
     "filterByTag": "Filter by tag",
     "allTags": "All tags",
     "noTags": "No tags"

@@ -238,6 +238,13 @@ router.post('/files/bulk', requireLogin, async (req, res) => {
     return res.json({ success: true });
   }
 
+  if (action === 'removeTag') {
+    const tagsToRemove = (tags || []).map((t) => t.trim()).filter(Boolean);
+    if (tagsToRemove.length === 0) return res.status(400).json({ error: 'No tags specified' });
+    await File.updateMany(filter, { $pull: { tags: { $in: tagsToRemove } } });
+    return res.json({ success: true });
+  }
+
   if (action === 'addToCollection') {
     if (!collectionId) return res.status(400).json({ error: 'Collection ID required' });
     const collection = await Collection.findOne({ shortId: collectionId });
@@ -248,6 +255,24 @@ router.post('/files/bulk', requireLogin, async (req, res) => {
     for (const file of files) {
       if (!collection.files.some((f) => f.toString() === file._id.toString())) {
         collection.files.push(file._id);
+      }
+    }
+    await collection.save();
+    return res.json({ success: true });
+  }
+
+  if (action === 'moveToCollection') {
+    if (!collectionId) return res.status(400).json({ error: 'Collection ID required' });
+    const collection = await Collection.findOne({ shortId: collectionId });
+    if (!collection) return res.status(404).json({ error: 'Collection not found' });
+    const isCollOwner = collection.owner.toString() === req.session.user.id.toString();
+    if (!isCollOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    const files = await File.find(filter);
+    const fileIds = files.map((f) => f._id);
+    await Collection.updateMany({}, { $pull: { files: { $in: fileIds } } });
+    for (const fileId of fileIds) {
+      if (!collection.files.some((f) => f.toString() === fileId.toString())) {
+        collection.files.push(fileId);
       }
     }
     await collection.save();
