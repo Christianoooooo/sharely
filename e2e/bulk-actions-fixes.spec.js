@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { uploadFileViaApi, loginAsUser, loginAsAdmin } = require('./helpers');
+const { uploadFileViaApi, loginAsUser } = require('./helpers');
 
 // All tests tagged with the PR that introduced these fixes for easy filtering.
 // Default storageState = admin session (set in playwright.config.js).
@@ -28,38 +28,46 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 1: moveToCollection owner scoping ─────────────────────────────────
-  test('moveToCollection: does not remove file from another users collection', async ({ browser }) => {
+  test('moveToCollection: does not remove file from another users collection', async ({ page, browser }) => {
     const PORT = process.env.E2E_PORT || '3099';
     const baseURL = `http://localhost:${PORT}`;
 
-    // Both principals get completely fresh browser contexts with no inherited storageState,
-    // so each login creates an independent session — no session-ID sharing possible.
-    const adminCtx = await browser.newContext({ baseURL });
-    const adminPage = await adminCtx.newPage();
-    await loginAsAdmin(adminPage);
+    // Admin = the default storageState session (proven valid by the other tests).
+    const adminApi = page.request;
 
-    const userCtx = await browser.newContext({ baseURL });
+    // User context with an EXPLICIT empty storageState, so it can never inherit the
+    // admin cookie from playwright.config.js's `use.storageState`. loginAsUser then
+    // establishes a genuine user session in this clean jar.
+    const userCtx = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
     const userPage = await userCtx.newPage();
     await loginAsUser(userPage);
 
     try {
+      // Assert the two principals really are who we think — a session mix-up would
+      // otherwise surface much later as a confusing "file missing" assertion.
+      const adminMe = await (await adminApi.get('/api/auth/me')).json();
+      expect(adminMe.user.role).toBe('admin');
+      const userMe = await (await userCtx.request.get('/api/auth/me')).json();
+      expect(userMe.user.role).toBe('user');
+      expect(userMe.user.id).not.toBe(adminMe.user.id);
+
       // Regular user uploads the file
       const shortId = await uploadFileViaApi(userCtx.request);
 
       // Admin creates a collection and adds the user's file to it
-      const adminCollR = await adminCtx.request.post('/api/collections', {
+      const adminCollR = await adminApi.post('/api/collections', {
         data: { name: `admin-coll-${Date.now()}` },
       });
       expect(adminCollR.ok()).toBe(true);
       const { shortId: adminCollId } = await adminCollR.json();
 
-      const addR = await adminCtx.request.post(`/api/collections/${adminCollId}/files`, {
+      const addR = await adminApi.post(`/api/collections/${adminCollId}/files`, {
         data: { shortId },
       });
       expect(addR.ok()).toBe(true);
 
       // Sanity-check: file must be in admin's collection before the move
-      const preMove = await adminCtx.request.get(`/api/collections/${adminCollId}`);
+      const preMove = await adminApi.get(`/api/collections/${adminCollId}`);
       const { files: preFiles } = await preMove.json();
       expect(preFiles.some((f) => f.shortId === shortId)).toBe(true);
 
@@ -76,7 +84,7 @@ test.describe('Bulk action fixes — PR #143', () => {
       expect(moveR.ok()).toBe(true);
 
       // Admin's collection must still contain the file — pull was scoped to user's own collections
-      const adminColl = await adminCtx.request.get(`/api/collections/${adminCollId}`);
+      const adminColl = await adminApi.get(`/api/collections/${adminCollId}`);
       expect(adminColl.ok()).toBe(true);
       const { files: adminFiles } = await adminColl.json();
       expect(adminFiles.some((f) => f.shortId === shortId)).toBe(true);
@@ -87,7 +95,6 @@ test.describe('Bulk action fixes — PR #143', () => {
       const { files: targetFiles } = await targetColl.json();
       expect(targetFiles.some((f) => f.shortId === shortId)).toBe(true);
     } finally {
-      await adminCtx.close();
       await userCtx.close();
     }
   });
