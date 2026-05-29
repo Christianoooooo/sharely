@@ -28,15 +28,16 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 1: moveToCollection owner scoping ─────────────────────────────────
-  test('moveToCollection: does not remove file from another users collection', async ({ page, browser }) => {
+  test('moveToCollection: does not remove file from another users collection', async ({ browser }) => {
     const PORT = process.env.E2E_PORT || '3099';
     const baseURL = `http://localhost:${PORT}`;
 
-    // page.request is pre-authenticated as admin via storageState (playwright.config.js).
-    const adminApi = page.request;
+    // Both principals get completely fresh browser contexts with no inherited storageState,
+    // so each login creates an independent session — no session-ID sharing possible.
+    const adminCtx = await browser.newContext({ baseURL });
+    const adminPage = await adminCtx.newPage();
+    await loginAsAdmin(adminPage);
 
-    // Isolated browser context for the regular user — loginAsUser navigates to /auth/login
-    // and logs in; the resulting cookies are shared with userCtx.request.
     const userCtx = await browser.newContext({ baseURL });
     const userPage = await userCtx.newPage();
     await loginAsUser(userPage);
@@ -46,16 +47,21 @@ test.describe('Bulk action fixes — PR #143', () => {
       const shortId = await uploadFileViaApi(userCtx.request);
 
       // Admin creates a collection and adds the user's file to it
-      const adminCollR = await adminApi.post('/api/collections', {
+      const adminCollR = await adminCtx.request.post('/api/collections', {
         data: { name: `admin-coll-${Date.now()}` },
       });
       expect(adminCollR.ok()).toBe(true);
       const { shortId: adminCollId } = await adminCollR.json();
 
-      const addR = await adminApi.post(`/api/collections/${adminCollId}/files`, {
+      const addR = await adminCtx.request.post(`/api/collections/${adminCollId}/files`, {
         data: { shortId },
       });
       expect(addR.ok()).toBe(true);
+
+      // Sanity-check: file must be in admin's collection before the move
+      const preMove = await adminCtx.request.get(`/api/collections/${adminCollId}`);
+      const { files: preFiles } = await preMove.json();
+      expect(preFiles.some((f) => f.shortId === shortId)).toBe(true);
 
       // Regular user creates a destination collection and moves the file there
       const targetR = await userCtx.request.post('/api/collections', {
@@ -70,7 +76,7 @@ test.describe('Bulk action fixes — PR #143', () => {
       expect(moveR.ok()).toBe(true);
 
       // Admin's collection must still contain the file — pull was scoped to user's own collections
-      const adminColl = await adminApi.get(`/api/collections/${adminCollId}`);
+      const adminColl = await adminCtx.request.get(`/api/collections/${adminCollId}`);
       expect(adminColl.ok()).toBe(true);
       const { files: adminFiles } = await adminColl.json();
       expect(adminFiles.some((f) => f.shortId === shortId)).toBe(true);
@@ -81,6 +87,7 @@ test.describe('Bulk action fixes — PR #143', () => {
       const { files: targetFiles } = await targetColl.json();
       expect(targetFiles.some((f) => f.shortId === shortId)).toBe(true);
     } finally {
+      await adminCtx.close();
       await userCtx.close();
     }
   });

@@ -269,23 +269,10 @@ router.post('/files/bulk', requireLogin, async (req, res) => {
     if (!isCollOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
     const files = await File.find(filter);
     const fileIds = files.map((f) => f._id);
-    if (isAdmin) {
-      await Collection.updateMany(
-        { files: { $in: fileIds } },
-        { $pull: { files: { $in: fileIds } } },
-      );
-    } else {
-      // Resolve the user's own collection _ids first so the updateMany filter uses
-      // concrete ObjectId values rather than relying on string-to-ObjectId casting.
-      const owned = await Collection.find({ owner: req.session.user.id }, '_id').lean();
-      const ownedIds = owned.map((c) => c._id);
-      if (ownedIds.length > 0) {
-        await Collection.updateMany(
-          { _id: { $in: ownedIds }, files: { $in: fileIds } },
-          { $pull: { files: { $in: fileIds } } },
-        );
-      }
-    }
+    const pullFilter = isAdmin
+      ? { files: { $in: fileIds } }
+      : { owner: req.session.user.id, files: { $in: fileIds } };
+    await Collection.updateMany(pullFilter, { $pull: { files: { $in: fileIds } } });
     await Collection.findOneAndUpdate(
       { shortId: collectionId },
       { $addToSet: { files: { $each: fileIds } } },
