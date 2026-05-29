@@ -28,51 +28,57 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 1: moveToCollection owner scoping ─────────────────────────────────
-  test('moveToCollection: does not remove file from another users collection', async ({ browser }) => {
-    const adminCtx = await browser.newContext({ storageState: 'e2e/.auth/admin.json' });
-    const adminPage = await adminCtx.newPage();
-
-    const userCtx = await browser.newContext();
-    const userPage = await userCtx.newPage();
-    await loginAsUser(userPage);
+  test('moveToCollection: does not remove file from another users collection', async ({ page, playwright }) => {
+    const PORT = process.env.E2E_PORT || '3099';
+    // Create an isolated API context for the regular user (browser.newContext() does not
+    // inherit baseURL from playwright.config.js, but playwright.request.newContext() does
+    // when baseURL is passed explicitly).
+    const userApi = await playwright.request.newContext({
+      baseURL: `http://localhost:${PORT}`,
+    });
 
     try {
-      // Regular user uploads the file that the admin will also curate
-      const shortId = await uploadFileViaApi(userPage.request);
+      // Authenticate as regular user via API
+      const loginR = await userApi.post('/api/auth/login', {
+        data: { username: process.env.E2E_USER, password: process.env.E2E_PASS },
+      });
+      expect(loginR.ok()).toBe(true);
 
-      // Admin creates a collection and adds that file to it
-      const adminCollR = await adminPage.request.post('/api/collections', {
+      // Regular user uploads the file that the admin will also curate
+      const shortId = await uploadFileViaApi(userApi);
+
+      // Admin (page.request) creates a collection and adds that file to it
+      const adminCollR = await page.request.post('/api/collections', {
         data: { name: `admin-coll-${Date.now()}` },
       });
       const { shortId: adminCollId } = await adminCollR.json();
-      await adminPage.request.post(`/api/collections/${adminCollId}/files`, {
+      await page.request.post(`/api/collections/${adminCollId}/files`, {
         data: { shortId },
       });
 
       // Regular user creates a destination collection for the move
-      const targetR = await userPage.request.post('/api/collections', {
+      const targetR = await userApi.post('/api/collections', {
         data: { name: `user-target-${Date.now()}` },
       });
       const { shortId: targetCollId } = await targetR.json();
 
       // Regular user moves the file to their own collection
-      const moveR = await userPage.request.post('/api/files/bulk', {
+      const moveR = await userApi.post('/api/files/bulk', {
         data: { action: 'moveToCollection', shortIds: [shortId], collectionId: targetCollId },
       });
       expect(moveR.ok()).toBe(true);
 
       // Admin's collection must still contain the file — the pull was scoped to the user's own
-      const adminColl = await adminPage.request.get(`/api/collections/${adminCollId}`);
+      const adminColl = await page.request.get(`/api/collections/${adminCollId}`);
       const { files: adminFiles } = await adminColl.json();
       expect(adminFiles.some((f) => f.shortId === shortId)).toBe(true);
 
       // User's destination collection must now contain the file
-      const targetColl = await userPage.request.get(`/api/collections/${targetCollId}`);
+      const targetColl = await userApi.get(`/api/collections/${targetCollId}`);
       const { files: targetFiles } = await targetColl.json();
       expect(targetFiles.some((f) => f.shortId === shortId)).toBe(true);
     } finally {
-      await adminCtx.close();
-      await userCtx.close();
+      await userApi.dispose();
     }
   });
 
@@ -142,21 +148,32 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 5: add-to-collection disabled when user has no collections ─────────
-  test('add-to-collection and move-to-collection are both disabled with no collections', async ({ browser }) => {
-    const userCtx = await browser.newContext();
+  test('add-to-collection and move-to-collection are both disabled with no collections', async ({ browser, playwright }) => {
+    const PORT = process.env.E2E_PORT || '3099';
+    const baseURL = `http://localhost:${PORT}`;
+
+    // API context for the regular user (inherits cookies across requests)
+    const userApi = await playwright.request.newContext({ baseURL });
+    const loginR = await userApi.post('/api/auth/login', {
+      data: { username: process.env.E2E_USER, password: process.env.E2E_PASS },
+    });
+    expect(loginR.ok()).toBe(true);
+
+    // Browser context with explicit baseURL so page.goto('/gallery') resolves correctly
+    const userCtx = await browser.newContext({ baseURL });
     const userPage = await userCtx.newPage();
     await loginAsUser(userPage);
 
     try {
       // Delete all collections belonging to this user
-      const collsR = await userPage.request.get('/api/collections');
+      const collsR = await userApi.get('/api/collections');
       const { collections } = await collsR.json();
       for (const c of collections) {
-        await userPage.request.delete(`/api/collections/${c.shortId}`);
+        await userApi.delete(`/api/collections/${c.shortId}`);
       }
 
       // Upload a file so the gallery isn't empty and a file can be selected
-      await uploadFileViaApi(userPage.request);
+      await uploadFileViaApi(userApi);
 
       await userPage.goto('/gallery');
       await userPage.getByRole('button', { name: /^select$/i }).click();
@@ -169,6 +186,7 @@ test.describe('Bulk action fixes — PR #143', () => {
       await expect(addBtn).toBeDisabled();
       await expect(moveBtn).toBeDisabled();
     } finally {
+      await userApi.dispose();
       await userCtx.close();
     }
   });
