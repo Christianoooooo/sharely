@@ -28,35 +28,22 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 1: moveToCollection owner scoping ─────────────────────────────────
-  test('moveToCollection: does not remove file from another users collection', async ({ playwright }) => {
+  test('moveToCollection: does not remove file from another users collection', async ({ page, browser }) => {
     const PORT = process.env.E2E_PORT || '3099';
     const baseURL = `http://localhost:${PORT}`;
 
-    // Two completely isolated API contexts — no shared state, no browser required.
-    const adminApi = await playwright.request.newContext({ baseURL });
-    const userApi = await playwright.request.newContext({ baseURL });
+    // page.request is pre-authenticated as admin via storageState (playwright.config.js).
+    const adminApi = page.request;
+
+    // Isolated browser context for the regular user — loginAsUser navigates to /auth/login
+    // and logs in; the resulting cookies are shared with userCtx.request.
+    const userCtx = await browser.newContext({ baseURL });
+    const userPage = await userCtx.newPage();
+    await loginAsUser(userPage);
 
     try {
-      // Authenticate both principals explicitly via the API
-      const ar = await adminApi.post('/api/auth/login', {
-        data: { username: process.env.E2E_ADMIN_USER, password: process.env.E2E_ADMIN_PASS },
-      });
-      expect(ar.ok()).toBe(true);
-
-      const ur = await userApi.post('/api/auth/login', {
-        data: { username: process.env.E2E_USER, password: process.env.E2E_PASS },
-      });
-      expect(ur.ok()).toBe(true);
-
-      // Verify roles to catch any session mix-up early
-      const { user: adminMe } = await (await adminApi.get('/api/auth/me')).json();
-      expect(adminMe.role).toBe('admin');
-
-      const { user: userMe } = await (await userApi.get('/api/auth/me')).json();
-      expect(userMe.role).toBe('user');
-
       // Regular user uploads the file
-      const shortId = await uploadFileViaApi(userApi);
+      const shortId = await uploadFileViaApi(userCtx.request);
 
       // Admin creates a collection and adds the user's file to it
       const adminCollR = await adminApi.post('/api/collections', {
@@ -71,13 +58,13 @@ test.describe('Bulk action fixes — PR #143', () => {
       expect(addR.ok()).toBe(true);
 
       // Regular user creates a destination collection and moves the file there
-      const targetR = await userApi.post('/api/collections', {
+      const targetR = await userCtx.request.post('/api/collections', {
         data: { name: `user-target-${Date.now()}` },
       });
       expect(targetR.ok()).toBe(true);
       const { shortId: targetCollId } = await targetR.json();
 
-      const moveR = await userApi.post('/api/files/bulk', {
+      const moveR = await userCtx.request.post('/api/files/bulk', {
         data: { action: 'moveToCollection', shortIds: [shortId], collectionId: targetCollId },
       });
       expect(moveR.ok()).toBe(true);
@@ -89,13 +76,12 @@ test.describe('Bulk action fixes — PR #143', () => {
       expect(adminFiles.some((f) => f.shortId === shortId)).toBe(true);
 
       // User's destination collection must now contain the file
-      const targetColl = await userApi.get(`/api/collections/${targetCollId}`);
+      const targetColl = await userCtx.request.get(`/api/collections/${targetCollId}`);
       expect(targetColl.ok()).toBe(true);
       const { files: targetFiles } = await targetColl.json();
       expect(targetFiles.some((f) => f.shortId === shortId)).toBe(true);
     } finally {
-      await adminApi.dispose();
-      await userApi.dispose();
+      await userCtx.close();
     }
   });
 
