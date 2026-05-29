@@ -48,7 +48,7 @@ test.describe('Predefined Tag Management', () => {
       buffer: Buffer.from('tag test content'),
     });
     await page.getByRole('button', { name: /upload \d/i }).click();
-    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[role="status"]').filter({ hasText: /uploaded/i })).toBeVisible({ timeout: 10_000 });
 
     // Go to the file
     await page.goto('/gallery');
@@ -80,7 +80,7 @@ test.describe('Predefined Tag Management', () => {
       buffer: Buffer.from('fileview tag save test'),
     });
     await page.getByRole('button', { name: /upload \d/i }).click();
-    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[role="status"]').filter({ hasText: /uploaded/i })).toBeVisible({ timeout: 10_000 });
 
     // Navigate to the file
     await page.goto('/gallery');
@@ -93,8 +93,9 @@ test.describe('Predefined Tag Management', () => {
     await tagSelect.first().click();
     await page.getByRole('option', { name: 'Frontend' }).click();
 
-    // Toast: "Tags saved"
-    await expect(page.getByText(/tags saved/i)).toBeVisible({ timeout: 5_000 });
+    // Toast: "Tags saved" — scope to the status container to avoid strict-mode
+    // violations from Radix's off-screen screen-reader announce duplicate.
+    await expect(page.locator('[role="status"]').filter({ hasText: /tags saved/i })).toBeVisible({ timeout: 5_000 });
 
     // Tag badge should be visible in the tags card
     await expect(page.getByText('Frontend').first()).toBeVisible();
