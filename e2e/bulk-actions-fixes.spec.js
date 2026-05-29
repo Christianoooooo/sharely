@@ -28,57 +28,62 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 1: moveToCollection owner scoping ─────────────────────────────────
-  test('moveToCollection: does not remove file from another users collection', async ({ page, playwright }) => {
+  test('moveToCollection: does not remove file from another users collection', async ({ browser }) => {
     const PORT = process.env.E2E_PORT || '3099';
-    // Create an isolated API context for the regular user (browser.newContext() does not
-    // inherit baseURL from playwright.config.js, but playwright.request.newContext() does
-    // when baseURL is passed explicitly).
-    const userApi = await playwright.request.newContext({
-      baseURL: `http://localhost:${PORT}`,
-    });
+    const baseURL = `http://localhost:${PORT}`;
+
+    // Admin context — restore saved admin session and set baseURL explicitly
+    const adminCtx = await browser.newContext({ baseURL, storageState: 'e2e/.auth/admin.json' });
+    const adminPage = await adminCtx.newPage();
+
+    // Regular user context — fresh browser context with baseURL so loginAsUser can navigate
+    const userCtx = await browser.newContext({ baseURL });
+    const userPage = await userCtx.newPage();
+    await loginAsUser(userPage);
 
     try {
-      // Authenticate as regular user via API
-      const loginR = await userApi.post('/api/auth/login', {
-        data: { username: process.env.E2E_USER, password: process.env.E2E_PASS },
-      });
-      expect(loginR.ok()).toBe(true);
+      // Regular user uploads the file; userCtx.request shares the browser session cookie
+      const shortId = await uploadFileViaApi(userCtx.request);
 
-      // Regular user uploads the file that the admin will also curate
-      const shortId = await uploadFileViaApi(userApi);
-
-      // Admin (page.request) creates a collection and adds that file to it
-      const adminCollR = await page.request.post('/api/collections', {
+      // Admin creates a collection and adds that file to it
+      const adminCollR = await adminPage.request.post('/api/collections', {
         data: { name: `admin-coll-${Date.now()}` },
       });
+      expect(adminCollR.ok()).toBe(true);
       const { shortId: adminCollId } = await adminCollR.json();
-      await page.request.post(`/api/collections/${adminCollId}/files`, {
+
+      const addR = await adminPage.request.post(`/api/collections/${adminCollId}/files`, {
         data: { shortId },
       });
+      expect(addR.ok()).toBe(true);
 
       // Regular user creates a destination collection for the move
-      const targetR = await userApi.post('/api/collections', {
+      const targetR = await userCtx.request.post('/api/collections', {
         data: { name: `user-target-${Date.now()}` },
       });
+      expect(targetR.ok()).toBe(true);
       const { shortId: targetCollId } = await targetR.json();
 
       // Regular user moves the file to their own collection
-      const moveR = await userApi.post('/api/files/bulk', {
+      const moveR = await userCtx.request.post('/api/files/bulk', {
         data: { action: 'moveToCollection', shortIds: [shortId], collectionId: targetCollId },
       });
       expect(moveR.ok()).toBe(true);
 
       // Admin's collection must still contain the file — the pull was scoped to the user's own
-      const adminColl = await page.request.get(`/api/collections/${adminCollId}`);
+      const adminColl = await adminPage.request.get(`/api/collections/${adminCollId}`);
+      expect(adminColl.ok()).toBe(true);
       const { files: adminFiles } = await adminColl.json();
       expect(adminFiles.some((f) => f.shortId === shortId)).toBe(true);
 
       // User's destination collection must now contain the file
-      const targetColl = await userApi.get(`/api/collections/${targetCollId}`);
+      const targetColl = await userCtx.request.get(`/api/collections/${targetCollId}`);
+      expect(targetColl.ok()).toBe(true);
       const { files: targetFiles } = await targetColl.json();
       expect(targetFiles.some((f) => f.shortId === shortId)).toBe(true);
     } finally {
-      await userApi.dispose();
+      await adminCtx.close();
+      await userCtx.close();
     }
   });
 
@@ -148,32 +153,26 @@ test.describe('Bulk action fixes — PR #143', () => {
   });
 
   // ── Fix 5: add-to-collection disabled when user has no collections ─────────
-  test('add-to-collection and move-to-collection are both disabled with no collections', async ({ browser, playwright }) => {
+  test('add-to-collection and move-to-collection are both disabled with no collections', async ({ browser }) => {
     const PORT = process.env.E2E_PORT || '3099';
     const baseURL = `http://localhost:${PORT}`;
 
-    // API context for the regular user (inherits cookies across requests)
-    const userApi = await playwright.request.newContext({ baseURL });
-    const loginR = await userApi.post('/api/auth/login', {
-      data: { username: process.env.E2E_USER, password: process.env.E2E_PASS },
-    });
-    expect(loginR.ok()).toBe(true);
-
-    // Browser context with explicit baseURL so page.goto('/gallery') resolves correctly
+    // Browser context with explicit baseURL so page.goto() resolves relative paths.
+    // userCtx.request shares the browser's cookie jar, so API calls are authenticated.
     const userCtx = await browser.newContext({ baseURL });
     const userPage = await userCtx.newPage();
     await loginAsUser(userPage);
 
     try {
       // Delete all collections belonging to this user
-      const collsR = await userApi.get('/api/collections');
+      const collsR = await userCtx.request.get('/api/collections');
       const { collections } = await collsR.json();
       for (const c of collections) {
-        await userApi.delete(`/api/collections/${c.shortId}`);
+        await userCtx.request.delete(`/api/collections/${c.shortId}`);
       }
 
       // Upload a file so the gallery isn't empty and a file can be selected
-      await uploadFileViaApi(userApi);
+      await uploadFileViaApi(userCtx.request);
 
       await userPage.goto('/gallery');
       await userPage.getByRole('button', { name: /^select$/i }).click();
@@ -186,7 +185,6 @@ test.describe('Bulk action fixes — PR #143', () => {
       await expect(addBtn).toBeDisabled();
       await expect(moveBtn).toBeDisabled();
     } finally {
-      await userApi.dispose();
       await userCtx.close();
     }
   });

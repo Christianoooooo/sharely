@@ -98,8 +98,9 @@ test.describe('Gallery – UI & Bulk Actions', () => {
     await tagSelects.nth(count - 1).click();
     await page.getByRole('option', { name: 'BulkLabel' }).click();
 
-    // Toast: "Tags added"
-    await expect(page.getByText(/tags added/i)).toBeVisible({ timeout: 5_000 });
+    // Toast: "Tags added" — scope to the status container to avoid strict-mode violations
+    // when both the toast root and the title element match the same text.
+    await expect(page.locator('[role="status"]').filter({ hasText: /tags added/i })).toBeVisible({ timeout: 5_000 });
   });
 
   test('bulk delete removes selected files', async ({ page }) => {
@@ -123,6 +124,6 @@ test.describe('Gallery – UI & Bulk Actions', () => {
     // Confirm in the AlertDialog
     await page.getByRole('button', { name: /delete/i }).last().click();
 
-    await expect(page.getByText(/files deleted|deleted/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[role="status"]').filter({ hasText: /files deleted/i })).toBeVisible({ timeout: 10_000 });
   });
 });
