@@ -18,6 +18,7 @@ RUN apk add --no-cache ffmpeg ghostscript
 COPY app.js ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
+COPY DOCUMENTATION.md ./
 COPY --from=builder /app/client/dist ./client/dist/
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
