@@ -229,8 +229,8 @@ router.get('/', (req, res) => {
 
   const ghIcon = `<svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>`;
 
-  // Globe icon for language selector
-  const globeIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+  // Font Awesome fa-globe (filled) — exact icon used by LanguageSelector in sharely
+  const globeIcon = `<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M352 256c0 22.2-1.2 43.6-3.3 64l-185.3 0c-2.2-20.4-3.3-41.8-3.3-64s1.2-43.6 3.3-64l185.3 0c2.2 20.4 3.3 41.8 3.3 64zm28.8-64l123.1 0c5.3 20.5 8.1 41.9 8.1 64s-2.8 43.5-8.1 64l-123.1 0c2.1-20.6 3.2-42 3.2-64s-1.1-43.4-3.2-64zm112.6-32l-116.7 0c-10-63.9-29.8-117.4-55.3-151.6c78.3 20.7 142 77.5 171.9 151.6zm-149.1 0l-176.6 0c6.1-36.4 15.5-68.6 27-94.7c10.5-23.6 22.2-40.7 33.5-51.5C239.4 3.2 248.7 0 256 0s16.6 3.2 27.8 13.8c11.3 10.8 23 27.9 33.5 51.5c11.6 26 20.9 58.2 27 94.7zm-209 0L18.6 160C48.6 85.9 112.2 29.1 190.6 8.4C165.1 42.6 145.3 96.1 135.3 160zM8.1 192l123.1 0c-2.1 20.6-3.2 42-3.2 64s1.1 43.4 3.2 64L8.1 320C2.8 299.5 0 278.1 0 256s2.8-43.5 8.1-64zM194.7 446.6c-11.6-26-20.9-58.2-27-94.6l176.6 0c-6.1 36.4-15.5 68.6-27 94.6c-10.5 23.6-22.2 40.7-33.5 51.5C272.6 508.8 263.3 512 256 512s-16.6-3.2-27.8-13.8c-11.3-10.8-23-27.9-33.5-51.5zM135.3 352c10 63.9 29.8 117.4 55.3 151.6C112.2 482.9 48.6 426.1 18.6 352l116.7 0zm358.1 0c-30 74.1-93.6 130.9-171.9 151.6c25.5-34.2 45.2-87.7 55.3-151.6l116.7 0z"/></svg>`;
 
   const html = `<!DOCTYPE html>
 <html lang="${lang}">
@@ -269,10 +269,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-feature-s
 .badge{font-size:.7rem;font-weight:500;color:var(--muted-fg);letter-spacing:.04em}
 .nav-right{display:flex;align-items:center;gap:.25rem}
 
-/* ghost button — matches Button variant="ghost" size="sm" from sharely */
-.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:.375rem;white-space:nowrap;border-radius:var(--radius);font-size:.875rem;font-weight:500;line-height:1;transition:color .15s,background-color .15s;height:2rem;padding:0 .75rem;background:transparent;border:none;cursor:pointer;color:var(--muted-fg);text-decoration:none;font-family:var(--font)}
+/* ghost button — matches Button variant="ghost" size="sm" className="gap-1.5 px-2" */
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:.375rem;white-space:nowrap;border-radius:calc(var(--radius) - 2px);font-size:.75rem;font-weight:500;line-height:1;transition:color .15s,background-color .15s;height:2rem;padding:0 .5rem;background:transparent;border:none;cursor:pointer;color:var(--muted-fg);text-decoration:none;font-family:var(--font)}
 .btn-ghost:hover{background:var(--muted);color:var(--fg)}
-.btn-ghost svg{width:1rem;height:1rem;flex-shrink:0}
+.btn-ghost svg{width:1rem;height:1rem;flex-shrink:0;pointer-events:none;flex-shrink:0}
+.lang-span{display:none;font-size:.875rem}
+@media(min-width:640px){.lang-span{display:inline}}
 
 /* language dropdown */
 .lang-dropdown{position:relative}
@@ -341,7 +343,6 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
   #content{padding:1.5rem 1rem 3rem}
   h1{font-size:1.5rem}
   h2{font-size:1.1rem}
-  .btn-ghost .gh-label{display:none}
 }
 </style>
 </head>
@@ -357,8 +358,8 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
     <div class="nav-right">
       <!-- Language selector -->
       <div class="lang-dropdown">
-        <button class="btn-ghost" id="lang-btn" aria-haspopup="true" aria-expanded="false" title="${t.langLabel}">
-          ${globeIcon}<span>${LANG_NAMES[lang]}</span>
+        <button class="btn-ghost" id="lang-btn" type="button" aria-haspopup="menu" aria-expanded="false" data-state="closed">
+          ${globeIcon}<span class="lang-span">${LANG_NAMES[lang]}</span>
         </button>
         <div class="lang-menu" id="lang-menu" role="menu">
           ${langItems}
