@@ -19,6 +19,7 @@ COPY app.js ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY DOCUMENTATION.md ./
+COPY docs/*.md ./docs/
 COPY --from=builder /app/client/dist ./client/dist/
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \

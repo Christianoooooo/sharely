@@ -198,15 +198,26 @@ router.get('/', (req, res) => {
   const host = (req.headers.host || '').split(':')[0];
   if (host !== DOCS_DOMAIN) return res.status(404).send('Not found');
 
-  let md;
-  try {
-    md = fs.readFileSync(path.resolve(__dirname, '../../DOCUMENTATION.md'), 'utf8');
-  } catch {
-    return res.status(500).send('Documentation not available');
-  }
-
   const lang = detectLang(req);
   const t    = I18N[lang];
+
+  // German → canonical DOCUMENTATION.md; all others → docs/{lang}.md → fallback to docs/en.md
+  let md;
+  const docRoot = path.resolve(__dirname, '../../');
+  const langFile = lang === 'de'
+    ? path.join(docRoot, 'DOCUMENTATION.md')
+    : path.join(docRoot, 'docs', `${lang}.md`);
+  const fallback = path.join(docRoot, 'docs', 'en.md');
+
+  try {
+    md = fs.readFileSync(langFile, 'utf8');
+  } catch {
+    try {
+      md = fs.readFileSync(fallback, 'utf8');
+    } catch {
+      return res.status(500).send('Documentation not available');
+    }
+  }
   const body = mdToHtml(md);
 
   // Language switcher options
