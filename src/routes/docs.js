@@ -307,7 +307,7 @@ h4{font-size:.8rem;font-weight:600;color:var(--muted-fg);text-transform:uppercas
 p{margin-bottom:.6rem}
 .sp{height:.4rem}
 a{color:var(--primary);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
+#content a:hover{text-decoration:underline;text-underline-offset:3px}
 strong{font-weight:600;color:var(--fg)}
 
 /* code */
