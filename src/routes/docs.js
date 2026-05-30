@@ -220,13 +220,12 @@ router.get('/', (req, res) => {
   }
   const body = mdToHtml(md);
 
-  // Language switcher options
-  const langOptions = SUPPORTED.map(code => {
-    const selected = code === lang ? ' selected' : '';
-    return `<option value="${code}"${selected}>${LANG_NAMES[code]}</option>`;
+  // Language switcher dropdown items
+  const langItems = SUPPORTED.map(code => {
+    const active = code === lang ? ' class="active"' : '';
+    const url = `?lang=${code}`;
+    return `<a href="${url}"${active}>${LANG_NAMES[code]}</a>`;
   }).join('');
-
-  const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="18" height="18" aria-hidden="true"><path fill="#3b82f6" d="M32 400C32 479.5 96.5 544 176 544L480 544C550.7 544 608 486.7 608 416C608 364.4 577.5 319.9 533.5 299.7C540.2 286.6 544 271.7 544 256C544 203 501 160 448 160C430.3 160 413.8 164.8 399.6 173.1C375.5 127.3 327.4 96 272 96C192.5 96 128 160.5 128 240C128 248 128.7 255.9 129.9 263.5C73 282.7 32 336.6 32 400z"/></svg>`;
 
   const ghIcon = `<svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>`;
 
@@ -249,8 +248,8 @@ router.get('/', (req, res) => {
   --border:     hsl(217,33%,17%);
   --primary:    hsl(217,91%,60%);
   --radius:     0.5rem;
-  --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  --mono: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --font: system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -265,20 +264,23 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-feature-s
 /* navbar */
 #navbar{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--border);background:hsla(222,47%,8%,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 #nav-inner{max-width:90rem;margin:0 auto;padding:0 1rem;height:3.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+.brand{text-decoration:none;font-size:.875rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary)}
 .sep{width:1px;height:1.25rem;background:var(--border);margin:0 .5rem}
 .badge{font-size:.7rem;font-weight:500;color:var(--muted-fg);letter-spacing:.04em}
-.nav-right{display:flex;align-items:center;gap:.5rem}
+.nav-right{display:flex;align-items:center;gap:.25rem}
 
-/* language selector */
-.lang-wrap{display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--muted-fg);padding:.3rem .6rem;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
-.lang-wrap:hover{color:var(--fg);border-color:var(--muted-fg);background:var(--muted)}
-.lang-wrap select{background:transparent;border:none;color:inherit;font:inherit;font-size:.8rem;cursor:pointer;outline:none;-webkit-appearance:none;-moz-appearance:none;appearance:none}
-.lang-wrap select option{background:hsl(222,47%,8%);color:hsl(210,40%,96%)}
+/* ghost button — matches Button variant="ghost" size="sm" from sharely */
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:.375rem;white-space:nowrap;border-radius:var(--radius);font-size:.875rem;font-weight:500;line-height:1;transition:color .15s,background-color .15s;height:2rem;padding:0 .75rem;background:transparent;border:none;cursor:pointer;color:var(--muted-fg);text-decoration:none;font-family:var(--font)}
+.btn-ghost:hover{background:var(--muted);color:var(--fg)}
+.btn-ghost svg{width:1rem;height:1rem;flex-shrink:0}
 
-/* github link */
-.gh{display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted-fg);text-decoration:none;padding:.3rem .6rem;border-radius:var(--radius);border:1px solid var(--border);transition:color .15s,border-color .15s,background .15s}
-.gh:hover{color:var(--fg);border-color:var(--muted-fg);background:var(--muted)}
+/* language dropdown */
+.lang-dropdown{position:relative}
+.lang-menu{display:none;position:absolute;right:0;top:calc(100% + .25rem);z-index:50;min-width:8rem;background:var(--card);border:1px solid var(--border);border-radius:calc(var(--radius) - 2px);box-shadow:0 4px 6px -1px rgba(0,0,0,.5),0 2px 4px -2px rgba(0,0,0,.3);padding:.25rem;overflow:hidden}
+.lang-menu.open{display:block}
+.lang-menu a{display:flex;align-items:center;padding:.375rem .5rem;font-size:.875rem;color:var(--fg);text-decoration:none;border-radius:calc(var(--radius) - 4px);cursor:pointer;transition:background .1s,color .1s}
+.lang-menu a:hover{background:var(--muted);color:var(--fg)}
+.lang-menu a.active{background:var(--muted);color:var(--fg)}
 
 /* shell */
 #shell{flex:1;max-width:90rem;margin:0 auto;width:100%;padding:0 1rem;display:flex;gap:0}
@@ -339,7 +341,7 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
   #content{padding:1.5rem 1rem 3rem}
   h1{font-size:1.5rem}
   h2{font-size:1.1rem}
-  .gh span{display:none}
+  .btn-ghost .gh-label{display:none}
 }
 </style>
 </head>
@@ -348,19 +350,23 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
 <header id="navbar">
   <div id="nav-inner">
     <div style="display:flex;align-items:center">
-      <a class="brand" href="/">${logoSvg} sharely</a>
+      <a class="brand" href="/">sharely</a>
       <div class="sep"></div>
       <span class="badge">${t.badge}</span>
     </div>
     <div class="nav-right">
       <!-- Language selector -->
-      <label class="lang-wrap" title="${t.langLabel}">
-        ${globeIcon}
-        <select id="lang-select" aria-label="${t.langLabel}">${langOptions}</select>
-      </label>
+      <div class="lang-dropdown">
+        <button class="btn-ghost" id="lang-btn" aria-haspopup="true" aria-expanded="false" title="${t.langLabel}">
+          ${globeIcon}<span>${LANG_NAMES[lang]}</span>
+        </button>
+        <div class="lang-menu" id="lang-menu" role="menu">
+          ${langItems}
+        </div>
+      </div>
       <!-- GitHub -->
-      <a class="gh" href="https://github.com/Christianoooooo/sharely" target="_blank" rel="noopener">
-        ${ghIcon}<span>${t.github}</span>
+      <a class="btn-ghost" href="https://github.com/Christianoooooo/sharely" target="_blank" rel="noopener">
+        ${ghIcon}<span class="gh-label">${t.github}</span>
       </a>
     </div>
   </div>
@@ -382,12 +388,19 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
 </footer>
 
 <script>
-  // Language switcher — reload with ?lang= query param
-  document.getElementById('lang-select').addEventListener('change', function() {
-    const url = new URL(window.location.href);
-    url.searchParams.set('lang', this.value);
-    window.location.href = url.toString();
+  // Language dropdown toggle
+  const langBtn  = document.getElementById('lang-btn');
+  const langMenu = document.getElementById('lang-menu');
+  langBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const open = langMenu.classList.toggle('open');
+    langBtn.setAttribute('aria-expanded', open);
   });
+  document.addEventListener('click', function() {
+    langMenu.classList.remove('open');
+    langBtn.setAttribute('aria-expanded', 'false');
+  });
+  langMenu.addEventListener('click', function(e) { e.stopPropagation(); });
 
   // Build TOC
   const toc = document.getElementById('toc');
