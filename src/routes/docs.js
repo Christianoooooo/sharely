@@ -227,8 +227,6 @@ router.get('/', (req, res) => {
     return `<a href="${url}"${active}>${LANG_NAMES[code]}</a>`;
   }).join('');
 
-  const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="18" height="18" aria-hidden="true"><path fill="#3b82f6" d="M32 400C32 479.5 96.5 544 176 544L480 544C550.7 544 608 486.7 608 416C608 364.4 577.5 319.9 533.5 299.7C540.2 286.6 544 271.7 544 256C544 203 501 160 448 160C430.3 160 413.8 164.8 399.6 173.1C375.5 127.3 327.4 96 272 96C192.5 96 128 160.5 128 240C128 248 128.7 255.9 129.9 263.5C73 282.7 32 336.6 32 400z"/></svg>`;
-
   const ghIcon = `<svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>`;
 
   // Globe icon for language selector
@@ -250,8 +248,8 @@ router.get('/', (req, res) => {
   --border:     hsl(217,33%,17%);
   --primary:    hsl(217,91%,60%);
   --radius:     0.5rem;
-  --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  --mono: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --font: system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -266,7 +264,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-feature-s
 /* navbar */
 #navbar{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--border);background:hsla(222,47%,8%,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 #nav-inner{max-width:90rem;margin:0 auto;padding:0 1rem;height:3.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+.brand{text-decoration:none;font-size:.875rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary)}
 .sep{width:1px;height:1.25rem;background:var(--border);margin:0 .5rem}
 .badge{font-size:.7rem;font-weight:500;color:var(--muted-fg);letter-spacing:.04em}
 .nav-right{display:flex;align-items:center;gap:.25rem}
@@ -278,9 +276,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-feature-s
 
 /* language dropdown */
 .lang-dropdown{position:relative}
-.lang-menu{display:none;position:absolute;right:0;top:calc(100% + .25rem);z-index:50;min-width:10rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 6px -1px rgba(0,0,0,.4),0 2px 4px -2px rgba(0,0,0,.4);padding:.25rem;overflow:hidden}
+.lang-menu{display:none;position:absolute;right:0;top:calc(100% + .25rem);z-index:50;min-width:8rem;background:var(--card);border:1px solid var(--border);border-radius:calc(var(--radius) - 2px);box-shadow:0 4px 6px -1px rgba(0,0,0,.5),0 2px 4px -2px rgba(0,0,0,.3);padding:.25rem;overflow:hidden}
 .lang-menu.open{display:block}
-.lang-menu a{display:flex;align-items:center;padding:.375rem .5rem;font-size:.875rem;color:var(--fg);text-decoration:none;border-radius:calc(var(--radius) - 2px);cursor:pointer;transition:background .1s,color .1s}
+.lang-menu a{display:flex;align-items:center;padding:.375rem .5rem;font-size:.875rem;color:var(--fg);text-decoration:none;border-radius:calc(var(--radius) - 4px);cursor:pointer;transition:background .1s,color .1s}
 .lang-menu a:hover{background:var(--muted);color:var(--fg)}
 .lang-menu a.active{background:var(--muted);color:var(--fg)}
 
@@ -352,7 +350,7 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
 <header id="navbar">
   <div id="nav-inner">
     <div style="display:flex;align-items:center">
-      <a class="brand" href="/">${logoSvg} sharely</a>
+      <a class="brand" href="/">sharely</a>
       <div class="sep"></div>
       <span class="badge">${t.badge}</span>
     </div>
