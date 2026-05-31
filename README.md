@@ -17,6 +17,9 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **File viewing** — Images zoom inline, videos/audio stream with seek support (HTTP Range), PDFs render in-browser, code files syntax-highlighted
 - **File download** — Force-download endpoint (`/f/<id>/download`) separate from the inline viewer
 - **Embed modes** — Per-user toggle between *embed* (rich HTML page with Open Graph / Twitter Card metadata) and *raw* (direct file redirect for native social embeds); social media bots (Discord, Telegram, Twitter, etc.) are detected automatically
+- **Share links** — Generate per-file share links (`/s/<token>`) with optional password protection, expiry date, and download limit
+- **Collections** — Group files into named collections with optional password and expiry date, shareable via a single link
+- **Tags** — Tag files for organisation; define a personal set of predefined tags in Settings for quick reuse
 - **Thumbnails** — Video and PDF files get auto-generated JPEG thumbnails (requires ffmpeg / ghostscript, bundled in the Docker image)
 - **Avatars** — Users can upload a profile avatar (JPEG, PNG, GIF, WebP, max 2 MB)
 - **Internationalization** — UI and email templates available in 8 languages: English, Deutsch, Français, Español, Italiano, Português, 日本語, 中文
@@ -161,6 +164,32 @@ For large files the web UI automatically switches to chunked upload mode (files 
 
 ShareX receives a `deletionUrl` in the upload response and can delete files without re-authenticating.
 
+## Share Links
+
+Any file can have one or more share links generated from the file view. Each link is served at `/s/<token>` and supports:
+
+- **Password protection** — visitors must enter a password before accessing the file
+- **Expiry date** — the link becomes invalid after the configured date
+- **Download limit** — the link is disabled after N downloads (-1 = unlimited)
+
+Share links are independent of the owner's account. Deleting a share link does not delete the underlying file.
+
+## Collections
+
+Collections group multiple files under a single shareable link. Create and manage them from the **Collections** page. Each collection supports:
+
+- Custom name and description
+- Optional password and expiry date
+- Adding / removing individual files
+
+Collections are served at `/c/<shortId>` and respect the same password/expiry rules as share links.
+
+## Tags
+
+Files can be tagged for organisation and filtering. Tags are stored per file and are searchable in the gallery.
+
+To speed up tagging, define a personal list of **predefined tags** under **Settings → Preferences → Tag Management**. These appear as one-click suggestions when tagging files.
+
 ## WebSocket API
 
 The app maintains a persistent WebSocket connection (`/ws`) for all authenticated clients. The protocol uses a request/response pattern plus server-initiated broadcasts.
@@ -302,6 +331,22 @@ If you're migrating from [XBackBone](https://github.com/SergiX44/XBackBone):
 
 Users are matched by username. Files without a matching user are assigned to a fallback user you specify. The import handles multiple XBackBone schema versions and searches storage subdirectories automatically. It is idempotent — re-running it skips already-imported files.
 
+## End-to-End Tests
+
+The project ships with a [Playwright](https://playwright.dev/) test suite covering the main user flows (upload, gallery, share links, tags, admin actions).
+
+**Run tests (requires the app to be running):**
+
+```bash
+# Headless
+npm run test:e2e
+
+# Interactive UI mode
+npm run test:e2e:ui
+```
+
+The global setup in `e2e/global-setup.js` creates the necessary test users automatically. Make sure `BASE_URL` in `.env` points to a running instance before executing the suite.
+
 ## Project Structure
 
 ```
@@ -309,7 +354,7 @@ sharely/
 ├── app.js                  # Express entry point
 ├── src/
 │   ├── config/db.js        # MongoDB connection
-│   ├── models/             # Mongoose schemas (User, File, AuditLog, SiteSettings)
+│   ├── models/             # Mongoose schemas (User, File, Collection, ShareLink, AuditLog, SiteSettings)
 │   ├── middleware/         # Auth, upload handling, file block list
 │   ├── jobs/
 │   │   └── retentionCleanup.js   # Scheduled file & audit log cleanup
@@ -317,20 +362,23 @@ sharely/
 │   │   ├── generateThumbnail.js  # ffmpeg/ghostscript thumbnail generation
 │   │   └── mailer.js             # Nodemailer wrapper with i18n templates
 │   ├── ws.js               # WebSocket server (all WS actions & broadcasts)
-│   └── routes/             # REST routes (auth, api, files, import)
+│   └── routes/             # REST routes (auth, api, files, shares, collections, import, install)
 ├── client/                 # React frontend (Vite + Tailwind)
 │   └── src/
 │       ├── i18n/           # i18next config + 8 locale JSON files
 │       ├── hooks/
 │       │   └── useWebSocket.js   # React hook for WS connection & events
-│       ├── pages/          # Upload, Gallery, FileView, Settings, Admin pages
+│       ├── pages/          # Upload, Gallery, FileView, Collections, Settings, Admin pages
 │       └── components/     # UI components
+├── e2e/                    # Playwright end-to-end tests
 ├── scripts/
 │   ├── setup-db.js
 │   ├── migrate-uploads-to-user-folders.js
 │   └── generate-missing-thumbnails.js
 ├── uploads/
-│   └── .thumbnails/        # auto-generated JPEG thumbnails
+│   ├── .thumbnails/        # auto-generated JPEG thumbnails
+│   ├── .chunks/            # temporary chunked-upload segments
+│   └── .avatars/           # user profile avatars
 ├── docker-compose.yml
 └── .env.example
 ```
