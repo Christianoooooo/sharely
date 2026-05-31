@@ -4,6 +4,8 @@
 
 A self-hosted file sharing platform with a clean web interface, ShareX integration, and API access. Upload screenshots, files, and media — then instantly share them via short links.
 
+**[Documentation →](https://sharely.christian.pizza/docs)**
+
 ![Gallery](docs/assets/gallery.png)
 
 ## Features
