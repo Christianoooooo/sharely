@@ -2,9 +2,11 @@
   <img src="docs/assets/logo.png" alt="Logo">
 </p>
 
-A self-hosted file sharing platform with a clean web interface, ShareX integration, and API access. Upload screenshots, files, and media — then instantly share them via short links.
+<p align="center">
+  <a href="https://sharely.christian.pizza/docs"><strong>📖 Documentation →</strong></a>
+</p>
 
-**[Documentation →](https://sharely.christian.pizza/docs)**
+A self-hosted file sharing platform with a clean web interface, ShareX integration, and API access. Upload screenshots, files, and media — then instantly share them via short links.
 
 ![Gallery](docs/assets/gallery.png)
 
