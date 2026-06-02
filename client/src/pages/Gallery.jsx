@@ -35,11 +35,15 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical, faCheckSquare, faTag, faFolderPlus, faMinus, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faMagnifyingGlass, faXmark, faImage, faVideo, faMusic, faFileLines, faCode, faFile, faLink, faDownload, faArrowUpRightFromSquare, faTrash, faEllipsisVertical, faCheckSquare, faTag, faFolderPlus, faMinus, faArrowRight, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { AddToCollectionDialog } from '@/components/AddToCollectionDialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 function buildPageItems(page, pages) {
   if (pages <= 7) {
@@ -132,8 +136,36 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
   const navigate = useNavigate();
   const { toast } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [tags, setTags] = useState(file.tags || []);
+  const [tagInput, setTagInput] = useState('');
   const icon = TYPE_ICONS[file.displayType] || faFile;
   const canDelete = user && (user.role === 'admin' || user.id === file.uploader?._id);
+  const canEdit = user && (user.role === 'admin' || user.id === file.uploader?._id);
+
+  async function saveTags(newTags) {
+    const r = await fetch(`/api/file/${file.shortId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: newTags }),
+    });
+    if (r.ok) toast({ title: t('fileView.tagSaved') });
+    else toast({ title: t('fileView.tagFailed'), variant: 'destructive' });
+  }
+
+  function addTag(tag) {
+    const trimmed = tag.trim().slice(0, 50);
+    if (!trimmed || tags.includes(trimmed) || tags.length >= 20) return;
+    const next = [...tags, trimmed];
+    setTags(next);
+    saveTags(next);
+  }
+
+  function removeTag(tag) {
+    const next = tags.filter((t_) => t_ !== tag);
+    setTags(next);
+    saveTags(next);
+  }
 
   function copyLink() {
     navigator.clipboard.writeText(`${window.location.origin}/f/${file.shortId}`);
@@ -204,7 +236,7 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
                   {/* Touch-friendly actions menu */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-                      <button className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent">
+                      <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent">
                         <FontAwesomeIcon icon={faEllipsisVertical} className="h-3.5 w-3.5" />
                       </button>
                     </DropdownMenuTrigger>
@@ -227,6 +259,23 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
                           {t('gallery.contextDownload')}
                         </a>
                       </DropdownMenuItem>
+                      {user && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <AddToCollectionDialog shortId={file.shortId}>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <FontAwesomeIcon icon={faFolderPlus} className="h-4 w-4" />
+                              {t('addToCollection.title')}
+                            </DropdownMenuItem>
+                          </AddToCollectionDialog>
+                          {canEdit && (
+                            <DropdownMenuItem onSelect={() => setTagDialogOpen(true)}>
+                              <FontAwesomeIcon icon={faTag} className="h-4 w-4" />
+                              {t('fileView.addTag')}
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
                       {canDelete && (
                         <>
                           <DropdownMenuSeparator />
@@ -243,9 +292,9 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
                   </DropdownMenu>
                 </div>
               </div>
-              {file.tags?.length > 0 && (
+              {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-0.5">
-                  {file.tags.slice(0, 3).map((tag) => (
+                  {tags.slice(0, 3).map((tag) => (
                     <Badge key={tag} variant="outline" className="text-xs px-1 py-0">{tag}</Badge>
                   ))}
                 </div>
@@ -278,6 +327,23 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
               {t('gallery.contextDownload')}
             </a>
           </ContextMenuItem>
+          {user && (
+            <>
+              <ContextMenuSeparator />
+              <AddToCollectionDialog shortId={file.shortId}>
+                <ContextMenuItem onSelect={(e) => e.preventDefault()}>
+                  <FontAwesomeIcon icon={faFolderPlus} className="h-4 w-4" />
+                  {t('addToCollection.title')}
+                </ContextMenuItem>
+              </AddToCollectionDialog>
+              {canEdit && (
+                <ContextMenuItem onSelect={() => setTagDialogOpen(true)}>
+                  <FontAwesomeIcon icon={faTag} className="h-4 w-4" />
+                  {t('fileView.addTag')}
+                </ContextMenuItem>
+              )}
+            </>
+          )}
           {canDelete && (
             <>
               <ContextMenuSeparator />
@@ -292,6 +358,46 @@ function FileCard({ file, user, onDelete, selectMode, selected, onToggleSelect }
           )}
         </ContextMenuContent>
       </ContextMenu>
+
+      {/* Tag management dialog */}
+      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faTag} className="h-4 w-4" />
+              {t('fileView.addTag')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <form
+              onSubmit={(e) => { e.preventDefault(); addTag(tagInput); setTagInput(''); }}
+              className="flex gap-2"
+            >
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder={t('fileView.addTag')}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={!tagInput.trim()} className="h-10 w-10 shrink-0 p-0">
+                <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
+              </Button>
+            </form>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                    {tag}
+                    <button onClick={() => removeTag(tag)} className="ml-0.5 hover:text-destructive">
+                      <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
