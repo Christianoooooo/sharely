@@ -85,6 +85,13 @@ fileSchema.virtual('displayType').get(function () {
   return 'file';
 });
 
+// Gallery/list queries filter by uploader and sort by createdAt descending.
+fileSchema.index({ uploader: 1, createdAt: -1 });
+// Admin gallery and "recent files" list globally, sorted by createdAt.
+fileSchema.index({ createdAt: -1 });
+// Tag filtering and distinct-tag lookups (multikey).
+fileSchema.index({ tags: 1 });
+
 fileSchema.set('toJSON', { virtuals: true });
 fileSchema.set('toObject', { virtuals: true });
 

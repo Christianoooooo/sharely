@@ -48,4 +48,8 @@ const shareLinkSchema = new mongoose.Schema({
 // before MongoDB cleans them up automatically.
 shareLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 604800, sparse: true });
 
+// Links are looked up per file and per creator.
+shareLinkSchema.index({ file: 1 });
+shareLinkSchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model('ShareLink', shareLinkSchema);
