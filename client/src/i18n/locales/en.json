@@ -15,7 +15,8 @@
     "poweredBy": "Powered by",
     "license": "Licensed under the MIT License",
     "privacy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "support": "Support this project"
   },
   "login": {
     "title": "Login",

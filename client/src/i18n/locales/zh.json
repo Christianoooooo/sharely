@@ -15,7 +15,8 @@
     "poweredBy": "由以下提供支持：",
     "license": "基于 MIT 许可证",
     "privacy": "隐私政策",
-    "terms": "服务条款"
+    "terms": "服务条款",
+    "support": "支持这个项目"
   },
   "login": {
     "title": "登录",
