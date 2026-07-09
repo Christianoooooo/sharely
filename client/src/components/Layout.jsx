@@ -183,17 +183,6 @@ export function Layout({ children }) {
           </a>
         </div>
         <div>{t('footer.license')}</div>
-        <div>
-          <a
-            href="https://github.com/sponsors/Christianoooooo"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-muted-foreground/70 hover:text-foreground transition-colors"
-          >
-            <FontAwesomeIcon icon={faHeart} className="h-3 w-3" />
-            {t('footer.support')}
-          </a>
-        </div>
         <div className="flex items-center justify-center gap-3">
           <Link
             to="/privacy"
@@ -208,6 +197,17 @@ export function Layout({ children }) {
           >
             {t('footer.terms')}
           </Link>
+        </div>
+        <div>
+          <a
+            href="https://github.com/sponsors/Christianoooooo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-muted-foreground/70 hover:text-foreground transition-colors"
+          >
+            <FontAwesomeIcon icon={faHeart} className="h-3 w-3" />
+            {t('footer.support')}
+          </a>
         </div>
       </footer>
     </div>
