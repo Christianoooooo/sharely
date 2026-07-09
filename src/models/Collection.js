@@ -51,6 +51,9 @@ const collectionSchema = new mongoose.Schema({
 // Keep expired collections for 7 days so visitors still see the "Abgelaufen" message.
 collectionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 604800, sparse: true });
 
+// Collections are listed per owner, sorted by createdAt descending.
+collectionSchema.index({ owner: 1, createdAt: -1 });
+
 collectionSchema.statics.createUnique = async function (data, maxAttempts = 5) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {

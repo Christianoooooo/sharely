@@ -350,13 +350,22 @@ router.get('/gallery', requireLogin, async (req, res) => {
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
 
-  res.json({
-    files: files.map((f) => {
+  // Resolve thumbnail existence asynchronously and in parallel so the sync
+  // stat calls don't block the event loop on every gallery request.
+  const fileObjs = await Promise.all(
+    files.map(async (f) => {
       const obj = f.toObject();
-      obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+      obj.hasThumbnail = await fs.promises
+        .access(thumbPath(f.shortId))
+        .then(() => true)
+        .catch(() => false);
       if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
       return obj;
     }),
+  );
+
+  res.json({
+    files: fileObjs,
     total,
     page,
     pages,
@@ -1171,13 +1180,22 @@ router.get('/admin/files', requireAdmin, async (req, res) => {
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
 
-  res.json({
-    files: files.map((f) => {
+  // Resolve thumbnail existence asynchronously and in parallel so the sync
+  // stat calls don't block the event loop on every gallery request.
+  const fileObjs = await Promise.all(
+    files.map(async (f) => {
       const obj = f.toObject();
-      obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+      obj.hasThumbnail = await fs.promises
+        .access(thumbPath(f.shortId))
+        .then(() => true)
+        .catch(() => false);
       if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
       return obj;
     }),
+  );
+
+  res.json({
+    files: fileObjs,
     total,
     page,
     pages,
@@ -1402,14 +1420,19 @@ router.get('/collections/:id', async (req, res) => {
 
   const needsPassword = collection.password && !verified && !isOwnerOrAdmin;
 
-  const files = needsPassword ? [] : collection.files.map((f) => ({
-    shortId: f.shortId,
-    originalName: f.originalName,
-    mimeType: f.mimeType,
-    size: f.size,
-    createdAt: f.createdAt,
-    hasThumbnail: fs.existsSync(thumbPath(f.shortId)),
-  }));
+  const files = needsPassword ? [] : await Promise.all(
+    collection.files.map(async (f) => ({
+      shortId: f.shortId,
+      originalName: f.originalName,
+      mimeType: f.mimeType,
+      size: f.size,
+      createdAt: f.createdAt,
+      hasThumbnail: await fs.promises
+        .access(thumbPath(f.shortId))
+        .then(() => true)
+        .catch(() => false),
+    })),
+  );
 
   res.json({
     shortId: collection.shortId,
