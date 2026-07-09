@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars, faFolderOpen } from '@fortawesome/free-solid-svg-icons';
+import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars, faFolderOpen, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -183,6 +183,17 @@ export function Layout({ children }) {
           </a>
         </div>
         <div>{t('footer.license')}</div>
+        <div>
+          <a
+            href="https://github.com/sponsors/Christianoooooo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-muted-foreground/70 hover:text-foreground transition-colors"
+          >
+            <FontAwesomeIcon icon={faHeart} className="h-3 w-3" />
+            {t('footer.support')}
+          </a>
+        </div>
         <div className="flex items-center justify-center gap-3">
           <Link
             to="/privacy"
