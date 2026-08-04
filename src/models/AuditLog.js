@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({
-  timestamp: { type: Date, default: Date.now, index: true },
+  timestamp: { type: Date, default: Date.now },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   username: { type: String, default: null },
   action: { type: String, required: true, index: true },
