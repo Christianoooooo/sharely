@@ -6,6 +6,7 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
 const { rateLimit } = require('express-rate-limit');
+const mongoose = require('mongoose');
 const connectDB = require('./src/config/db');
 const SiteSettings = require('./src/models/SiteSettings');
 const uploadMiddleware = require('./src/middleware/upload');
@@ -51,11 +52,18 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Establish the single shared MongoDB connection up front. The session store
+// reuses this connection instead of opening its own client: a second, unmanaged
+// client connects at import time — before connectDB runs and before container
+// DNS is reliably ready — and its failure crashes the process with an unhandled
+// MongoServerSelectionError that db.js's try/catch never sees.
+const dbReady = connectDB();
+
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+  store: MongoStore.create({ clientPromise: dbReady.then(() => mongoose.connection.getClient()) }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7,
     httpOnly: true,
@@ -174,7 +182,7 @@ app.use((err, _req, res, _next) => {
 const PORT = process.env.PORT || 3000;
 
 (async () => {
-  await connectDB();
+  await dbReady;
   await migrateUserFolders();
   await migrateApiKeyHashes();
   await runRetentionCleanup();
