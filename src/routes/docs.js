@@ -430,6 +430,13 @@ hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
 </body>
 </html>`;
 
+  // Self-contained first-party page (no user content, only escaped markdown from
+  // repo files); its inline script/style need their own CSP since the global one
+  // no longer allows inline scripts.
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self';",
+  );
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.send(html);

@@ -8,6 +8,10 @@ const { logAudit } = require('../utils/audit');
 const mailer = require('../utils/mailer');
 const { broadcast } = require('../ws');
 
+// A valid bcrypt hash of a random value, compared against when no user is found
+// so login timing does not reveal whether a username exists.
+const DUMMY_HASH = '$2a$12$BfEoN1iE7LMZ4o0prU0P6OaawVLCVurgrJemsAm6.ZlJmTJYrvA9i';
+
 // env var takes precedence; falls back to SiteSettings.allowRegistration
 async function allowRegistration() {
   if (process.env.ALLOW_REGISTRATION === 'false') return false;
@@ -59,6 +63,8 @@ router.post('/login', authLimiter, async (req, res) => {
   }
   const user = await User.findOne({ username });
   if (!user || !user.isActive) {
+    // Spend comparable time hashing so a missing/inactive user is indistinguishable.
+    await bcrypt.compare(password, DUMMY_HASH);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   const valid = await user.comparePassword(password);
@@ -94,6 +100,9 @@ router.post('/register', authLimiter, async (req, res) => {
   }
   if (username.length < 3 || username.length > 32) {
     return res.status(400).json({ error: 'Username must be 3–32 characters' });
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    return res.status(400).json({ error: 'Username may only contain letters, numbers, dashes and underscores' });
   }
   if (password.length < 12) {
     return res.status(400).json({ error: 'Password must be at least 12 characters' });

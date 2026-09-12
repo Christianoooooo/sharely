@@ -15,6 +15,7 @@ const SiteSettings = require('../models/SiteSettings');
 const ShareLink = require('../models/ShareLink');
 const Collection = require('../models/Collection');
 const sanitizeFilename = require('../utils/sanitizeFilename');
+const { resolveUploadPath, escapeRegex } = require('../utils/uploadPath');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { logAudit } = require('../utils/audit');
 const AuditLog = require('../models/AuditLog');
@@ -67,20 +68,6 @@ function resolveChunkDir(uploadId) {
 
 const UPLOAD_DIR = _BASE_UPLOAD_DIR;
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
-
-/** Escape special regex characters to prevent ReDoS via user-supplied search terms. */
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** Resolve storedName to an absolute path and guard against path traversal. */
-function resolveUploadPath(storedName) {
-  const resolved = path.resolve(UPLOAD_DIR, storedName);
-  if (resolved !== UPLOAD_DIR && !resolved.startsWith(UPLOAD_DIR + path.sep)) {
-    throw new Error('Invalid file path');
-  }
-  return resolved;
-}
 
 /** Delete a file record: unlink disk file, remove thumbnail, write audit log, remove DB doc. */
 async function deleteFileRecord(req, file) {
@@ -292,11 +279,13 @@ router.get('/tags', requireLogin, async (req, res) => {
 
 // ── File metadata ───────────────────────────────────────────────────────────
 router.get('/file/:shortId', async (req, res) => {
-  const file = await File.findOne({ shortId: req.params.shortId }).populate('uploader', 'username avatarExt');
+  const file = await File.findOneAndUpdate(
+    { shortId: req.params.shortId },
+    { $inc: { views: 1 } },
+    { new: true },
+  ).populate('uploader', 'username avatarExt');
   if (!file) return res.status(404).json({ error: 'File not found' });
 
-  file.views += 1;
-  await file.save();
   broadcast('file:view', { shortId: req.params.shortId, views: file.views }, () => true);
 
   const obj = file.toObject();
@@ -534,7 +523,10 @@ router.post('/admin/users', requireAdmin, async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
-  if (username.length < 3) return res.status(400).json({ error: 'Username must be at least 3 characters' });
+  if (username.length < 3 || username.length > 32) return res.status(400).json({ error: 'Username must be 3–32 characters' });
+  if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    return res.status(400).json({ error: 'Username may only contain letters, numbers, dashes and underscores' });
+  }
   if (password.length < 12) return res.status(400).json({ error: 'Password must be at least 12 characters' });
   const exists = await User.findOne({ username });
   if (exists) return res.status(409).json({ error: 'Username already taken' });
@@ -1075,8 +1067,12 @@ router.delete('/chunk/:uploadId', requireLogin, (req, res) => {
 router.post('/user/avatar', requireLogin, avatarMulter.single('avatar'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
+  // Derive the extension strictly from the validated MIME type, never from the
+  // client-supplied filename: an attacker could otherwise store "x.html"/"x.svg"
+  // and have it served as active content from our own origin (stored XSS).
   const mimeToExt = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp' };
-  const ext = path.extname(req.file.originalname).toLowerCase() || mimeToExt[req.file.mimetype] || '.jpg';
+  const ext = mimeToExt[req.file.mimetype];
+  if (!ext) return res.status(400).json({ error: 'Only JPEG, PNG, GIF or WebP images are allowed' });
 
   const userId = req.session.user.id;
   const user = await User.findById(userId);
@@ -1120,6 +1116,8 @@ router.get('/user/avatar/:userId', async (req, res) => {
   const avatarPath = path.join(AVATAR_DIR, `${req.params.userId}${user.avatarExt}`);
   if (!fs.existsSync(avatarPath)) return res.status(404).json({ error: 'Avatar not found' });
 
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', 'sandbox');
   res.sendFile(avatarPath);
 });
 

@@ -17,6 +17,7 @@ const { initWS, broadcast } = require('./src/ws');
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
+const { generateThumbnail } = require('./src/utils/generateThumbnail');
 const { logAudit } = require('./src/utils/audit');
 const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
 
@@ -47,7 +48,7 @@ app.use((_req, res, next) => {
     // cloudflareinsights.com is allowed in connect-src so the beacon can report
     // back to Cloudflare's collection endpoint.
     // frame-ancestors 'self' allows the PDF viewer iframe (same-origin) to work.
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self';",
+    "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self';",
   );
   next();
 });
@@ -110,6 +111,7 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
   const user = req.apiUser;
   const folder = user.folderName || user.username;
   let storedName = req.file.filename;
+  let diskPath = req.file.path;
 
   if (folder) {
     const userDir = path.join(UPLOAD_DIR, folder);
@@ -117,15 +119,17 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
     const newPath = path.join(userDir, req.file.filename);
     fs.renameSync(req.file.path, newPath);
     storedName = path.join(folder, req.file.filename);
+    diskPath = newPath;
   }
 
-  const file = await File.create({
+  const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType: req.file.mimetype,
     size: req.file.size,
     uploader: user._id,
   });
+  generateThumbnail(diskPath, req.file.mimetype, file.shortId).catch(() => {});
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const uploaderId = String(user._id);
   broadcast('file:uploaded', { shortId: file.shortId, uploaderId }, (c) => c.userId === uploaderId);
@@ -155,7 +159,7 @@ function requireSameOrigin(req, res, next) {
 // JSON API routes
 app.use('/api/install', requireSameOrigin, require('./src/routes/install'));
 app.use('/api/auth', requireSameOrigin, require('./src/routes/auth'));
-app.use('/api/admin/import', require('./src/routes/import'));
+app.use('/api/admin/import', requireSameOrigin, require('./src/routes/import'));
 app.use('/api', requireSameOrigin, require('./src/routes/api'));
 
 // Raw file serving (not JSON)
