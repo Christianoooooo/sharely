@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const File = require('../models/File');
 const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads');
+const { resolveUploadPath } = require('../utils/uploadPath');
 
 /** Regex matching known social-media / link-preview crawlers. */
 const BOT_UA = /discord|twitterbot|facebookexternalhit|telegram|slack|whatsapp|linkedinbot|skype|vkshare|pinterest|tumblr|mastodon/i;
@@ -19,13 +18,17 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
-/** Resolve storedName to an absolute path and guard against path traversal. */
-function resolveUploadPath(storedName) {
-  const resolved = path.resolve(UPLOAD_DIR, storedName);
-  if (resolved !== UPLOAD_DIR && !resolved.startsWith(UPLOAD_DIR + path.sep)) {
-    throw new Error('Invalid file path');
-  }
-  return resolved;
+// MIME types that browsers execute scripts from when rendered on our own origin
+// (HTML, SVG, XML). These must never be served inline and their Content-Type is
+// neutralised so a navigated-to upload cannot run JS in the app's origin.
+const ACTIVE_CONTENT = /^(?:text\/html|application\/xhtml\+xml|image\/svg\+xml|text\/xml|application\/xml)\b/i;
+
+/** Constant-time string comparison that never throws on length mismatch. */
+function timingSafeEqualStr(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 /**
@@ -37,9 +40,22 @@ function serveFile(req, res, filePath, file, forceDownload = false) {
   const fileSize = stat.size;
 
   const type = file.displayType;
-  const inline = !forceDownload && ['image', 'video', 'audio', 'pdf', 'text', 'code'].includes(type);
+  const active = ACTIVE_CONTENT.test(file.mimeType);
+  const inline = !forceDownload && !active && ['image', 'video', 'audio', 'pdf', 'text', 'code'].includes(type);
+  const isTextPreview = inline && (type === 'text' || type === 'code');
 
-  res.setHeader('Content-Type', file.mimeType);
+  // Text/code is previewed as text/plain so an HTML payload carrying a text/* MIME
+  // cannot be rendered; active content (HTML/SVG/XML) keeps its real type but is
+  // forced to download (inline=false above).
+  const contentType = isTextPreview ? 'text/plain; charset=utf-8' : file.mimeType;
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Sandbox everything except trusted inline media (raster image/video/audio/pdf)
+  // so a forced-download active file cannot run JS if a client renders it anyway;
+  // the sandbox is kept off real media so the in-app PDF/image viewer keeps working.
+  if (!inline || isTextPreview) {
+    res.setHeader('Content-Security-Policy', 'sandbox');
+  }
   res.setHeader(
     'Content-Disposition',
     `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.originalName)}"`,
@@ -62,7 +78,7 @@ function serveFile(req, res, filePath, file, forceDownload = false) {
   const start = match[1] !== '' ? parseInt(match[1], 10) : fileSize - parseInt(match[2], 10);
   const end   = match[2] !== '' ? parseInt(match[2], 10) : fileSize - 1;
 
-  if (start < 0 || end >= fileSize || start > end) {
+  if (Number.isNaN(start) || Number.isNaN(end) || start < 0 || end >= fileSize || start > end) {
     res.setHeader('Content-Range', `bytes */${fileSize}`);
     return res.status(416).send('Range Not Satisfiable');
   }
@@ -160,7 +176,7 @@ router.get('/:shortId/delete/:token', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).json({ error: 'File not found' });
 
-  if (!file.deleteToken || file.deleteToken !== req.params.token) {
+  if (!file.deleteToken || !timingSafeEqualStr(file.deleteToken, req.params.token)) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 

@@ -1,5 +1,15 @@
 const nodemailer = require('nodemailer');
 
+/** Escape HTML special characters so a username cannot inject markup into emails. */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── Translations ─────────────────────────────────────────────────────────────
 
 const T = {
@@ -285,7 +295,7 @@ async function sendPasswordResetEmail(to, username, resetUrl, lang = 'en') {
     siteName, baseUrl,
     preheader: tr.preheader(siteName),
     title: tr.title,
-    body: tr.body(username, siteName),
+    body: tr.body(escapeHtml(username), siteName),
     ctaLabel: tr.cta,
     ctaUrl: resetUrl,
     footerNote: tr.footer(siteName),
@@ -312,7 +322,7 @@ async function sendEmailVerificationEmail(to, username, verifyUrl, lang = 'en') 
     siteName, baseUrl,
     preheader: tr.preheader(siteName),
     title: tr.title,
-    body: tr.body(username, siteName),
+    body: tr.body(escapeHtml(username), siteName),
     ctaLabel: tr.cta,
     ctaUrl: verifyUrl,
     footerNote: tr.footer(siteName),

@@ -65,8 +65,13 @@ router.get('/:token/download', async (req, res) => {
   const filePath = resolveUploadPath(file.storedName);
   if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
 
-  link.downloadCount += 1;
-  await link.save();
+  // Atomic increment so concurrent downloads cannot exceed downloadLimit.
+  const updated = await ShareLink.findOneAndUpdate(
+    { _id: link._id },
+    { $inc: { downloadCount: 1 } },
+    { new: true },
+  );
+  link.downloadCount = updated.downloadCount;
 
   const ownerId = link.createdBy?.toString();
   if (ownerId) {

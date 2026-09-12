@@ -2,8 +2,9 @@
  * XBackBone import endpoint.
  *
  * POST /api/admin/import/xbackbone
- *   multipart fields:
- *     db          - XBackBone's database.db file (required)
+ *   JSON body fields:
+ *     dbPath      - absolute path to XBackBone's database.db on this server
+ *                   (required, must end in .db/.sqlite/.sqlite3)
  *     storagePath - absolute path to XBackBone's storage directory on this
  *                   server (required, e.g. /xbackbone/storage)
  *     defaultUser - our username to assign files when no XBackBone user can

@@ -7,9 +7,8 @@ const User = require('./models/User');
 const SiteSettings = require('./models/SiteSettings');
 const AuditLog = require('./models/AuditLog');
 const { deleteThumbnail, thumbPath } = require('./utils/generateThumbnail');
+const { UPLOAD_DIR, resolveUploadPath, escapeRegex } = require('./utils/uploadPath');
 const mailer = require('./utils/mailer');
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../uploads');
 
 const clients = new Set();
 let wss = null;
@@ -86,18 +85,6 @@ async function wsAudit(client, action, meta = {}) {
   }
 }
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function resolveUploadPath(storedName) {
-  const resolved = path.resolve(UPLOAD_DIR, storedName);
-  if (resolved !== UPLOAD_DIR && !resolved.startsWith(UPLOAD_DIR + path.sep)) {
-    throw new Error('Invalid file path');
-  }
-  return resolved;
-}
-
 async function deleteFileRecord(client, file) {
   const fp = resolveUploadPath(file.storedName);
   try { fs.unlinkSync(fp); } catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -153,10 +140,12 @@ async function handleAction(client, { id, action, payload = {} }) {
     case 'file:get': {
       const { shortId } = payload;
       if (!shortId) return err('shortId required');
-      const file = await File.findOne({ shortId }).populate('uploader', 'username avatarExt');
+      const file = await File.findOneAndUpdate(
+        { shortId },
+        { $inc: { views: 1 } },
+        { new: true },
+      ).populate('uploader', 'username avatarExt');
       if (!file) return err('File not found', 404);
-      file.views += 1;
-      await file.save();
       broadcast('file:view', { shortId, views: file.views }, () => true);
       const obj = file.toObject();
       if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
@@ -499,7 +488,10 @@ async function handleAction(client, { id, action, payload = {} }) {
       if (!isAdmin) return err('Admin access required', 403);
       const { username, password, role } = payload;
       if (!username || !password) return err('Username and password required');
-      if (username.length < 3) return err('Username must be at least 3 characters');
+      if (username.length < 3 || username.length > 32) return err('Username must be 3–32 characters');
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return err('Username may only contain letters, numbers, dashes and underscores');
+      }
       if (password.length < 12) return err('Password must be at least 12 characters');
       const exists = await User.findOne({ username });
       if (exists) return err('Username already taken', 409);
