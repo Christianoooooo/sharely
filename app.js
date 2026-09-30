@@ -21,6 +21,17 @@ const { generateThumbnail } = require('./src/utils/generateThumbnail');
 const { logAudit } = require('./src/utils/audit');
 const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
 
+// Survive transient failures (mostly MongoDB network blips) instead of letting
+// the container restart policy turn them into a crash-loop. A rejected DB
+// operation does not corrupt process state, so we log and keep serving; the
+// mongoose driver reconnects on its own once the database is reachable again.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason instanceof Error ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.stack || err);
+});
+
 if (!process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET environment variable is not set.');
   process.exit(1);
