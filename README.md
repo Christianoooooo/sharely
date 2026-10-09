@@ -102,6 +102,10 @@ Copy `.env.example` to `.env` and adjust the values:
 | `SMTP_USER` | — | SMTP authentication username |
 | `SMTP_PASS` | — | SMTP authentication password |
 | `SMTP_FROM` | _(SMTP_USER)_ | From address shown in outgoing emails |
+| `UPDATE_ENABLED` | `false` | Enable one-click self-update from the admin panel (see [Automatic Updates](#automatic-updates)) |
+| `UPDATE_BRANCH` | `main` | Branch the updater pulls when applying an update |
+| `UPDATE_REPO` | `Christianoooooo/sharely` | GitHub repo checked for new releases |
+| `COMPOSE_PROJECT_NAME` | `sharely` | Compose project name; must match between host and updater |
 
 Generate a secure session secret:
 
@@ -120,6 +124,26 @@ When `SMTP_HOST` is set, sharely enables:
 Email subjects and body copy are translated into all 8 supported languages and sent in the user's chosen language.
 
 If `SMTP_HOST` is left blank, all email-dependent features are hidden from the UI and registration proceeds without verification.
+
+## Automatic Updates
+
+The admin panel (**Admin → Site Settings → Version & Updates**) always shows the installed version and whether a newer GitHub release is available.
+
+Optionally, admins can apply updates with one click. This is handled by a dedicated `updater` container — the **only** component with Docker socket access. The web app never touches the socket: it just drops a request file into a shared volume, and the updater runs `git pull` + `docker compose build app` + `docker compose up -d app`.
+
+> ⚠️ **Security note:** the updater mounts the Docker socket, which is equivalent to root on the host. Enable self-update only if you accept that trade-off. If the web app is compromised, the worst it can trigger is a rebuild from your configured branch — it cannot run arbitrary host commands.
+
+To enable it:
+
+1. Deploy from a **git checkout** (the default Quick Start does this) — the updater pulls into that checkout.
+2. Set `UPDATE_ENABLED=true` in `.env`. Keep `COMPOSE_PROJECT_NAME` identical to the name used when you first ran compose (default `sharely`).
+3. Start the stack **including** the updater (it lives behind the `updater` profile, so a plain `docker compose up` never starts the privileged container):
+
+```bash
+docker compose --profile updater up -d --build
+```
+
+When you click **Install update**, the app container is rebuilt and restarted; it is briefly unavailable. The page reports progress and reconnects automatically. Leave `UPDATE_ENABLED=false` (and omit the profile) to keep the panel notification-only.
 
 ## API Usage
 

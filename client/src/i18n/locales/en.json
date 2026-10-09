@@ -515,7 +515,16 @@
     "checkNow": "Check for updates",
     "checking": "Checking…",
     "lastChecked": "Last checked: {{time}}",
-    "updateCheckFailed": "Update check failed"
+    "updateCheckFailed": "Update check failed",
+    "applyUpdate": "Install update",
+    "applyConfirm": "This pulls version {{version}} and rebuilds the server. The app will restart and be briefly unavailable. Continue?",
+    "updateRunning": "Update in progress…",
+    "updateRestarting": "Applying update, the server is restarting…",
+    "updateDone": "Update installed successfully.",
+    "updateFailed": "The update failed. See the log below.",
+    "updateStartFailed": "Could not start the update.",
+    "reload": "Reload page",
+    "cancel": "Cancel"
   },
   "adminAuditLog": {
     "title": "Audit Log",

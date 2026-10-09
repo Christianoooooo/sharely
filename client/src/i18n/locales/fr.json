@@ -364,7 +364,16 @@
     "checkNow": "Rechercher des mises à jour",
     "checking": "Vérification…",
     "lastChecked": "Dernière vérification : {{time}}",
-    "updateCheckFailed": "Échec de la vérification des mises à jour"
+    "updateCheckFailed": "Échec de la vérification des mises à jour",
+    "applyUpdate": "Installer la mise à jour",
+    "applyConfirm": "Cela télécharge la version {{version}} et reconstruit le serveur. L'application redémarre et sera brièvement indisponible. Continuer ?",
+    "updateRunning": "Mise à jour en cours…",
+    "updateRestarting": "Application de la mise à jour, le serveur redémarre…",
+    "updateDone": "Mise à jour installée avec succès.",
+    "updateFailed": "La mise à jour a échoué. Voir le journal ci-dessous.",
+    "updateStartFailed": "Impossible de démarrer la mise à jour.",
+    "reload": "Recharger la page",
+    "cancel": "Annuler"
   },
   "adminAuditLog": {
     "title": "Journal d'audit",

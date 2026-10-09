@@ -313,6 +313,20 @@ Alle Variablen werden aus `.env` geladen (via `dotenv`). Die Datei `.env.example
 | `SMTP_FROM` | _(SMTP_USER)_ | Absenderadresse in ausgehenden E-Mails |
 | `UPLOAD_DIR` | `./uploads` | Absoluter Pfad zum Upload-Verzeichnis |
 | `NODE_ENV` | — | `production` aktiviert sichere Cookies |
+| `UPDATE_ENABLED` | `false` | Aktiviert das Self-Update per Knopfdruck im Admin-Panel |
+| `UPDATE_BRANCH` | `main` | Branch, den der Updater beim Update zieht |
+| `UPDATE_REPO` | `Christianoooooo/sharely` | GitHub-Repo, das auf neue Releases geprüft wird |
+| `COMPOSE_PROJECT_NAME` | `sharely` | Compose-Projektname; muss zwischen Host und Updater identisch sein |
+
+### Automatische Updates
+
+Das Admin-Panel (**Admin → Website-Einstellungen → Version & Updates**) zeigt stets die installierte Version und ob ein neueres GitHub-Release verfügbar ist.
+
+Optional lässt sich ein Update per Knopfdruck einspielen. Dies übernimmt ein eigener `updater`-Container — die **einzige** Komponente mit Zugriff auf den Docker-Socket. Die Web-App berührt den Socket nie: sie legt nur eine Anforderungsdatei in ein gemeinsames Volume, der Updater führt dann `git pull` + `docker compose build app` + `docker compose up -d app` aus.
+
+> ⚠️ **Sicherheitshinweis:** Der Updater mountet den Docker-Socket, was Root-Rechten auf dem Host entspricht. Nur aktivieren, wenn dieser Kompromiss bewusst akzeptiert wird. Bei einer kompromittierten Web-App kann höchstens ein Rebuild aus dem konfigurierten Branch ausgelöst werden — keine beliebigen Host-Befehle.
+
+Voraussetzungen: Deployment aus einem **Git-Checkout**, `UPDATE_ENABLED=true` in der `.env`, unveränderter `COMPOSE_PROJECT_NAME`, und Start inklusive Updater via `docker compose --profile updater up -d --build`. Der Updater liegt hinter dem Compose-Profil `updater` — ein normales `docker compose up` startet den privilegierten Container also nie. Beim Einspielen wird der App-Container neu gebaut und ist kurz nicht erreichbar; die Seite zeigt den Fortschritt und verbindet sich automatisch neu. Mit `UPDATE_ENABLED=false` (und ohne Profil) bleibt das Panel reine Benachrichtigung.
 
 ---
 
