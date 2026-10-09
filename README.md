@@ -103,7 +103,8 @@ Copy `.env.example` to `.env` and adjust the values:
 | `SMTP_PASS` | — | SMTP authentication password |
 | `SMTP_FROM` | _(SMTP_USER)_ | From address shown in outgoing emails |
 | `UPDATE_ENABLED` | `false` | Enable one-click self-update from the admin panel (see [Automatic Updates](#automatic-updates)) |
-| `UPDATE_BRANCH` | `main` | Branch the updater pulls when applying an update |
+| `UPDATE_CHANNEL` | `release` | How updates are detected: `release` (latest GitHub release tag) or `branch` (new commits on `UPDATE_BRANCH`) |
+| `UPDATE_BRANCH` | `main` | Branch the updater pulls, and compares against in `branch` channel |
 | `UPDATE_REPO` | `Christianoooooo/sharely` | GitHub repo checked for new releases |
 | `COMPOSE_PROJECT_NAME` | `sharely` | Compose project name; must match between host and updater |
 
@@ -127,7 +128,12 @@ If `SMTP_HOST` is left blank, all email-dependent features are hidden from the U
 
 ## Automatic Updates
 
-The admin panel (**Admin → Site Settings → Version & Updates**) always shows the installed version and whether a newer GitHub release is available.
+The admin panel (**Admin → Site Settings → Version & Updates**) always shows the installed version and whether an update is available.
+
+**How "update available" is determined** depends on `UPDATE_CHANNEL`:
+
+- `release` (default) — the installed version is compared against the latest **GitHub release tag**. Use this if you cut a release for each version.
+- `branch` — the installed **commit** is compared against the tip of `UPDATE_BRANCH`. An update is available whenever there are new commits on the branch, so you don't need to create a release. The installed version/commit is reported by the updater container, so this channel needs the updater running.
 
 Optionally, admins can apply updates with one click. This is handled by a dedicated `updater` container — the **only** component with Docker socket access. The web app never touches the socket: it just drops a request file into a shared volume, and the updater runs `git pull` + `docker compose build app` + `docker compose up -d app`.
 

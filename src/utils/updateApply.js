@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const pkg = require('../../package.json');
 
 // Self-update is driven by a separate, privileged updater container. The web app
 // never touches the Docker socket: it only drops a request file into a shared
@@ -9,6 +10,11 @@ const REQUEST_FILE = path.join(CONTROL_DIR, 'update.request');
 const STATE_FILE = path.join(CONTROL_DIR, 'update.state');
 const LOG_FILE = path.join(CONTROL_DIR, 'update.log');
 const HEARTBEAT_FILE = path.join(CONTROL_DIR, 'update.heartbeat');
+// The running version lives in git tags, not package.json. The .git dir is not in
+// the app image, so the updater (which has the checkout) publishes the actual tag
+// here; fall back to package.json when self-update is not wired up.
+const VERSION_FILE = path.join(CONTROL_DIR, 'version');
+const COMMIT_FILE = path.join(CONTROL_DIR, 'commit');
 // The updater touches the heartbeat every few seconds; treat it as offline if the
 // file is missing or older than this.
 const HEARTBEAT_MAX_AGE_MS = 30_000;
@@ -25,6 +31,28 @@ function readLog() {
   try {
     // Only the tail is relevant and the full log can grow large.
     return fs.readFileSync(LOG_FILE, 'utf8').slice(-4000);
+  } catch {
+    return '';
+  }
+}
+
+// The actual installed version: the git tag the updater published, or the
+// package.json version as a fallback. Leading "v" is stripped.
+function getInstalledVersion() {
+  try {
+    const v = fs.readFileSync(VERSION_FILE, 'utf8').trim();
+    if (v) return v.replace(/^v/i, '');
+  } catch {
+    // no published version yet
+  }
+  return pkg.version;
+}
+
+// The installed git commit SHA the updater published, used for branch-mode update
+// detection. Empty when self-update is not wired up.
+function getInstalledCommit() {
+  try {
+    return fs.readFileSync(COMMIT_FILE, 'utf8').trim();
   } catch {
     return '';
   }
@@ -73,4 +101,4 @@ async function ackState() {
   }
 }
 
-module.exports = { requestUpdate, getApplyStatus, ackState };
+module.exports = { requestUpdate, getApplyStatus, ackState, getInstalledVersion, getInstalledCommit };

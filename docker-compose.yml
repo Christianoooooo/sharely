@@ -22,6 +22,9 @@ services:
       SMTP_FROM: "${SMTP_FROM:-}"
       UPDATE_ENABLED: "${UPDATE_ENABLED:-false}"
       UPDATE_CONTROL_DIR: "/app/control"
+      UPDATE_CHANNEL: "${UPDATE_CHANNEL:-release}"
+      UPDATE_BRANCH: "${UPDATE_BRANCH:-main}"
+      UPDATE_REPO: "${UPDATE_REPO:-Christianoooooo/sharely}"
     volumes:
       - uploads:/app/uploads
       - control:/app/control
