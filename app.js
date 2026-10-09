@@ -6,6 +6,7 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
 const { rateLimit } = require('express-rate-limit');
+const morgan = require('morgan');
 const mongoose = require('mongoose');
 const connectDB = require('./src/config/db');
 const SiteSettings = require('./src/models/SiteSettings');
@@ -45,6 +46,14 @@ const app = express();
 // read the real client IP from the X-Forwarded-For header without throwing
 // ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
 app.set('trust proxy', 1);
+
+// Concise request logging to stdout (picked up by the Docker json-file driver).
+// Skips the container healthcheck (wget) and static bundle assets so the log
+// stays readable and its capped history keeps actual activity instead of noise.
+const SKIP_LOG = /\.(?:js|css|map|png|jpe?g|gif|svg|ico|webp|woff2?|ttf)$/i;
+app.use(morgan(':date[iso] :remote-addr :method :url :status :res[content-length]B :response-time ms', {
+  skip: (req) => req.headers['user-agent']?.startsWith('Wget') || SKIP_LOG.test(req.path),
+}));
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
