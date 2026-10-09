@@ -50,12 +50,18 @@ const avatarMulter = multer({
 const CHUNK_DIR = path.join(_BASE_UPLOAD_DIR, '.chunks');
 fs.mkdirSync(CHUNK_DIR, { recursive: true });
 
-// Multer for individual chunks (memory storage).
+// Multer for individual chunks: stream each chunk straight to a temp file on the
+// upload volume instead of buffering it in RAM. With parallel multi-part uploads
+// (3–5 chunks of up to 20 MB in flight per upload, times many concurrent users)
+// memory storage would hold hundreds of MB of buffers at once and block the event
+// loop on the subsequent sync write. The temp file is validated and renamed into
+// the session dir below; it is unlinked on any rejection.
 // Limit is 51 MB to handle clients still using 50 MB chunks.
-// Once the Docker image is rebuilt with the new client (max 20 MB chunks),
-// this limit is still safely above the 20 MB maximum.
 const chunkMulter = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, CHUNK_DIR),
+    filename: (_req, _file, cb) => cb(null, `${crypto.randomBytes(16).toString('hex')}.part`),
+  }),
   limits: { fileSize: 51 * 1024 * 1024 },
 });
 
@@ -927,39 +933,47 @@ router.post('/chunk/init', requireLogin, (req, res) => {
 });
 
 // ── Chunked upload: receive one chunk ──────────────────────────────────────
-router.post('/chunk/:uploadId', requireLogin, chunkMulter.single('chunk'), (req, res) => {
+router.post('/chunk/:uploadId', requireLogin, chunkMulter.single('chunk'), async (req, res) => {
+  // Multer has already streamed the chunk to a temp file; drop it on any rejection.
+  const rejectWith = async (status, error) => {
+    if (req.file?.path) {
+      try { await fs.promises.unlink(req.file.path); } catch { /* ignore */ }
+    }
+    return res.status(status).json({ error });
+  };
+
   let sessionDir;
   try {
     sessionDir = resolveChunkDir(req.params.uploadId);
   } catch {
-    return res.status(400).json({ error: 'Invalid upload ID' });
+    return rejectWith(400, 'Invalid upload ID');
   }
 
   if (!fs.existsSync(sessionDir)) {
-    return res.status(404).json({ error: 'Upload session not found' });
+    return rejectWith(404, 'Upload session not found');
   }
 
   let meta;
   try {
     meta = JSON.parse(fs.readFileSync(path.join(sessionDir, 'meta.json'), 'utf8'));
   } catch {
-    return res.status(500).json({ error: 'Failed to read session metadata' });
+    return rejectWith(500, 'Failed to read session metadata');
   }
 
   if (meta.userId !== req.session.user.id.toString()) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return rejectWith(403, 'Forbidden');
   }
 
   const chunkIndex = parseInt(req.body.chunkIndex, 10);
   if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= meta.totalChunks) {
-    return res.status(400).json({ error: 'Invalid chunkIndex' });
+    return rejectWith(400, 'Invalid chunkIndex');
   }
 
   if (!req.file) {
     return res.status(400).json({ error: 'No chunk data' });
   }
 
-  fs.writeFileSync(path.join(sessionDir, `chunk-${chunkIndex}`), req.file.buffer);
+  await fs.promises.rename(req.file.path, path.join(sessionDir, `chunk-${chunkIndex}`));
   res.json({ received: chunkIndex });
 });
 

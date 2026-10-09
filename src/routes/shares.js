@@ -50,10 +50,7 @@ router.get('/:token/raw', async (req, res) => {
   if (!link) return;
 
   const file = link.file;
-  const filePath = resolveUploadPath(file.storedName);
-  if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
-
-  serveFile(req, res, filePath, file, false);
+  await serveFile(req, res, resolveUploadPath(file.storedName), file, false);
 });
 
 // GET /s/:token/download — force-download (counts toward download limit)
@@ -63,7 +60,8 @@ router.get('/:token/download', async (req, res) => {
 
   const file = link.file;
   const filePath = resolveUploadPath(file.storedName);
-  if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
+  // Verify existence before counting the download so a missing file is not billed.
+  try { await fs.promises.access(filePath); } catch { return res.status(404).send('File data missing'); }
 
   // Atomic increment so concurrent downloads cannot exceed downloadLimit.
   const updated = await ShareLink.findOneAndUpdate(
@@ -82,7 +80,7 @@ router.get('/:token/download', async (req, res) => {
     }, (c) => c.userId === ownerId);
   }
 
-  serveFile(req, res, filePath, file, true);
+  await serveFile(req, res, filePath, file, true);
 });
 
 module.exports = router;

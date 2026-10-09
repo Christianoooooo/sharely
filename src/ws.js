@@ -190,12 +190,12 @@ async function handleAction(client, { id, action, payload = {} }) {
         .skip((page - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE);
       return ok({
-        files: files.map((f) => {
+        files: await Promise.all(files.map(async (f) => {
           const obj = f.toObject();
-          obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+          obj.hasThumbnail = await fs.promises.access(thumbPath(f.shortId)).then(() => true).catch(() => false);
           if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
           return obj;
-        }),
+        })),
         total, page, pages,
       });
     }
@@ -631,12 +631,12 @@ async function handleAction(client, { id, action, payload = {} }) {
         .skip((page - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE);
       return ok({
-        files: files.map((f) => {
+        files: await Promise.all(files.map(async (f) => {
           const obj = f.toObject();
-          obj.hasThumbnail = fs.existsSync(thumbPath(f.shortId));
+          obj.hasThumbnail = await fs.promises.access(thumbPath(f.shortId)).then(() => true).catch(() => false);
           if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
           return obj;
-        }),
+        })),
         total, page, pages,
       });
     }
