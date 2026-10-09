@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,9 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { faShield, faCloud, faClock, faLock, faHourglass, faCodeBranch, faRotate, faCircleCheck, faCircleUp, faArrowUpRightFromSquare, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faShield, faCloud, faClock, faLock, faHourglass, faCodeBranch, faRotate, faCircleCheck, faCircleUp, faArrowUpRightFromSquare, faTriangleExclamation, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { Badge } from '@/components/ui/badge';
 import { fmtDate } from '@/lib/utils';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminSiteSettings() {
   const { t } = useTranslation();
@@ -28,6 +32,7 @@ export default function AdminSiteSettings() {
   const [saving, setSaving] = useState(false);
   const [update, setUpdate] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [apply, setApply] = useState({ state: 'idle', log: '' });
 
   async function loadUpdate(force) {
     setChecking(true);
@@ -39,7 +44,58 @@ export default function AdminSiteSettings() {
     }
   }
 
+  async function pollApplyStatus() {
+    try {
+      const r = await fetch('/api/admin/update-status');
+      if (r.ok) {
+        const d = await r.json();
+        setApply({ state: d.state, log: d.log || '' });
+      }
+    } catch {
+      // The app container is restarting as part of the update; keep polling.
+      setApply((p) => ({ ...p, state: 'restarting' }));
+    }
+  }
+
+  async function startUpdate() {
+    setApply({ state: 'queued', log: '' });
+    try {
+      const r = await fetch('/api/admin/update-apply', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+    } catch (err) {
+      setApply({ state: 'error', log: err.message || '' });
+      toast({ title: t('adminSiteSettings.updateStartFailed'), variant: 'destructive' });
+    }
+  }
+
   useEffect(() => { loadUpdate(false); }, []);
+
+  // Resume any in-progress update after a page reload.
+  useEffect(() => { pollApplyStatus(); }, []);
+
+  // Poll while an update is queued/running/restarting; stop on a terminal state.
+  const applyInProgress = ['queued', 'running', 'restarting'].includes(apply.state);
+  useEffect(() => {
+    if (!applyInProgress) return undefined;
+    const id = setInterval(pollApplyStatus, 3000);
+    return () => clearInterval(id);
+  }, [applyInProgress]);
+
+  // Surface the terminal outcome once, on transition into it.
+  const notifiedState = useRef(apply.state);
+  useEffect(() => {
+    if (notifiedState.current !== apply.state) {
+      if (apply.state === 'success' || apply.state === 'error') {
+        toast(apply.state === 'success'
+          ? { title: t('adminSiteSettings.updateDone') }
+          : { title: t('adminSiteSettings.updateFailed'), variant: 'destructive' });
+        // Clear the terminal state server-side so it does not stick on reload.
+        fetch('/api/admin/update-ack', { method: 'POST' }).catch(() => {});
+      }
+      notifiedState.current = apply.state;
+    }
+  }, [apply.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch('/api/admin/site-settings')
@@ -151,6 +207,61 @@ export default function AdminSiteSettings() {
               </span>
             )}
           </div>
+
+          {update?.selfUpdate && (applyInProgress || apply.state === 'success' || apply.state === 'error' || update?.updateAvailable) && (
+            <div className="border-t pt-4 space-y-3">
+              {applyInProgress ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FontAwesomeIcon icon={faRotate} className="h-4 w-4 animate-spin" />
+                  {t(apply.state === 'restarting' ? 'adminSiteSettings.updateRestarting' : 'adminSiteSettings.updateRunning')}
+                </div>
+              ) : apply.state === 'success' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4" />
+                    {t('adminSiteSettings.updateDone')}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                    {t('adminSiteSettings.reload')}
+                  </Button>
+                </div>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button>
+                      <FontAwesomeIcon icon={faDownload} className="h-4 w-4 mr-2" />
+                      {t('adminSiteSettings.applyUpdate')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('adminSiteSettings.applyUpdate')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('adminSiteSettings.applyConfirm', { version: update.latestVersion })}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('adminSiteSettings.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={startUpdate}>{t('adminSiteSettings.applyUpdate')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
+              {apply.state === 'error' && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" />
+                  {t('adminSiteSettings.updateFailed')}
+                </div>
+              )}
+
+              {apply.log && (apply.state === 'error' || applyInProgress) && (
+                <pre className="max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs text-muted-foreground whitespace-pre-wrap">
+                  {apply.log}
+                </pre>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

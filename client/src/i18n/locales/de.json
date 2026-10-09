@@ -515,7 +515,16 @@
     "checkNow": "Nach Updates suchen",
     "checking": "Suche…",
     "lastChecked": "Zuletzt geprüft: {{time}}",
-    "updateCheckFailed": "Update-Prüfung fehlgeschlagen"
+    "updateCheckFailed": "Update-Prüfung fehlgeschlagen",
+    "applyUpdate": "Update installieren",
+    "applyConfirm": "Dadurch wird Version {{version}} geladen und der Server neu gebaut. Die App startet neu und ist kurz nicht erreichbar. Fortfahren?",
+    "updateRunning": "Update läuft…",
+    "updateRestarting": "Update wird angewendet, der Server startet neu…",
+    "updateDone": "Update erfolgreich installiert.",
+    "updateFailed": "Das Update ist fehlgeschlagen. Siehe Protokoll unten.",
+    "updateStartFailed": "Update konnte nicht gestartet werden.",
+    "reload": "Seite neu laden",
+    "cancel": "Abbrechen"
   },
   "adminAuditLog": {
     "title": "Zugriffsprotokoll",

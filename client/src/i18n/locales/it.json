@@ -364,7 +364,16 @@
     "checkNow": "Cerca aggiornamenti",
     "checking": "Controllo…",
     "lastChecked": "Ultimo controllo: {{time}}",
-    "updateCheckFailed": "Controllo aggiornamenti non riuscito"
+    "updateCheckFailed": "Controllo aggiornamenti non riuscito",
+    "applyUpdate": "Installa aggiornamento",
+    "applyConfirm": "Questo scarica la versione {{version}} e ricostruisce il server. L'app si riavvierà e sarà brevemente non disponibile. Continuare?",
+    "updateRunning": "Aggiornamento in corso…",
+    "updateRestarting": "Applicazione dell'aggiornamento, il server si sta riavviando…",
+    "updateDone": "Aggiornamento installato correttamente.",
+    "updateFailed": "L'aggiornamento non è riuscito. Vedi il log qui sotto.",
+    "updateStartFailed": "Impossibile avviare l'aggiornamento.",
+    "reload": "Ricarica pagina",
+    "cancel": "Annulla"
   },
   "adminAuditLog": {
     "title": "Registro di audit",

@@ -21,7 +21,12 @@ const { logAudit } = require('../utils/audit');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
+const updateApply = require('../utils/updateApply');
 const { broadcast } = require('../ws');
+
+// Self-update (git pull + container rebuild) is handled by the separate updater
+// container and only available when that container is wired up via docker-compose.
+const SELF_UPDATE_ENABLED = process.env.UPDATE_ENABLED === 'true';
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -479,7 +484,34 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
 // ── Admin: update check ─────────────────────────────────────────────────────
 router.get('/admin/update-check', requireAdmin, async (req, res) => {
   const status = await getUpdateStatus({ force: req.query.refresh === '1' });
-  res.json(status);
+  res.json({ ...status, selfUpdate: SELF_UPDATE_ENABLED });
+});
+
+// ── Admin: self-update apply / status ───────────────────────────────────────
+router.get('/admin/update-status', requireAdmin, (req, res) => {
+  if (!SELF_UPDATE_ENABLED) return res.json({ enabled: false, state: 'disabled', log: '' });
+  res.json({ enabled: true, ...updateApply.getApplyStatus() });
+});
+
+router.post('/admin/update-apply', requireAdmin, async (req, res) => {
+  if (!SELF_UPDATE_ENABLED) {
+    return res.status(400).json({ error: 'Self-update is not enabled on this instance' });
+  }
+  try {
+    await updateApply.requestUpdate();
+    await logAudit(req, 'update-apply', {});
+    res.json({ state: 'queued' });
+  } catch (err) {
+    if (err.code === 'RUNNING') return res.status(409).json({ error: 'An update is already in progress' });
+    console.error('[update-apply] failed to queue:', err.message);
+    return res.status(500).json({ error: 'Could not start the update. Check the control volume permissions.' });
+  }
+});
+
+router.post('/admin/update-ack', requireAdmin, async (req, res) => {
+  if (!SELF_UPDATE_ENABLED) return res.json({ state: 'disabled' });
+  await updateApply.ackState();
+  res.json({ state: 'idle' });
 });
 
 // ── Admin: stats ────────────────────────────────────────────────────────────

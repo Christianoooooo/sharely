@@ -364,7 +364,16 @@
     "checkNow": "检查更新",
     "checking": "检查中…",
     "lastChecked": "上次检查：{{time}}",
-    "updateCheckFailed": "更新检查失败"
+    "updateCheckFailed": "更新检查失败",
+    "applyUpdate": "安装更新",
+    "applyConfirm": "这将拉取版本 {{version}} 并重新构建服务器。应用将重启并短暂不可用。是否继续？",
+    "updateRunning": "更新进行中…",
+    "updateRestarting": "正在应用更新，服务器正在重启…",
+    "updateDone": "更新安装成功。",
+    "updateFailed": "更新失败。请查看下方日志。",
+    "updateStartFailed": "无法启动更新。",
+    "reload": "重新加载页面",
+    "cancel": "取消"
   },
   "adminAuditLog": {
     "title": "审计日志",

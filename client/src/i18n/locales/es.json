@@ -364,7 +364,16 @@
     "checkNow": "Buscar actualizaciones",
     "checking": "Comprobando…",
     "lastChecked": "Última comprobación: {{time}}",
-    "updateCheckFailed": "Error al buscar actualizaciones"
+    "updateCheckFailed": "Error al buscar actualizaciones",
+    "applyUpdate": "Instalar actualización",
+    "applyConfirm": "Esto descarga la versión {{version}} y reconstruye el servidor. La aplicación se reiniciará y no estará disponible brevemente. ¿Continuar?",
+    "updateRunning": "Actualización en curso…",
+    "updateRestarting": "Aplicando la actualización, el servidor se está reiniciando…",
+    "updateDone": "Actualización instalada correctamente.",
+    "updateFailed": "La actualización falló. Consulta el registro a continuación.",
+    "updateStartFailed": "No se pudo iniciar la actualización.",
+    "reload": "Recargar página",
+    "cancel": "Cancelar"
   },
   "adminAuditLog": {
     "title": "Registro de auditoría",

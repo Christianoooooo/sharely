@@ -364,7 +364,16 @@
     "checkNow": "更新を確認",
     "checking": "確認中…",
     "lastChecked": "最終確認: {{time}}",
-    "updateCheckFailed": "更新の確認に失敗しました"
+    "updateCheckFailed": "更新の確認に失敗しました",
+    "applyUpdate": "更新をインストール",
+    "applyConfirm": "バージョン {{version}} を取得してサーバーを再ビルドします。アプリは再起動し、一時的に利用できなくなります。続行しますか？",
+    "updateRunning": "更新中…",
+    "updateRestarting": "更新を適用中、サーバーを再起動しています…",
+    "updateDone": "更新が正常にインストールされました。",
+    "updateFailed": "更新に失敗しました。下のログを確認してください。",
+    "updateStartFailed": "更新を開始できませんでした。",
+    "reload": "ページを再読み込み",
+    "cancel": "キャンセル"
   },
   "adminAuditLog": {
     "title": "監査ログ",

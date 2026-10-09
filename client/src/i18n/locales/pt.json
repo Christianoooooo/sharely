@@ -364,7 +364,16 @@
     "checkNow": "Procurar atualizações",
     "checking": "A verificar…",
     "lastChecked": "Última verificação: {{time}}",
-    "updateCheckFailed": "Falha na verificação de atualizações"
+    "updateCheckFailed": "Falha na verificação de atualizações",
+    "applyUpdate": "Instalar atualização",
+    "applyConfirm": "Isto transfere a versão {{version}} e reconstrói o servidor. A aplicação será reiniciada e ficará brevemente indisponível. Continuar?",
+    "updateRunning": "Atualização em curso…",
+    "updateRestarting": "A aplicar a atualização, o servidor está a reiniciar…",
+    "updateDone": "Atualização instalada com sucesso.",
+    "updateFailed": "A atualização falhou. Consulte o registo abaixo.",
+    "updateStartFailed": "Não foi possível iniciar a atualização.",
+    "reload": "Recarregar página",
+    "cancel": "Cancelar"
   },
   "adminAuditLog": {
     "title": "Registo de auditoria",

@@ -1,3 +1,7 @@
+# Fixed project name so the updater container (which runs `docker compose` from a
+# bind-mount of this file) manages the same containers the host started.
+name: ${COMPOSE_PROJECT_NAME:-sharely}
+
 services:
   app:
     build: .
@@ -16,8 +20,11 @@ services:
       SMTP_USER: "${SMTP_USER:-}"
       SMTP_PASS: "${SMTP_PASS:-}"
       SMTP_FROM: "${SMTP_FROM:-}"
+      UPDATE_ENABLED: "${UPDATE_ENABLED:-false}"
+      UPDATE_CONTROL_DIR: "/app/control"
     volumes:
       - uploads:/app/uploads
+      - control:/app/control
     depends_on:
       mongo:
         condition: service_healthy
@@ -33,6 +40,28 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+
+  # Privileged helper that applies updates on request from the app. It is the only
+  # container with Docker socket access, so it is opt-in via the "updater" profile
+  # and never starts with a plain `docker compose up`. Enable self-update by also
+  # setting UPDATE_ENABLED=true for the app.
+  updater:
+    build: ./updater
+    profiles: ["updater"]
+    environment:
+      COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-sharely}"
+      UPDATE_BRANCH: "${UPDATE_BRANCH:-main}"
+      APP_SERVICE: "app"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/project
+      - control:/control
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   mongo:
     image: mongo:7
@@ -70,3 +99,4 @@ services:
 volumes:
   uploads:
   mongo_data:
+  control:
