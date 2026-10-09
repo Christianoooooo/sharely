@@ -524,7 +524,8 @@
     "updateFailed": "The update failed. See the log below.",
     "updateStartFailed": "Could not start the update.",
     "reload": "Reload page",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "updaterOffline": "The updater container is not running. Start it with: docker compose --profile updater up -d"
   },
   "adminAuditLog": {
     "title": "Audit Log",

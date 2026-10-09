@@ -373,7 +373,8 @@
     "updateFailed": "A atualização falhou. Consulte o registo abaixo.",
     "updateStartFailed": "Não foi possível iniciar a atualização.",
     "reload": "Recarregar página",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "updaterOffline": "O contentor updater não está em execução. Inicie-o com: docker compose --profile updater up -d"
   },
   "adminAuditLog": {
     "title": "Registo de auditoria",

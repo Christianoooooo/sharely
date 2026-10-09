@@ -503,6 +503,9 @@ router.post('/admin/update-apply', requireAdmin, async (req, res) => {
     res.json({ state: 'queued' });
   } catch (err) {
     if (err.code === 'RUNNING') return res.status(409).json({ error: 'An update is already in progress' });
+    if (err.code === 'NO_UPDATER') {
+      return res.status(503).json({ error: 'The updater container is not running. Start it with: docker compose --profile updater up -d' });
+    }
     console.error('[update-apply] failed to queue:', err.message);
     return res.status(500).json({ error: 'Could not start the update. Check the control volume permissions.' });
   }

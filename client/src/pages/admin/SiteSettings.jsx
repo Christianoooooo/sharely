@@ -32,7 +32,7 @@ export default function AdminSiteSettings() {
   const [saving, setSaving] = useState(false);
   const [update, setUpdate] = useState(null);
   const [checking, setChecking] = useState(false);
-  const [apply, setApply] = useState({ state: 'idle', log: '' });
+  const [apply, setApply] = useState({ state: 'idle', log: '', ready: false });
 
   async function loadUpdate(force) {
     setChecking(true);
@@ -49,7 +49,7 @@ export default function AdminSiteSettings() {
       const r = await fetch('/api/admin/update-status');
       if (r.ok) {
         const d = await r.json();
-        setApply({ state: d.state, log: d.log || '' });
+        setApply({ state: d.state, log: d.log || '', ready: !!d.ready });
       }
     } catch {
       // The app container is restarting as part of the update; keep polling.
@@ -58,14 +58,14 @@ export default function AdminSiteSettings() {
   }
 
   async function startUpdate() {
-    setApply({ state: 'queued', log: '' });
+    setApply((p) => ({ ...p, state: 'queued', log: '' }));
     try {
       const r = await fetch('/api/admin/update-apply', { method: 'POST' });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
     } catch (err) {
-      setApply({ state: 'error', log: err.message || '' });
-      toast({ title: t('adminSiteSettings.updateStartFailed'), variant: 'destructive' });
+      setApply((p) => ({ ...p, state: 'error', log: err.message || '' }));
+      toast({ title: err.message || t('adminSiteSettings.updateStartFailed'), variant: 'destructive' });
     }
   }
 
@@ -225,7 +225,7 @@ export default function AdminSiteSettings() {
                     {t('adminSiteSettings.reload')}
                   </Button>
                 </div>
-              ) : (
+              ) : apply.ready ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button>
@@ -246,6 +246,11 @@ export default function AdminSiteSettings() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+              ) : (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" />
+                  {t('adminSiteSettings.updaterOffline')}
+                </p>
               )}
 
               {apply.state === 'error' && (
