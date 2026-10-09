@@ -15,6 +15,8 @@ REQUEST_FILE="$CONTROL_DIR/update.request"
 STATE_FILE="$CONTROL_DIR/update.state"
 LOG_FILE="$CONTROL_DIR/update.log"
 HEARTBEAT_FILE="$CONTROL_DIR/update.heartbeat"
+VERSION_FILE="$CONTROL_DIR/version"
+COMMIT_FILE="$CONTROL_DIR/commit"
 
 # Files here are written by root (this agent) but must stay writable by the
 # non-root web app, so create everything world-writable (dir 777, files 666).
@@ -23,11 +25,18 @@ mkdir -p "$CONTROL_DIR"
 chmod 777 "$CONTROL_DIR" 2>/dev/null || true
 [ -f "$STATE_FILE" ] || echo idle > "$STATE_FILE"
 
+# The checkout is bind-mounted and owned by the host user, not root.
+git config --global --add safe.directory "$PROJECT_DIR" 2>/dev/null || true
+
 echo "[updater] watching $CONTROL_DIR (branch=$BRANCH, service=$APP_SERVICE)"
 
 while true; do
   # Liveness signal the app polls to know the updater is actually running.
   date -u +%Y-%m-%dT%H:%M:%SZ > "$HEARTBEAT_FILE"
+  # Publish the actually installed version (git tag) and commit for the app:
+  # the tag is displayed, the commit drives branch-mode update detection.
+  git -C "$PROJECT_DIR" describe --tags --always 2>/dev/null > "$VERSION_FILE" || true
+  git -C "$PROJECT_DIR" rev-parse HEAD 2>/dev/null > "$COMMIT_FILE" || true
 
   if [ -f "$REQUEST_FILE" ]; then
     rm -f "$REQUEST_FILE"

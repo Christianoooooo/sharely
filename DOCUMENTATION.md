@@ -314,13 +314,19 @@ Alle Variablen werden aus `.env` geladen (via `dotenv`). Die Datei `.env.example
 | `UPLOAD_DIR` | `./uploads` | Absoluter Pfad zum Upload-Verzeichnis |
 | `NODE_ENV` | — | `production` aktiviert sichere Cookies |
 | `UPDATE_ENABLED` | `false` | Aktiviert das Self-Update per Knopfdruck im Admin-Panel |
-| `UPDATE_BRANCH` | `main` | Branch, den der Updater beim Update zieht |
+| `UPDATE_CHANNEL` | `release` | Update-Erkennung: `release` (neuestes GitHub-Release-Tag) oder `branch` (neue Commits auf `UPDATE_BRANCH`) |
+| `UPDATE_BRANCH` | `main` | Branch, den der Updater zieht — und im `branch`-Modus zum Vergleich heranzieht |
 | `UPDATE_REPO` | `Christianoooooo/sharely` | GitHub-Repo, das auf neue Releases geprüft wird |
 | `COMPOSE_PROJECT_NAME` | `sharely` | Compose-Projektname; muss zwischen Host und Updater identisch sein |
 
 ### Automatische Updates
 
-Das Admin-Panel (**Admin → Website-Einstellungen → Version & Updates**) zeigt stets die installierte Version und ob ein neueres GitHub-Release verfügbar ist.
+Das Admin-Panel (**Admin → Website-Einstellungen → Version & Updates**) zeigt stets die installierte Version und ob ein Update verfügbar ist.
+
+**Woran „Update verfügbar" festgemacht wird**, steuert `UPDATE_CHANNEL`:
+
+- `release` (Standard) — die installierte Version wird mit dem neuesten **GitHub-Release-Tag** verglichen. Passend, wenn pro Version ein Release erstellt wird.
+- `branch` — der installierte **Commit** wird mit der Spitze von `UPDATE_BRANCH` verglichen. Ein Update ist verfügbar, sobald neue Commits auf dem Branch liegen — ohne dass ein Release nötig ist. Installierte Version/Commit meldet der Updater-Container, daher braucht dieser Modus den laufenden Updater.
 
 Optional lässt sich ein Update per Knopfdruck einspielen. Dies übernimmt ein eigener `updater`-Container — die **einzige** Komponente mit Zugriff auf den Docker-Socket. Die Web-App berührt den Socket nie: sie legt nur eine Anforderungsdatei in ein gemeinsames Volume, der Updater führt dann `git pull` + `docker compose build app` + `docker compose up -d app` aus.
 
