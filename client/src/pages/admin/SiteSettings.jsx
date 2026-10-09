@@ -7,7 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { faShield, faCloud, faClock, faLock, faHourglass } from '@fortawesome/free-solid-svg-icons';
+import { faShield, faCloud, faClock, faLock, faHourglass, faCodeBranch, faRotate, faCircleCheck, faCircleUp, faArrowUpRightFromSquare, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { Badge } from '@/components/ui/badge';
+import { fmtDate } from '@/lib/utils';
 
 export default function AdminSiteSettings() {
   const { t } = useTranslation();
@@ -24,6 +26,20 @@ export default function AdminSiteSettings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [update, setUpdate] = useState(null);
+  const [checking, setChecking] = useState(false);
+
+  async function loadUpdate(force) {
+    setChecking(true);
+    try {
+      const r = await fetch(`/api/admin/update-check${force ? '?refresh=1' : ''}`);
+      if (r.ok) setUpdate(await r.json());
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  useEffect(() => { loadUpdate(false); }, []);
 
   useEffect(() => {
     fetch('/api/admin/site-settings')
@@ -78,6 +94,65 @@ export default function AdminSiteSettings() {
   return (
     <div className="max-w-lg space-y-6">
       <h1 className="text-2xl font-bold">{t('adminSiteSettings.title')}</h1>
+
+      {/* Version & Updates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faCodeBranch} className="h-4 w-4" />
+            {t('adminSiteSettings.updateSection')}
+          </CardTitle>
+          <CardDescription>{t('adminSiteSettings.updateDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="text-sm">
+              <span className="text-muted-foreground">{t('adminSiteSettings.currentVersion')}: </span>
+              <span className="font-medium">{update?.currentVersion ?? '—'}</span>
+            </div>
+            {update?.error ? (
+              <Badge variant="secondary" className="gap-1.5">
+                <FontAwesomeIcon icon={faTriangleExclamation} className="h-3 w-3" />
+                {t('adminSiteSettings.updateCheckFailed')}
+              </Badge>
+            ) : update?.updateAvailable ? (
+              <Badge className="gap-1.5">
+                <FontAwesomeIcon icon={faCircleUp} className="h-3 w-3" />
+                {t('adminSiteSettings.updateAvailable', { version: update.latestVersion })}
+              </Badge>
+            ) : update ? (
+              <Badge variant="secondary" className="gap-1.5">
+                <FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3 text-green-600" />
+                {t('adminSiteSettings.upToDate')}
+              </Badge>
+            ) : null}
+          </div>
+
+          {update?.updateAvailable && update?.releaseUrl && (
+            <a
+              href={update.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              {t('adminSiteSettings.viewRelease', { name: update.releaseName || update.latestVersion })}
+              <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3 w-3" />
+            </a>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => loadUpdate(true)} disabled={checking}>
+              <FontAwesomeIcon icon={faRotate} className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+              {checking ? t('adminSiteSettings.checking') : t('adminSiteSettings.checkNow')}
+            </Button>
+            {update?.checkedAt && (
+              <span className="text-xs text-muted-foreground">
+                {t('adminSiteSettings.lastChecked', { time: fmtDate(update.checkedAt) })}
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Privacy Policy Details */}
       <Card>

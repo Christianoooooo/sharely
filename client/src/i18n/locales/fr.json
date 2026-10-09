@@ -354,7 +354,17 @@
     "sessionSection": "Durée de session",
     "sessionDescription": "Configurez la durée d'activité des sessions utilisateur avant la déconnexion automatique.",
     "sessionLabel": "Durée de session (jours)",
-    "sessionHint": "Après ce nombre de jours d'inactivité, les utilisateurs sont automatiquement déconnectés. Minimum : 1 jour. Prend effet en 60 secondes sans redémarrage."
+    "sessionHint": "Après ce nombre de jours d'inactivité, les utilisateurs sont automatiquement déconnectés. Minimum : 1 jour. Prend effet en 60 secondes sans redémarrage.",
+    "updateSection": "Version et mises à jour",
+    "updateDescription": "Vérifiez si une nouvelle version de Sharely est disponible sur GitHub.",
+    "currentVersion": "Version installée",
+    "upToDate": "À jour",
+    "updateAvailable": "Mise à jour disponible : {{version}}",
+    "viewRelease": "Voir les notes de version de {{name}}",
+    "checkNow": "Rechercher des mises à jour",
+    "checking": "Vérification…",
+    "lastChecked": "Dernière vérification : {{time}}",
+    "updateCheckFailed": "Échec de la vérification des mises à jour"
   },
   "adminAuditLog": {
     "title": "Journal d'audit",

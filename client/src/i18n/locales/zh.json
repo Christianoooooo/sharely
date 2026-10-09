@@ -354,7 +354,17 @@
     "sessionSection": "会话时长",
     "sessionDescription": "配置用户会话在自动注销前保持活跃的时间。",
     "sessionLabel": "会话时长（天）",
-    "sessionHint": "超过此天数未活动后，用户将自动退出登录。最少：1天。无需重启服务器，60秒内生效。"
+    "sessionHint": "超过此天数未活动后，用户将自动退出登录。最少：1天。无需重启服务器，60秒内生效。",
+    "updateSection": "版本与更新",
+    "updateDescription": "检查 GitHub 上是否有更新的 Sharely 版本。",
+    "currentVersion": "已安装版本",
+    "upToDate": "已是最新",
+    "updateAvailable": "有可用更新：{{version}}",
+    "viewRelease": "查看 {{name}} 的发行说明",
+    "checkNow": "检查更新",
+    "checking": "检查中…",
+    "lastChecked": "上次检查：{{time}}",
+    "updateCheckFailed": "更新检查失败"
   },
   "adminAuditLog": {
     "title": "审计日志",

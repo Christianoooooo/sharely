@@ -505,7 +505,17 @@
     "sessionSection": "Sitzungsdauer",
     "sessionDescription": "Lege fest, wie lange Benutzersitzungen aktiv bleiben, bevor Nutzer automatisch abgemeldet werden.",
     "sessionLabel": "Sitzungsdauer (Tage)",
-    "sessionHint": "Nach dieser Anzahl von inaktiven Tagen werden Nutzer automatisch abgemeldet. Minimum: 1 Tag. Gilt innerhalb von 60 Sekunden ohne Server-Neustart."
+    "sessionHint": "Nach dieser Anzahl von inaktiven Tagen werden Nutzer automatisch abgemeldet. Minimum: 1 Tag. Gilt innerhalb von 60 Sekunden ohne Server-Neustart.",
+    "updateSection": "Version & Updates",
+    "updateDescription": "Prüfe, ob eine neuere Version von Sharely auf GitHub verfügbar ist.",
+    "currentVersion": "Installierte Version",
+    "upToDate": "Aktuell",
+    "updateAvailable": "Update verfügbar: {{version}}",
+    "viewRelease": "Release-Notes zu {{name}} ansehen",
+    "checkNow": "Nach Updates suchen",
+    "checking": "Suche…",
+    "lastChecked": "Zuletzt geprüft: {{time}}",
+    "updateCheckFailed": "Update-Prüfung fehlgeschlagen"
   },
   "adminAuditLog": {
     "title": "Zugriffsprotokoll",

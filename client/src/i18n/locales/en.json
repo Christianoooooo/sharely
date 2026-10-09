@@ -505,7 +505,17 @@
     "sessionSection": "Session Duration",
     "sessionDescription": "Configure how long user sessions remain active before automatic logout.",
     "sessionLabel": "Session duration (days)",
-    "sessionHint": "After this many days of inactivity, users are automatically logged out. Minimum: 1 day. Takes effect within 60 seconds without a server restart."
+    "sessionHint": "After this many days of inactivity, users are automatically logged out. Minimum: 1 day. Takes effect within 60 seconds without a server restart.",
+    "updateSection": "Version & Updates",
+    "updateDescription": "Check whether a newer version of Sharely is available on GitHub.",
+    "currentVersion": "Installed version",
+    "upToDate": "Up to date",
+    "updateAvailable": "Update available: {{version}}",
+    "viewRelease": "View release notes for {{name}}",
+    "checkNow": "Check for updates",
+    "checking": "Checking…",
+    "lastChecked": "Last checked: {{time}}",
+    "updateCheckFailed": "Update check failed"
   },
   "adminAuditLog": {
     "title": "Audit Log",

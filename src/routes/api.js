@@ -20,6 +20,7 @@ const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/gene
 const { logAudit } = require('../utils/audit');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
+const { getUpdateStatus } = require('../utils/updateCheck');
 const { broadcast } = require('../ws');
 
 const uploadLimiter = rateLimit({
@@ -473,6 +474,12 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   };
   broadcast('settings:updated', settingsPayload, (c) => c.isAdmin);
   res.json(settingsPayload);
+});
+
+// ── Admin: update check ─────────────────────────────────────────────────────
+router.get('/admin/update-check', requireAdmin, async (req, res) => {
+  const status = await getUpdateStatus({ force: req.query.refresh === '1' });
+  res.json(status);
 });
 
 // ── Admin: stats ────────────────────────────────────────────────────────────
