@@ -373,7 +373,8 @@
     "updateFailed": "更新に失敗しました。下のログを確認してください。",
     "updateStartFailed": "更新を開始できませんでした。",
     "reload": "ページを再読み込み",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "updaterOffline": "updater コンテナが実行されていません。次のコマンドで起動してください: docker compose --profile updater up -d"
   },
   "adminAuditLog": {
     "title": "監査ログ",

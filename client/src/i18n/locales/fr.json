@@ -373,7 +373,8 @@
     "updateFailed": "La mise à jour a échoué. Voir le journal ci-dessous.",
     "updateStartFailed": "Impossible de démarrer la mise à jour.",
     "reload": "Recharger la page",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "updaterOffline": "Le conteneur updater n'est pas en cours d'exécution. Démarrez-le avec : docker compose --profile updater up -d"
   },
   "adminAuditLog": {
     "title": "Journal d'audit",

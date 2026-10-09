@@ -14,8 +14,11 @@ POLL_INTERVAL="${POLL_INTERVAL:-5}"
 REQUEST_FILE="$CONTROL_DIR/update.request"
 STATE_FILE="$CONTROL_DIR/update.state"
 LOG_FILE="$CONTROL_DIR/update.log"
+HEARTBEAT_FILE="$CONTROL_DIR/update.heartbeat"
 
-# The web app runs as a non-root user; make the shared dir writable for it.
+# Files here are written by root (this agent) but must stay writable by the
+# non-root web app, so create everything world-writable (dir 777, files 666).
+umask 000
 mkdir -p "$CONTROL_DIR"
 chmod 777 "$CONTROL_DIR" 2>/dev/null || true
 [ -f "$STATE_FILE" ] || echo idle > "$STATE_FILE"
@@ -23,6 +26,9 @@ chmod 777 "$CONTROL_DIR" 2>/dev/null || true
 echo "[updater] watching $CONTROL_DIR (branch=$BRANCH, service=$APP_SERVICE)"
 
 while true; do
+  # Liveness signal the app polls to know the updater is actually running.
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$HEARTBEAT_FILE"
+
   if [ -f "$REQUEST_FILE" ]; then
     rm -f "$REQUEST_FILE"
     echo running > "$STATE_FILE"

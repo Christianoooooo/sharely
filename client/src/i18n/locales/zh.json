@@ -373,7 +373,8 @@
     "updateFailed": "更新失败。请查看下方日志。",
     "updateStartFailed": "无法启动更新。",
     "reload": "重新加载页面",
-    "cancel": "取消"
+    "cancel": "取消",
+    "updaterOffline": "updater 容器未运行。请使用以下命令启动：docker compose --profile updater up -d"
   },
   "adminAuditLog": {
     "title": "审计日志",

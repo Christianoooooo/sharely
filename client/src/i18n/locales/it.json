@@ -373,7 +373,8 @@
     "updateFailed": "L'aggiornamento non è riuscito. Vedi il log qui sotto.",
     "updateStartFailed": "Impossibile avviare l'aggiornamento.",
     "reload": "Ricarica pagina",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "updaterOffline": "Il container updater non è in esecuzione. Avvialo con: docker compose --profile updater up -d"
   },
   "adminAuditLog": {
     "title": "Registro di audit",
