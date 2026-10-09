@@ -354,7 +354,17 @@
     "sessionSection": "セッション期間",
     "sessionDescription": "自動ログアウトまでのユーザーセッションの有効期間を設定します。",
     "sessionLabel": "セッション期間（日）",
-    "sessionHint": "この日数の非アクティブ後、ユーザーは自動的にログアウトされます。最小：1日。サーバー再起動なしで60秒以内に有効になります。"
+    "sessionHint": "この日数の非アクティブ後、ユーザーは自動的にログアウトされます。最小：1日。サーバー再起動なしで60秒以内に有効になります。",
+    "updateSection": "バージョンと更新",
+    "updateDescription": "Sharely の新しいバージョンが GitHub で利用可能か確認します。",
+    "currentVersion": "インストール済みバージョン",
+    "upToDate": "最新です",
+    "updateAvailable": "更新が利用可能: {{version}}",
+    "viewRelease": "{{name}} のリリースノートを表示",
+    "checkNow": "更新を確認",
+    "checking": "確認中…",
+    "lastChecked": "最終確認: {{time}}",
+    "updateCheckFailed": "更新の確認に失敗しました"
   },
   "adminAuditLog": {
     "title": "監査ログ",
