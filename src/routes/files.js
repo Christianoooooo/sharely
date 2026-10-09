@@ -35,8 +35,13 @@ function timingSafeEqualStr(a, b) {
  * Serve a file with HTTP Range request support.
  * Adds Accept-Ranges + Content-Length headers; responds 206 for partial requests.
  */
-function serveFile(req, res, filePath, file, forceDownload = false) {
-  const stat = fs.statSync(filePath);
+async function serveFile(req, res, filePath, file, forceDownload = false) {
+  let stat;
+  try {
+    stat = await fs.promises.stat(filePath);
+  } catch {
+    return res.status(404).send('File data missing');
+  }
   const fileSize = stat.size;
 
   const type = file.displayType;
@@ -152,12 +157,14 @@ router.get('/:shortId', async (req, res, next) => {
 });
 
 // GET /f/:shortId/thumb — serve generated thumbnail (video / PDF)
-router.get('/:shortId/thumb', async (req, res) => {
-  const fp = thumbPath(req.params.shortId);
-  if (!fs.existsSync(fp)) return res.status(404).send('No thumbnail');
-  res.setHeader('Content-Type', 'image/jpeg');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
-  fs.createReadStream(fp).pipe(res);
+router.get('/:shortId/thumb', (req, res) => {
+  const stream = fs.createReadStream(thumbPath(req.params.shortId));
+  stream.on('error', () => { if (!res.headersSent) res.status(404).send('No thumbnail'); });
+  stream.on('open', () => {
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    stream.pipe(res);
+  });
 });
 
 // GET /f/:shortId/raw — serve file inline
@@ -165,10 +172,7 @@ router.get('/:shortId/raw', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
 
-  const filePath = resolveUploadPath(file.storedName);
-  if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
-
-  serveFile(req, res, filePath, file, false);
+  await serveFile(req, res, resolveUploadPath(file.storedName), file, false);
 });
 
 // GET /f/:shortId/delete/:token — ShareX deletion URL (per-file token)
@@ -192,10 +196,7 @@ router.get('/:shortId/download', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
 
-  const filePath = resolveUploadPath(file.storedName);
-  if (!fs.existsSync(filePath)) return res.status(404).send('File data missing');
-
-  serveFile(req, res, filePath, file, true);
+  await serveFile(req, res, resolveUploadPath(file.storedName), file, true);
 });
 
 module.exports = router;
