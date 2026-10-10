@@ -45,6 +45,20 @@ const fileSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // Self-destruct: once the file is past expiresAt or has reached maxDownloads
+  // it is served 410 everywhere and physically removed by the retention job.
+  expiresAt: {
+    type: Date,
+    default: null,
+  },
+  maxDownloads: {
+    type: Number,
+    default: null,
+  },
+  downloadCount: {
+    type: Number,
+    default: 0,
+  },
   tags: {
     type: [{ type: String, trim: true, maxlength: 50 }],
     default: [],

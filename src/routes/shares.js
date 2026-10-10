@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const ShareLink = require('../models/ShareLink');
 const { resolveUploadPath, serveFile } = require('./files');
+const { isFileExpired } = require('../utils/fileLifecycle');
 const { broadcast } = require('../ws');
 const fs = require('fs');
 
@@ -40,6 +41,11 @@ async function resolveLink(req, res, token) {
   if (!link.file) {
     if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
     res.status(404).json({ error: 'File not found' }); return null;
+  }
+
+  if (isFileExpired(link.file)) {
+    if (isBrowser(req)) return res.redirect(302, `/s/${token}`);
+    res.status(410).json({ error: 'This file is no longer available' }); return null;
   }
   return link;
 }

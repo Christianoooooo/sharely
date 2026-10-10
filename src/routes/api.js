@@ -20,6 +20,7 @@ const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/gene
 const { logAudit } = require('../utils/audit');
 const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
 const { streamFilesAsZip } = require('../utils/zipFiles');
+const { isFileExpired } = require('../utils/fileLifecycle');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -224,9 +225,34 @@ router.patch('/file/:shortId', requireLogin, async (req, res) => {
   if (req.body.description !== undefined && typeof req.body.description === 'string') {
     file.description = req.body.description.trim().slice(0, 1000);
   }
+  if (req.body.expiresAt !== undefined) {
+    if (req.body.expiresAt === null || req.body.expiresAt === '') {
+      file.expiresAt = null;
+    } else {
+      const date = new Date(req.body.expiresAt);
+      if (isNaN(date.getTime())) return res.status(400).json({ error: 'Invalid expiry date' });
+      file.expiresAt = date;
+    }
+  }
+  if (req.body.maxDownloads !== undefined) {
+    if (req.body.maxDownloads === null || req.body.maxDownloads === '') {
+      file.maxDownloads = null;
+    } else {
+      const n = parseInt(req.body.maxDownloads, 10);
+      if (!Number.isInteger(n) || n < 1) return res.status(400).json({ error: 'maxDownloads must be a positive integer' });
+      file.maxDownloads = n;
+    }
+  }
 
   await file.save();
-  res.json({ tags: file.tags, originalName: file.originalName, description: file.description });
+  res.json({
+    tags: file.tags,
+    originalName: file.originalName,
+    description: file.description,
+    expiresAt: file.expiresAt,
+    maxDownloads: file.maxDownloads,
+    downloadCount: file.downloadCount,
+  });
 });
 
 // ── Bulk operations ──────────────────────────────────────────────────────────
@@ -313,7 +339,7 @@ router.post('/files/zip', requireLogin, async (req, res) => {
   const isAdmin = req.session.user.role === 'admin';
   const filter = { shortId: { $in: shortIds.slice(0, 1000) } };
   if (!isAdmin) filter.uploader = req.session.user.id;
-  const files = await File.find(filter);
+  const files = (await File.find(filter)).filter((f) => !isFileExpired(f));
   if (files.length === 0) return res.status(404).json({ error: 'No files found' });
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -335,6 +361,7 @@ router.get('/file/:shortId', async (req, res) => {
     { new: true },
   ).populate('uploader', 'username avatarExt');
   if (!file) return res.status(404).json({ error: 'File not found' });
+  if (isFileExpired(file)) return res.status(410).json({ error: 'This file is no longer available' });
 
   broadcast('file:view', { shortId: req.params.shortId, views: file.views }, () => true);
 
@@ -355,7 +382,9 @@ router.get('/gallery', requireLogin, async (req, res) => {
   if (tag) filter.tags = tag;
 
   // Each entry is ANDed; full-text query and the code-type filter each add an $or.
-  const and = [];
+  // Hide files that have self-destructed by date (download-exhausted ones are
+  // reclaimed by the retention job and 410 on access in the meantime).
+  const and = [{ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }];
 
   if (q) {
     const rx = { $regex: escapeRegex(q), $options: 'i' };
@@ -1545,7 +1574,7 @@ router.post('/collections', requireLogin, async (req, res) => {
 router.get('/collections/:id', async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id })
     .populate('owner', 'username')
-    .populate('files', 'shortId originalName mimeType size createdAt');
+    .populate('files', 'shortId originalName mimeType size createdAt expiresAt maxDownloads downloadCount');
 
   if (!collection) return res.status(404).json({ error: 'Collection not found' });
 
@@ -1562,8 +1591,9 @@ router.get('/collections/:id', async (req, res) => {
 
   const needsPassword = collection.password && !verified && !isOwnerOrAdmin;
 
+  const liveFiles = collection.files.filter((f) => !isFileExpired(f));
   const files = needsPassword ? [] : await Promise.all(
-    collection.files.map(async (f) => ({
+    liveFiles.map(async (f) => ({
       shortId: f.shortId,
       originalName: f.originalName,
       mimeType: f.mimeType,
@@ -1594,7 +1624,7 @@ router.get('/collections/:id', async (req, res) => {
 router.get('/collections/:id/zip', async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id })
     .populate('owner', '_id')
-    .populate('files', 'shortId originalName storedName');
+    .populate('files', 'shortId originalName storedName expiresAt maxDownloads downloadCount');
   if (!collection) return res.status(404).json({ error: 'Collection not found' });
 
   if (collection.expiresAt && collection.expiresAt < new Date()) {
@@ -1610,13 +1640,14 @@ router.get('/collections/:id/zip', async (req, res) => {
     return res.status(401).json({ error: 'Password required' });
   }
 
-  if (!collection.files || collection.files.length === 0) {
+  const liveFiles = (collection.files || []).filter((f) => !isFileExpired(f));
+  if (liveFiles.length === 0) {
     return res.status(404).json({ error: 'Collection is empty' });
   }
 
   const safeName = (collection.name || 'collection')
     .replace(/[^\w.\- ]+/g, '_').trim().slice(0, 60) || 'collection';
-  await streamFilesAsZip(res, collection.files, safeName);
+  await streamFilesAsZip(res, liveFiles, safeName);
 });
 
 // Update a collection (owner / admin)
