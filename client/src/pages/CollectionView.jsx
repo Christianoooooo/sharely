@@ -12,6 +12,7 @@ import {
   faArrowUpRightFromSquare, faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { fmtSize, fmtDate } from '@/lib/utils';
+import { QrCodePopover } from '@/components/QrCodePopover';
 import { useAuth } from '@/context/AuthContext';
 import { Layout } from '@/components/Layout';
 import { useToast } from '@/hooks/use-toast';
@@ -213,14 +214,17 @@ function CollectionViewInner() {
                 <span className="text-xs">{fmtDate(coll.createdAt)}</span>
               </div>
             </div>
-            {coll.files.length > 0 && (
-              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" asChild>
-                <a href={`/api/collections/${coll.shortId}/zip`} download>
-                  <FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />
-                  {t('collectionView.downloadAll')}
-                </a>
-              </Button>
-            )}
+            <div className="flex items-center gap-1 shrink-0">
+              <QrCodePopover url={typeof window !== 'undefined' ? window.location.href : ''} filename={coll.name} />
+              {coll.files.length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                  <a href={`/api/collections/${coll.shortId}/zip`} download>
+                    <FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />
+                    {t('collectionView.downloadAll')}
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

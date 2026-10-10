@@ -1,4 +1,10 @@
 {
+  "qr": {
+    "show": "QRコードを表示",
+    "alt": "QRコード",
+    "download": "PNG をダウンロード",
+    "generating": "生成中…"
+  },
   "nav": {
     "gallery": "ギャラリー",
     "upload": "アップロード",

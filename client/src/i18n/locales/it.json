@@ -1,4 +1,10 @@
 {
+  "qr": {
+    "show": "Mostra codice QR",
+    "alt": "Codice QR",
+    "download": "Scarica PNG",
+    "generating": "Generazione…"
+  },
   "nav": {
     "gallery": "Galleria",
     "upload": "Carica",
