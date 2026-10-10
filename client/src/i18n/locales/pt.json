@@ -794,6 +794,7 @@
     "fileCount_other": "{{count}} files",
     "expiresAt": "Expires {{date}}",
     "protected": "Protegido por senha",
+    "downloadAll": "Baixar tudo (ZIP)",
     "empty": "Esta coleção está vazia"
   },
   "addToCollection": {

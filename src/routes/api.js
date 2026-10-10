@@ -4,7 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
-const archiver = require('archiver');
 const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
 const { requireLogin, requireAdmin, requireApiKey } = require('../middleware/auth');
@@ -20,6 +19,7 @@ const { resolveUploadPath, escapeRegex } = require('../utils/uploadPath');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { logAudit } = require('../utils/audit');
 const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
+const { streamFilesAsZip } = require('../utils/zipFiles');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -314,39 +314,7 @@ router.post('/files/zip', requireLogin, async (req, res) => {
   if (files.length === 0) return res.status(404).json({ error: 'No files found' });
 
   const stamp = new Date().toISOString().slice(0, 10);
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', `attachment; filename="sharely-${stamp}.zip"`);
-
-  // Store-only: uploads are overwhelmingly pre-compressed media, so deflating
-  // would burn CPU for virtually no size gain.
-  const archive = archiver('zip', { zlib: { level: 0 } });
-  archive.on('error', (err) => {
-    console.error('[zip] archive error:', err.message);
-    res.destroy(err);
-  });
-  archive.pipe(res);
-
-  // De-duplicate entry names so files sharing an originalName do not overwrite
-  // each other inside the archive.
-  const usedNames = new Map();
-  for (const file of files) {
-    let fp;
-    try { fp = resolveUploadPath(file.storedName); } catch { continue; }
-    if (!fs.existsSync(fp)) continue;
-
-    let name = (file.originalName || file.shortId).replace(/[/\\]/g, '_');
-    if (usedNames.has(name)) {
-      const n = usedNames.get(name) + 1;
-      usedNames.set(name, n);
-      const dot = name.lastIndexOf('.');
-      name = dot > 0 ? `${name.slice(0, dot)} (${n})${name.slice(dot)}` : `${name} (${n})`;
-    } else {
-      usedNames.set(name, 0);
-    }
-    archive.file(fp, { name });
-  }
-
-  await archive.finalize();
+  await streamFilesAsZip(res, files, `sharely-${stamp}`);
 });
 
 // ── Tag suggestions for current user ────────────────────────────────────────
@@ -1613,6 +1581,35 @@ router.get('/collections/:id', async (req, res) => {
     createdAt: collection.createdAt,
     files,
   });
+});
+
+// Download a whole collection as a ZIP (public — mirrors the view's gating)
+router.get('/collections/:id/zip', async (req, res) => {
+  const collection = await Collection.findOne({ shortId: req.params.id })
+    .populate('owner', '_id')
+    .populate('files', 'shortId originalName storedName');
+  if (!collection) return res.status(404).json({ error: 'Collection not found' });
+
+  if (collection.expiresAt && collection.expiresAt < new Date()) {
+    return res.status(410).json({ error: 'expired' });
+  }
+
+  const isOwnerOrAdmin = req.session?.user &&
+    (req.session.user.id.toString() === collection.owner._id.toString() ||
+      req.session.user.role === 'admin');
+  const verified = Array.isArray(req.session?.verifiedCollections) &&
+    req.session.verifiedCollections.includes(req.params.id);
+  if (collection.password && !verified && !isOwnerOrAdmin) {
+    return res.status(401).json({ error: 'Password required' });
+  }
+
+  if (!collection.files || collection.files.length === 0) {
+    return res.status(404).json({ error: 'Collection is empty' });
+  }
+
+  const safeName = (collection.name || 'collection')
+    .replace(/[^\w.\- ]+/g, '_').trim().slice(0, 60) || 'collection';
+  await streamFilesAsZip(res, collection.files, safeName);
 });
 
 // Update a collection (owner / admin)

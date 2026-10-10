@@ -369,6 +369,7 @@
     "fileCount_other": "{{count}} Dateien",
     "expiresAt": "Läuft ab am {{date}}",
     "protected": "Passwortgeschützt",
+    "downloadAll": "Alle herunterladen (ZIP)",
     "empty": "Diese Sammlung ist leer"
   },
   "addToCollection": {
