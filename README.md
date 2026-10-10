@@ -16,8 +16,11 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **File download** — Force-download endpoint (`/f/<id>/download`) separate from the inline viewer
 - **Embed modes** — Per-user toggle between *embed* (rich HTML page with Open Graph / Twitter Card metadata) and *raw* (direct file redirect for native social embeds); social media bots (Discord, Telegram, Twitter, etc.) are detected automatically
 - **Share links** — Generate per-file share links (`/s/<token>`) with optional password protection, expiry date, and download limit
-- **Collections** — Group files into named collections with optional password and expiry date, shareable via a single link
-- **Tags** — Tag files for organisation; define a personal set of predefined tags in Settings for quick reuse
+- **QR codes** — Every share link and collection link can be shown as a QR code and downloaded as a PNG for quick mobile sharing
+- **Collections** — Group files into named collections with optional password and expiry date, shareable via a single link; download the whole collection (or any multi-selection in the gallery) as a ZIP
+- **Self-destructing uploads** — Give any file an expiry date and/or a maximum download count; once reached it becomes unavailable everywhere and is reclaimed by the cleanup job
+- **Tags & descriptions** — Tag files for organisation (with a personal set of predefined tags) and add a free-text description; the gallery search matches file name, tags and description
+- **Metadata stripping** — Optionally remove EXIF/GPS and other metadata from JPEG/PNG uploads site-wide (privacy)
 - **Thumbnails** — Video and PDF files get auto-generated JPEG thumbnails (requires ffmpeg / ghostscript, bundled in the Docker image)
 - **Avatars** — Users can upload a profile avatar (JPEG, PNG, GIF, WebP, max 2 MB)
 - **Internationalization** — UI and email templates available in 8 languages: English, Deutsch, Français, Español, Italiano, Português, 日本語, 中文

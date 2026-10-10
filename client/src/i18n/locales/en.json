@@ -535,6 +535,8 @@
     "securityDescription": "Document the security measures in place for this instance.",
     "encryptionLabel": "Disk/volume encryption is configured on this server",
     "encryptionHint": "Check this if the server volume is encrypted (e.g. LUKS, cloud provider encryption, encrypted Docker volume). This is documented in the Privacy Policy under section 6.",
+    "stripMetadataLabel": "Strip metadata from uploaded images (EXIF/GPS)",
+    "stripMetadataHint": "When enabled, EXIF, GPS and other metadata is removed from JPEG and PNG uploads. Other formats are left unchanged.",
     "analyticsSection": "Analytics",
     "analyticsDescription": "Enable the cookie consent notice when Cloudflare Web Analytics is active on this instance.",
     "analyticsLabel": "Cloudflare Web Analytics is enabled on this instance",

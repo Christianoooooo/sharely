@@ -13,6 +13,8 @@ const siteSettingsSchema = new mongoose.Schema({
   // Default per-user storage limit in bytes applied to users without an own
   // storageQuota override. 0 = unlimited.
   defaultStorageQuota: { type: Number, default: 0 },
+  // Strip EXIF/metadata from JPEG/PNG uploads (privacy).
+  stripMetadata: { type: Boolean, default: false },
 });
 
 siteSettingsSchema.statics.get = async function () {

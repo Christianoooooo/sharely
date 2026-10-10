@@ -383,6 +383,8 @@
     "securityDescription": "Documente as medidas de segurança implementadas nesta instância.",
     "encryptionLabel": "A encriptação de disco/volume está configurada neste servidor",
     "encryptionHint": "Marque se o volume do servidor está encriptado (ex. LUKS, encriptação do fornecedor cloud, volume Docker encriptado). Isto está documentado na política de privacidade na secção 6.",
+    "stripMetadataLabel": "Remover metadados das imagens enviadas (EXIF/GPS)",
+    "stripMetadataHint": "Quando ativado, metadados EXIF, GPS e outros são removidos de arquivos JPEG e PNG. Outros formatos permanecem inalterados.",
     "analyticsSection": "Analítica",
     "analyticsDescription": "Ative o aviso de consentimento de cookies quando o Cloudflare Web Analytics estiver ativo nesta instância.",
     "analyticsLabel": "O Cloudflare Web Analytics está ativo nesta instância",

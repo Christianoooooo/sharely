@@ -383,6 +383,8 @@
     "securityDescription": "Documentez les mesures de sécurité en place pour cette instance.",
     "encryptionLabel": "Le chiffrement du disque/volume est configuré sur ce serveur",
     "encryptionHint": "Cochez si le volume du serveur est chiffré (ex. LUKS, chiffrement du fournisseur cloud, volume Docker chiffré). Cela est documenté dans la politique de confidentialité sous la section 6.",
+    "stripMetadataLabel": "Supprimer les métadonnées des images téléversées (EXIF/GPS)",
+    "stripMetadataHint": "Si activé, les métadonnées EXIF, GPS et autres sont supprimées des fichiers JPEG et PNG. Les autres formats restent inchangés.",
     "analyticsSection": "Analytique",
     "analyticsDescription": "Activez l'avis de consentement aux cookies lorsque Cloudflare Web Analytics est actif sur cette instance.",
     "analyticsLabel": "Cloudflare Web Analytics est activé sur cette instance",

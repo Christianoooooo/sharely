@@ -383,6 +383,8 @@
     "securityDescription": "このインスタンスのセキュリティ対策を記録してください。",
     "encryptionLabel": "このサーバーにディスク/ボリューム暗号化が設定されています",
     "encryptionHint": "サーバーボリュームが暗号化されている場合はチェックしてください（例：LUKS、クラウドプロバイダーの暗号化、暗号化Dockerボリューム）。これはプライバシーポリシーのセクション6に記載されます。",
+    "stripMetadataLabel": "アップロード画像からメタデータを削除 (EXIF/GPS)",
+    "stripMetadataHint": "有効にすると、JPEG と PNG のアップロードから EXIF・GPS などのメタデータを削除します。その他の形式は変更されません。",
     "analyticsSection": "アナリティクス",
     "analyticsDescription": "このインスタンスでCloudflare Web Analyticsが有効な場合、Cookie同意通知を有効にします。",
     "analyticsLabel": "Cloudflare Web Analyticsがこのインスタンスで有効です",

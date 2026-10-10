@@ -535,6 +535,8 @@
     "securityDescription": "Dokumentiere die für diese Instanz vorhandenen Sicherheitsmaßnahmen.",
     "encryptionLabel": "Festplatten-/Volume-Verschlüsselung ist auf diesem Server konfiguriert",
     "encryptionHint": "Aktiviere dies, wenn das Server-Volume verschlüsselt ist (z. B. LUKS, Cloud-Provider-Verschlüsselung, verschlüsseltes Docker-Volume). Dies wird in der Datenschutzerklärung unter Abschnitt 6 dokumentiert.",
+    "stripMetadataLabel": "Metadaten aus hochgeladenen Bildern entfernen (EXIF/GPS)",
+    "stripMetadataHint": "Wenn aktiviert, werden EXIF-, GPS- und andere Metadaten aus JPEG- und PNG-Uploads entfernt. Andere Formate bleiben unverändert.",
     "analyticsSection": "Analyse",
     "analyticsDescription": "Aktiviere den Cookie-Hinweis, wenn Cloudflare Web Analytics auf dieser Instanz aktiv ist.",
     "analyticsLabel": "Cloudflare Web Analytics ist auf dieser Instanz aktiv",

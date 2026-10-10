@@ -28,6 +28,7 @@ export default function AdminSiteSettings() {
     encryptionAtRest: false,
     sessionDurationDays: 7,
     defaultStorageQuota: 0,
+    stripMetadata: false,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -111,6 +112,7 @@ export default function AdminSiteSettings() {
           encryptionAtRest: data.encryptionAtRest ?? false,
           sessionDurationDays: data.sessionDurationDays ?? 7,
           defaultStorageQuota: Math.round((data.defaultStorageQuota ?? 0) / (1024 * 1024)),
+          stripMetadata: data.stripMetadata ?? false,
         });
       })
       .finally(() => setLoading(false));
@@ -436,6 +438,16 @@ export default function AdminSiteSettings() {
             <span className="text-sm">{t('adminSiteSettings.encryptionLabel')}</span>
           </label>
           <p className="text-xs text-muted-foreground">{t('adminSiteSettings.encryptionHint')}</p>
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+              checked={form.stripMetadata}
+              onChange={(e) => setForm((p) => ({ ...p, stripMetadata: e.target.checked }))}
+            />
+            <span className="text-sm">{t('adminSiteSettings.stripMetadataLabel')}</span>
+          </label>
+          <p className="text-xs text-muted-foreground">{t('adminSiteSettings.stripMetadataHint')}</p>
           <Button disabled={saving} onClick={handleSubmit}>
             {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}
           </Button>

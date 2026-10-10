@@ -383,6 +383,8 @@
     "securityDescription": "记录此实例已实施的安全措施。",
     "encryptionLabel": "此服务器已配置磁盘/卷加密",
     "encryptionHint": "如果服务器卷已加密（例如 LUKS、云提供商加密、加密 Docker 卷），请勾选此项。这将记录在隐私政策第 6 节中。",
+    "stripMetadataLabel": "移除上传图片的元数据 (EXIF/GPS)",
+    "stripMetadataHint": "启用后，将从 JPEG 和 PNG 上传中移除 EXIF、GPS 等元数据。其他格式保持不变。",
     "analyticsSection": "数据分析",
     "analyticsDescription": "当此实例启用 Cloudflare Web Analytics 时，启用 Cookie 同意通知。",
     "analyticsLabel": "此实例已启用 Cloudflare Web Analytics",

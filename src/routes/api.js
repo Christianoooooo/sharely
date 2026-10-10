@@ -21,6 +21,7 @@ const { logAudit } = require('../utils/audit');
 const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
 const { streamFilesAsZip } = require('../utils/zipFiles');
 const { isFileExpired } = require('../utils/fileLifecycle');
+const { stripFileInPlace } = require('../utils/stripMetadata');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -93,6 +94,14 @@ async function deleteFileRecord(req, file) {
   await file.deleteOne();
 }
 
+/** Strip image metadata in place when enabled site-wide; returns the final size. */
+async function stripIfEnabled(absPath, mimeType, fallbackSize) {
+  const settings = await SiteSettings.get();
+  if (!settings.stripMetadata) return fallbackSize;
+  const size = await stripFileInPlace(absPath, mimeType);
+  return size ?? fallbackSize;
+}
+
 // ── File upload (API key — ShareX) ─────────────────────────────────────────
 router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
@@ -105,12 +114,13 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 
   // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
+  const size = await stripIfEnabled(req.file.path, req.file.mimetype, req.file.size);
 
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType: req.file.mimetype,
-    size: req.file.size,
+    size,
     uploader: req.apiUser._id,
   });
 
@@ -152,11 +162,12 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
   for (const f of req.files) {
     // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
     const storedName = path.relative(UPLOAD_DIR, f.path);
+    const size = await stripIfEnabled(f.path, f.mimetype, f.size);
     const doc = await File.createUnique({
       originalName: sanitizeFilename(f.originalname),
       storedName,
       mimeType: f.mimetype,
-      size: f.size,
+      size,
       uploader: req.session.user.id,
     });
     generateThumbnail(f.path, f.mimetype, doc.shortId).catch(() => {});
@@ -520,11 +531,12 @@ router.get('/admin/site-settings', requireAdmin, async (req, res) => {
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays ?? 7,
     defaultStorageQuota: s.defaultStorageQuota ?? 0,
+    stripMetadata: s.stripMetadata ?? false,
   });
 });
 
 router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
-  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays, defaultStorageQuota } = req.body;
+  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays, defaultStorageQuota, stripMetadata: stripMetadataSetting } = req.body;
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
@@ -540,6 +552,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
   if (typeof sessionDurationDays === 'number' && sessionDurationDays >= 1) s.sessionDurationDays = Math.floor(sessionDurationDays);
   if (typeof defaultStorageQuota === 'number' && defaultStorageQuota >= 0) s.defaultStorageQuota = Math.floor(defaultStorageQuota);
+  if (typeof stripMetadataSetting === 'boolean') s.stripMetadata = stripMetadataSetting;
   await s.save();
   const settingsPayload = {
     operatorName: s.operatorName,
@@ -550,6 +563,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays,
     defaultStorageQuota: s.defaultStorageQuota,
+    stripMetadata: s.stripMetadata,
   };
   broadcast('settings:updated', settingsPayload, (c) => c.isAdmin);
   res.json(settingsPayload);
@@ -1201,11 +1215,12 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
 
   const storedName = path.relative(UPLOAD_DIR, finalPath);
+  const size = await stripIfEnabled(finalPath, meta.mimeType, meta.totalSize);
   const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
     mimeType: meta.mimeType,
-    size: meta.totalSize,
+    size,
     uploader: meta.userId,
   });
 

@@ -383,6 +383,8 @@
     "securityDescription": "Documenta las medidas de seguridad implementadas para esta instancia.",
     "encryptionLabel": "El cifrado de disco/volumen está configurado en este servidor",
     "encryptionHint": "Marca esto si el volumen del servidor está cifrado (p. ej. LUKS, cifrado del proveedor cloud, volumen Docker cifrado). Esto se documenta en la política de privacidad en la sección 6.",
+    "stripMetadataLabel": "Eliminar metadatos de las imágenes subidas (EXIF/GPS)",
+    "stripMetadataHint": "Si está activado, se eliminan los metadatos EXIF, GPS y otros de los archivos JPEG y PNG. Otros formatos no se modifican.",
     "analyticsSection": "Analítica",
     "analyticsDescription": "Activa el aviso de consentimiento de cookies cuando Cloudflare Web Analytics esté activo en esta instancia.",
     "analyticsLabel": "Cloudflare Web Analytics está habilitado en esta instancia",
