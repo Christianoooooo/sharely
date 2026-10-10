@@ -18,9 +18,11 @@ const JPEG_DROP_MARKERS = new Set([
   0xeb, // APP11
   0xec, // APP12
   0xed, // APP13 — IPTC / Photoshop
-  0xee, // APP14 (Adobe) — note: affects CMYK inversion only, rarely used here
   0xef, // APP15
   0xfe, // COM — comment
+  // APP0 (JFIF), APP2 (ICC colour profile) and APP14 (Adobe colour transform)
+  // are deliberately kept: they carry no personal data but are needed for
+  // correct rendering.
 ]);
 
 function stripJpeg(buf) {
