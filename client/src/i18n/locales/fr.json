@@ -233,6 +233,12 @@
     "tags": "Tags",
     "addTag": "Ajouter un tag…",
     "tagSaved": "Tags enregistrés",
+    "description": "Description",
+    "descriptionPlaceholder": "Ajouter une description…",
+    "descSave": "Enregistrer la description",
+    "descSaving": "Enregistrement…",
+    "descSaved": "Description enregistrée",
+    "descFailed": "Échec de l'enregistrement de la description",
     "tagFailed": "Échec de l'enregistrement des tags",
     "noPredefTags": "Aucun tag défini — ajoutez des tags dans les Paramètres"
   },

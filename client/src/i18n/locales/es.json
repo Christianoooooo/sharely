@@ -233,6 +233,12 @@
     "tags": "Etiquetas",
     "addTag": "Añadir etiqueta…",
     "tagSaved": "Etiquetas guardadas",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Añadir una descripción…",
+    "descSave": "Guardar descripción",
+    "descSaving": "Guardando…",
+    "descSaved": "Descripción guardada",
+    "descFailed": "Error al guardar la descripción",
     "tagFailed": "Error al guardar las etiquetas",
     "noPredefTags": "Ninguna etiqueta definida — añade etiquetas en Ajustes"
   },

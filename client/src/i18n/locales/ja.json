@@ -233,6 +233,12 @@
     "tags": "タグ",
     "addTag": "タグを追加…",
     "tagSaved": "タグを保存しました",
+    "description": "説明",
+    "descriptionPlaceholder": "説明を追加…",
+    "descSave": "説明を保存",
+    "descSaving": "保存中…",
+    "descSaved": "説明を保存しました",
+    "descFailed": "説明の保存に失敗しました",
     "tagFailed": "タグの保存に失敗しました",
     "noPredefTags": "タグが未定義です — 設定でタグを追加してください"
   },

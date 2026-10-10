@@ -63,8 +63,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus, faTag, faXmark, faAlignLeft } from '@fortawesome/free-solid-svg-icons';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -174,11 +175,14 @@ function FileViewInner() {
   const [error, setError] = useState(null);
   const [tags, setTags] = useState([]);
   const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [description, setDescription] = useState('');
+  const [descDirty, setDescDirty] = useState(false);
+  const [savingDesc, setSavingDesc] = useState(false);
 
   useEffect(() => {
     fetch(`/api/file/${shortId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data) => { setFile(data.file); setTags(data.file.tags || []); })
+      .then((data) => { setFile(data.file); setTags(data.file.tags || []); setDescription(data.file.description || ''); })
       .catch((code) => setError(code === 404 ? t('fileView.fileNotFound') : t('fileView.loadFailed')));
   }, [shortId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -250,6 +254,25 @@ function FileViewInner() {
     const next = tags.filter((t_) => t_ !== tag);
     setTags(next);
     saveTags(next);
+  }
+
+  async function saveDescription() {
+    setSavingDesc(true);
+    try {
+      const r = await fetch(`/api/file/${shortId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
+      });
+      if (r.ok) {
+        toast({ title: t('fileView.descSaved') });
+        setDescDirty(false);
+      } else {
+        toast({ title: t('fileView.descFailed'), variant: 'destructive' });
+      }
+    } finally {
+      setSavingDesc(false);
+    }
   }
 
   return (
@@ -356,6 +379,36 @@ function FileViewInner() {
                 <span className="text-xs text-muted-foreground">{t('fileView.noPredefTags')}</span>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Description */}
+      {(canEdit || description) && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FontAwesomeIcon icon={faAlignLeft} className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-sm font-medium">{t('fileView.description')}</span>
+            </div>
+            {canEdit ? (
+              <>
+                <Textarea
+                  value={description}
+                  onChange={(e) => { setDescription(e.target.value); setDescDirty(true); }}
+                  placeholder={t('fileView.descriptionPlaceholder')}
+                  maxLength={1000}
+                  rows={3}
+                />
+                {descDirty && (
+                  <Button size="sm" onClick={saveDescription} disabled={savingDesc} className="gap-1.5">
+                    {savingDesc ? t('fileView.descSaving') : t('fileView.descSave')}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap break-words">{description}</p>
+            )}
           </CardContent>
         </Card>
       )}

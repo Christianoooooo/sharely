@@ -233,6 +233,12 @@
     "tags": "标签",
     "addTag": "添加标签…",
     "tagSaved": "标签已保存",
+    "description": "描述",
+    "descriptionPlaceholder": "添加描述…",
+    "descSave": "保存描述",
+    "descSaving": "保存中…",
+    "descSaved": "描述已保存",
+    "descFailed": "保存描述失败",
     "tagFailed": "标签保存失败",
     "noPredefTags": "未定义标签 — 请在设置中添加标签"
   },

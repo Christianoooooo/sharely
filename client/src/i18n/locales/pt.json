@@ -233,6 +233,12 @@
     "tags": "Tags",
     "addTag": "Adicionar tag…",
     "tagSaved": "Tags salvas",
+    "description": "Descrição",
+    "descriptionPlaceholder": "Adicionar uma descrição…",
+    "descSave": "Salvar descrição",
+    "descSaving": "Salvando…",
+    "descSaved": "Descrição salva",
+    "descFailed": "Falha ao salvar a descrição",
     "tagFailed": "Falha ao salvar tags",
     "noPredefTags": "Nenhuma tag definida — adicione tags nas Definições"
   },

@@ -221,9 +221,12 @@ router.patch('/file/:shortId', requireLogin, async (req, res) => {
     const name = sanitizeFilename(req.body.originalName.trim()).slice(0, 255);
     if (name) file.originalName = name;
   }
+  if (req.body.description !== undefined && typeof req.body.description === 'string') {
+    file.description = req.body.description.trim().slice(0, 1000);
+  }
 
   await file.save();
-  res.json({ tags: file.tags, originalName: file.originalName });
+  res.json({ tags: file.tags, originalName: file.originalName, description: file.description });
 });
 
 // ── Bulk operations ──────────────────────────────────────────────────────────
@@ -349,8 +352,15 @@ router.get('/gallery', requireLogin, async (req, res) => {
 
   const filter = {};
   if (!isAdmin) filter.uploader = req.session.user.id;
-  if (q) filter.originalName = { $regex: escapeRegex(q), $options: 'i' };
   if (tag) filter.tags = tag;
+
+  // Each entry is ANDed; full-text query and the code-type filter each add an $or.
+  const and = [];
+
+  if (q) {
+    const rx = { $regex: escapeRegex(q), $options: 'i' };
+    and.push({ $or: [{ originalName: rx }, { description: rx }, { tags: rx }] });
+  }
 
   if (type && type !== 'all') {
     const typeMap = { image: /^image\//, video: /^video\//, audio: /^audio\//, pdf: /^application\/pdf$/ };
@@ -363,20 +373,17 @@ router.get('/gallery', requireLogin, async (req, res) => {
         'css', 'scss', 'less', 'md', 'sql', 'dockerfile', 'makefile', 'r',
         'swift', 'kt', 'lua', 'pl', 'ex', 'exs', 'hs', 'clj', 'vue', 'svelte'];
       const extPattern = `\\.(${codeExts.join('|')})$`;
-      const typeCondition = {
+      and.push({
         $or: [
           { originalName: { $regex: extPattern, $options: 'i' } },
           { mimeType: { $regex: '^text/' } },
         ],
-      };
-      if (q) {
-        filter.$and = [{ originalName: filter.originalName }, typeCondition];
-        delete filter.originalName;
-      } else {
-        Object.assign(filter, typeCondition);
-      }
+      });
     }
   }
+
+  if (and.length === 1) Object.assign(filter, and[0]);
+  else if (and.length > 1) filter.$and = and;
 
   const total = await File.countDocuments(filter);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));

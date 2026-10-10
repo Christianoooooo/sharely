@@ -274,6 +274,12 @@
     "tags": "Tags",
     "addTag": "Add tag…",
     "tagSaved": "Tags saved",
+    "description": "Description",
+    "descriptionPlaceholder": "Add a description…",
+    "descSave": "Save description",
+    "descSaving": "Saving…",
+    "descSaved": "Description saved",
+    "descFailed": "Failed to save description",
     "tagFailed": "Failed to save tags",
     "noPredefTags": "No tags defined — add tags in Settings"
   },

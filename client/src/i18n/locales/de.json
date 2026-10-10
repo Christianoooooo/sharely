@@ -274,6 +274,12 @@
     "tags": "Tags",
     "addTag": "Tag hinzufügen…",
     "tagSaved": "Tags gespeichert",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Beschreibung hinzufügen…",
+    "descSave": "Beschreibung speichern",
+    "descSaving": "Speichern…",
+    "descSaved": "Beschreibung gespeichert",
+    "descFailed": "Beschreibung konnte nicht gespeichert werden",
     "tagFailed": "Speichern fehlgeschlagen",
     "noPredefTags": "Keine Tags definiert – füge Tags in den Einstellungen hinzu"
   },
