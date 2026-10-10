@@ -1,4 +1,10 @@
 {
+  "qr": {
+    "show": "Afficher le QR code",
+    "alt": "QR code",
+    "download": "Télécharger le PNG",
+    "generating": "Génération…"
+  },
   "nav": {
     "gallery": "Galerie",
     "upload": "Téléverser",
@@ -227,6 +233,22 @@
     "tags": "Tags",
     "addTag": "Ajouter un tag…",
     "tagSaved": "Tags enregistrés",
+    "description": "Description",
+    "descriptionPlaceholder": "Ajouter une description…",
+    "descSave": "Enregistrer la description",
+    "descSaving": "Enregistrement…",
+    "descSaved": "Description enregistrée",
+    "selfDestruct": "Autodestruction",
+    "selfDestructHint": "Supprimer automatiquement ce fichier après une date ou un nombre de téléchargements. Laisser vide pour le conserver indéfiniment.",
+    "selfDestructExpiry": "Expire le",
+    "selfDestructMaxDownloads": "Téléchargements max.",
+    "selfDestructUnlimited": "Illimité",
+    "selfDestructUsed": "{{count}} / {{max}} téléchargements utilisés",
+    "selfDestructSave": "Enregistrer",
+    "selfDestructSaved": "Paramètres d'autodestruction enregistrés",
+    "selfDestructFailed": "Échec de l'enregistrement des paramètres",
+    "selfDestructInvalid": "Le nombre maximal de téléchargements doit être positif",
+    "descFailed": "Échec de l'enregistrement de la description",
     "tagFailed": "Échec de l'enregistrement des tags",
     "noPredefTags": "Aucun tag défini — ajoutez des tags dans les Paramètres"
   },
@@ -361,6 +383,8 @@
     "securityDescription": "Documentez les mesures de sécurité en place pour cette instance.",
     "encryptionLabel": "Le chiffrement du disque/volume est configuré sur ce serveur",
     "encryptionHint": "Cochez si le volume du serveur est chiffré (ex. LUKS, chiffrement du fournisseur cloud, volume Docker chiffré). Cela est documenté dans la politique de confidentialité sous la section 6.",
+    "stripMetadataLabel": "Supprimer les métadonnées des images téléversées (EXIF/GPS)",
+    "stripMetadataHint": "Si activé, les métadonnées EXIF, GPS et autres sont supprimées des fichiers JPEG et PNG. Les autres formats restent inchangés.",
     "analyticsSection": "Analytique",
     "analyticsDescription": "Activez l'avis de consentement aux cookies lorsque Cloudflare Web Analytics est actif sur cette instance.",
     "analyticsLabel": "Cloudflare Web Analytics est activé sur cette instance",

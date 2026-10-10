@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const File = require('../models/File');
 const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { resolveUploadPath } = require('../utils/uploadPath');
+const { isFileExpired } = require('../utils/fileLifecycle');
 
 /** Regex matching known social-media / link-preview crawlers. */
 const BOT_UA = /discord|twitterbot|facebookexternalhit|telegram|slack|whatsapp|linkedinbot|skype|vkshare|pinterest|tumblr|mastodon/i;
@@ -100,7 +101,7 @@ router.get('/:shortId', async (req, res, next) => {
   if (!BOT_UA.test(ua)) return next();
 
   const file = await File.findOne({ shortId: req.params.shortId }).populate('uploader', 'username embedMode');
-  if (!file) return next();
+  if (!file || isFileExpired(file)) return next();
 
   const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
   const rawUrl = `${base}/f/${file.shortId}/raw`;
@@ -171,6 +172,7 @@ router.get('/:shortId/thumb', (req, res) => {
 router.get('/:shortId/raw', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
+  if (isFileExpired(file)) return res.status(410).send('This file is no longer available');
 
   await serveFile(req, res, resolveUploadPath(file.storedName), file, false);
 });
@@ -191,12 +193,23 @@ router.get('/:shortId/delete/:token', async (req, res) => {
   res.json({ success: true });
 });
 
-// GET /f/:shortId/download — force download
+// GET /f/:shortId/download — force download (counts toward the self-destruct cap)
 router.get('/:shortId/download', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
+  if (isFileExpired(file)) return res.status(410).send('This file is no longer available');
 
-  await serveFile(req, res, resolveUploadPath(file.storedName), file, true);
+  const filePath = resolveUploadPath(file.storedName);
+  // Verify existence before counting so a missing file is not billed.
+  try { await fs.promises.access(filePath); } catch { return res.status(404).send('File data missing'); }
+
+  // Count the download only when a cap is set; atomic so concurrent downloads
+  // cannot exceed maxDownloads.
+  if (file.maxDownloads) {
+    await File.updateOne({ _id: file._id }, { $inc: { downloadCount: 1 } });
+  }
+
+  await serveFile(req, res, filePath, file, true);
 });
 
 module.exports = router;

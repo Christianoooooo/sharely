@@ -1,4 +1,10 @@
 {
+  "qr": {
+    "show": "Mostrar código QR",
+    "alt": "Código QR",
+    "download": "Descargar PNG",
+    "generating": "Generando…"
+  },
   "nav": {
     "gallery": "Galería",
     "upload": "Subir",
@@ -227,6 +233,22 @@
     "tags": "Etiquetas",
     "addTag": "Añadir etiqueta…",
     "tagSaved": "Etiquetas guardadas",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Añadir una descripción…",
+    "descSave": "Guardar descripción",
+    "descSaving": "Guardando…",
+    "descSaved": "Descripción guardada",
+    "selfDestruct": "Autodestrucción",
+    "selfDestructHint": "Eliminar automáticamente este archivo tras una fecha o un número de descargas. Dejar vacío para conservarlo indefinidamente.",
+    "selfDestructExpiry": "Caduca el",
+    "selfDestructMaxDownloads": "Descargas máx.",
+    "selfDestructUnlimited": "Ilimitado",
+    "selfDestructUsed": "{{count}} / {{max}} descargas usadas",
+    "selfDestructSave": "Guardar",
+    "selfDestructSaved": "Ajustes de autodestrucción guardados",
+    "selfDestructFailed": "Error al guardar los ajustes",
+    "selfDestructInvalid": "Las descargas máximas deben ser un número positivo",
+    "descFailed": "Error al guardar la descripción",
     "tagFailed": "Error al guardar las etiquetas",
     "noPredefTags": "Ninguna etiqueta definida — añade etiquetas en Ajustes"
   },
@@ -361,6 +383,8 @@
     "securityDescription": "Documenta las medidas de seguridad implementadas para esta instancia.",
     "encryptionLabel": "El cifrado de disco/volumen está configurado en este servidor",
     "encryptionHint": "Marca esto si el volumen del servidor está cifrado (p. ej. LUKS, cifrado del proveedor cloud, volumen Docker cifrado). Esto se documenta en la política de privacidad en la sección 6.",
+    "stripMetadataLabel": "Eliminar metadatos de las imágenes subidas (EXIF/GPS)",
+    "stripMetadataHint": "Si está activado, se eliminan los metadatos EXIF, GPS y otros de los archivos JPEG y PNG. Otros formatos no se modifican.",
     "analyticsSection": "Analítica",
     "analyticsDescription": "Activa el aviso de consentimiento de cookies cuando Cloudflare Web Analytics esté activo en esta instancia.",
     "analyticsLabel": "Cloudflare Web Analytics está habilitado en esta instancia",

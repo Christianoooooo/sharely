@@ -1,4 +1,10 @@
 {
+  "qr": {
+    "show": "Mostrar código QR",
+    "alt": "Código QR",
+    "download": "Baixar PNG",
+    "generating": "Gerando…"
+  },
   "nav": {
     "gallery": "Galeria",
     "upload": "Enviar",
@@ -227,6 +233,22 @@
     "tags": "Tags",
     "addTag": "Adicionar tag…",
     "tagSaved": "Tags salvas",
+    "description": "Descrição",
+    "descriptionPlaceholder": "Adicionar uma descrição…",
+    "descSave": "Salvar descrição",
+    "descSaving": "Salvando…",
+    "descSaved": "Descrição salva",
+    "selfDestruct": "Autodestruição",
+    "selfDestructHint": "Remover automaticamente este arquivo após uma data ou um número de downloads. Deixe vazio para mantê-lo indefinidamente.",
+    "selfDestructExpiry": "Expira em",
+    "selfDestructMaxDownloads": "Downloads máx.",
+    "selfDestructUnlimited": "Ilimitado",
+    "selfDestructUsed": "{{count}} / {{max}} downloads usados",
+    "selfDestructSave": "Salvar",
+    "selfDestructSaved": "Configurações de autodestruição salvas",
+    "selfDestructFailed": "Falha ao salvar as configurações",
+    "selfDestructInvalid": "O número máximo de downloads deve ser positivo",
+    "descFailed": "Falha ao salvar a descrição",
     "tagFailed": "Falha ao salvar tags",
     "noPredefTags": "Nenhuma tag definida — adicione tags nas Definições"
   },
@@ -361,6 +383,8 @@
     "securityDescription": "Documente as medidas de segurança implementadas nesta instância.",
     "encryptionLabel": "A encriptação de disco/volume está configurada neste servidor",
     "encryptionHint": "Marque se o volume do servidor está encriptado (ex. LUKS, encriptação do fornecedor cloud, volume Docker encriptado). Isto está documentado na política de privacidade na secção 6.",
+    "stripMetadataLabel": "Remover metadados das imagens enviadas (EXIF/GPS)",
+    "stripMetadataHint": "Quando ativado, metadados EXIF, GPS e outros são removidos de arquivos JPEG e PNG. Outros formatos permanecem inalterados.",
     "analyticsSection": "Analítica",
     "analyticsDescription": "Ative o aviso de consentimento de cookies quando o Cloudflare Web Analytics estiver ativo nesta instância.",
     "analyticsLabel": "O Cloudflare Web Analytics está ativo nesta instância",

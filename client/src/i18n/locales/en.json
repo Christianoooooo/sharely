@@ -1,4 +1,10 @@
 {
+  "qr": {
+    "show": "Show QR code",
+    "alt": "QR code",
+    "download": "Download PNG",
+    "generating": "Generating…"
+  },
   "nav": {
     "gallery": "Gallery",
     "upload": "Upload",
@@ -268,6 +274,22 @@
     "tags": "Tags",
     "addTag": "Add tag…",
     "tagSaved": "Tags saved",
+    "description": "Description",
+    "descriptionPlaceholder": "Add a description…",
+    "descSave": "Save description",
+    "descSaving": "Saving…",
+    "descSaved": "Description saved",
+    "selfDestruct": "Self-destruct",
+    "selfDestructHint": "Automatically remove this file after a date or a number of downloads. Leave empty to keep it indefinitely.",
+    "selfDestructExpiry": "Expires at",
+    "selfDestructMaxDownloads": "Max downloads",
+    "selfDestructUnlimited": "Unlimited",
+    "selfDestructUsed": "{{count}} / {{max}} downloads used",
+    "selfDestructSave": "Save",
+    "selfDestructSaved": "Self-destruct settings saved",
+    "selfDestructFailed": "Failed to save settings",
+    "selfDestructInvalid": "Max downloads must be a positive number",
+    "descFailed": "Failed to save description",
     "tagFailed": "Failed to save tags",
     "noPredefTags": "No tags defined — add tags in Settings"
   },
@@ -513,6 +535,8 @@
     "securityDescription": "Document the security measures in place for this instance.",
     "encryptionLabel": "Disk/volume encryption is configured on this server",
     "encryptionHint": "Check this if the server volume is encrypted (e.g. LUKS, cloud provider encryption, encrypted Docker volume). This is documented in the Privacy Policy under section 6.",
+    "stripMetadataLabel": "Strip metadata from uploaded images (EXIF/GPS)",
+    "stripMetadataHint": "When enabled, EXIF, GPS and other metadata is removed from JPEG and PNG uploads. Other formats are left unchanged.",
     "analyticsSection": "Analytics",
     "analyticsDescription": "Enable the cookie consent notice when Cloudflare Web Analytics is active on this instance.",
     "analyticsLabel": "Cloudflare Web Analytics is enabled on this instance",

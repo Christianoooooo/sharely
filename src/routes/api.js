@@ -20,6 +20,8 @@ const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/gene
 const { logAudit } = require('../utils/audit');
 const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
 const { streamFilesAsZip } = require('../utils/zipFiles');
+const { isFileExpired } = require('../utils/fileLifecycle');
+const { stripFileInPlace } = require('../utils/stripMetadata');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -92,6 +94,14 @@ async function deleteFileRecord(req, file) {
   await file.deleteOne();
 }
 
+/** Strip image metadata in place when enabled site-wide; returns the final size. */
+async function stripIfEnabled(absPath, mimeType, fallbackSize) {
+  const settings = await SiteSettings.get();
+  if (!settings.stripMetadata) return fallbackSize;
+  const size = await stripFileInPlace(absPath, mimeType);
+  return size ?? fallbackSize;
+}
+
 // ── File upload (API key — ShareX) ─────────────────────────────────────────
 router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
@@ -104,12 +114,13 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 
   // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
+  const size = await stripIfEnabled(req.file.path, req.file.mimetype, req.file.size);
 
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType: req.file.mimetype,
-    size: req.file.size,
+    size,
     uploader: req.apiUser._id,
   });
 
@@ -151,11 +162,12 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
   for (const f of req.files) {
     // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
     const storedName = path.relative(UPLOAD_DIR, f.path);
+    const size = await stripIfEnabled(f.path, f.mimetype, f.size);
     const doc = await File.createUnique({
       originalName: sanitizeFilename(f.originalname),
       storedName,
       mimeType: f.mimetype,
-      size: f.size,
+      size,
       uploader: req.session.user.id,
     });
     generateThumbnail(f.path, f.mimetype, doc.shortId).catch(() => {});
@@ -221,9 +233,37 @@ router.patch('/file/:shortId', requireLogin, async (req, res) => {
     const name = sanitizeFilename(req.body.originalName.trim()).slice(0, 255);
     if (name) file.originalName = name;
   }
+  if (req.body.description !== undefined && typeof req.body.description === 'string') {
+    file.description = req.body.description.trim().slice(0, 1000);
+  }
+  if (req.body.expiresAt !== undefined) {
+    if (req.body.expiresAt === null || req.body.expiresAt === '') {
+      file.expiresAt = null;
+    } else {
+      const date = new Date(req.body.expiresAt);
+      if (isNaN(date.getTime())) return res.status(400).json({ error: 'Invalid expiry date' });
+      file.expiresAt = date;
+    }
+  }
+  if (req.body.maxDownloads !== undefined) {
+    if (req.body.maxDownloads === null || req.body.maxDownloads === '') {
+      file.maxDownloads = null;
+    } else {
+      const n = parseInt(req.body.maxDownloads, 10);
+      if (!Number.isInteger(n) || n < 1) return res.status(400).json({ error: 'maxDownloads must be a positive integer' });
+      file.maxDownloads = n;
+    }
+  }
 
   await file.save();
-  res.json({ tags: file.tags, originalName: file.originalName });
+  res.json({
+    tags: file.tags,
+    originalName: file.originalName,
+    description: file.description,
+    expiresAt: file.expiresAt,
+    maxDownloads: file.maxDownloads,
+    downloadCount: file.downloadCount,
+  });
 });
 
 // ── Bulk operations ──────────────────────────────────────────────────────────
@@ -310,7 +350,7 @@ router.post('/files/zip', requireLogin, async (req, res) => {
   const isAdmin = req.session.user.role === 'admin';
   const filter = { shortId: { $in: shortIds.slice(0, 1000) } };
   if (!isAdmin) filter.uploader = req.session.user.id;
-  const files = await File.find(filter);
+  const files = (await File.find(filter)).filter((f) => !isFileExpired(f));
   if (files.length === 0) return res.status(404).json({ error: 'No files found' });
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -332,6 +372,7 @@ router.get('/file/:shortId', async (req, res) => {
     { new: true },
   ).populate('uploader', 'username avatarExt');
   if (!file) return res.status(404).json({ error: 'File not found' });
+  if (isFileExpired(file)) return res.status(410).json({ error: 'This file is no longer available' });
 
   broadcast('file:view', { shortId: req.params.shortId, views: file.views }, () => true);
 
@@ -349,8 +390,17 @@ router.get('/gallery', requireLogin, async (req, res) => {
 
   const filter = {};
   if (!isAdmin) filter.uploader = req.session.user.id;
-  if (q) filter.originalName = { $regex: escapeRegex(q), $options: 'i' };
   if (tag) filter.tags = tag;
+
+  // Each entry is ANDed; full-text query and the code-type filter each add an $or.
+  // Hide files that have self-destructed by date (download-exhausted ones are
+  // reclaimed by the retention job and 410 on access in the meantime).
+  const and = [{ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }];
+
+  if (q) {
+    const rx = { $regex: escapeRegex(q), $options: 'i' };
+    and.push({ $or: [{ originalName: rx }, { description: rx }, { tags: rx }] });
+  }
 
   if (type && type !== 'all') {
     const typeMap = { image: /^image\//, video: /^video\//, audio: /^audio\//, pdf: /^application\/pdf$/ };
@@ -363,20 +413,17 @@ router.get('/gallery', requireLogin, async (req, res) => {
         'css', 'scss', 'less', 'md', 'sql', 'dockerfile', 'makefile', 'r',
         'swift', 'kt', 'lua', 'pl', 'ex', 'exs', 'hs', 'clj', 'vue', 'svelte'];
       const extPattern = `\\.(${codeExts.join('|')})$`;
-      const typeCondition = {
+      and.push({
         $or: [
           { originalName: { $regex: extPattern, $options: 'i' } },
           { mimeType: { $regex: '^text/' } },
         ],
-      };
-      if (q) {
-        filter.$and = [{ originalName: filter.originalName }, typeCondition];
-        delete filter.originalName;
-      } else {
-        Object.assign(filter, typeCondition);
-      }
+      });
     }
   }
+
+  if (and.length === 1) Object.assign(filter, and[0]);
+  else if (and.length > 1) filter.$and = and;
 
   const total = await File.countDocuments(filter);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -484,11 +531,12 @@ router.get('/admin/site-settings', requireAdmin, async (req, res) => {
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays ?? 7,
     defaultStorageQuota: s.defaultStorageQuota ?? 0,
+    stripMetadata: s.stripMetadata ?? false,
   });
 });
 
 router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
-  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays, defaultStorageQuota } = req.body;
+  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays, defaultStorageQuota, stripMetadata: stripMetadataSetting } = req.body;
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
@@ -504,6 +552,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
   if (typeof sessionDurationDays === 'number' && sessionDurationDays >= 1) s.sessionDurationDays = Math.floor(sessionDurationDays);
   if (typeof defaultStorageQuota === 'number' && defaultStorageQuota >= 0) s.defaultStorageQuota = Math.floor(defaultStorageQuota);
+  if (typeof stripMetadataSetting === 'boolean') s.stripMetadata = stripMetadataSetting;
   await s.save();
   const settingsPayload = {
     operatorName: s.operatorName,
@@ -514,6 +563,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays,
     defaultStorageQuota: s.defaultStorageQuota,
+    stripMetadata: s.stripMetadata,
   };
   broadcast('settings:updated', settingsPayload, (c) => c.isAdmin);
   res.json(settingsPayload);
@@ -1165,11 +1215,12 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
 
   const storedName = path.relative(UPLOAD_DIR, finalPath);
+  const size = await stripIfEnabled(finalPath, meta.mimeType, meta.totalSize);
   const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
     mimeType: meta.mimeType,
-    size: meta.totalSize,
+    size,
     uploader: meta.userId,
   });
 
@@ -1538,7 +1589,7 @@ router.post('/collections', requireLogin, async (req, res) => {
 router.get('/collections/:id', async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id })
     .populate('owner', 'username')
-    .populate('files', 'shortId originalName mimeType size createdAt');
+    .populate('files', 'shortId originalName mimeType size createdAt expiresAt maxDownloads downloadCount');
 
   if (!collection) return res.status(404).json({ error: 'Collection not found' });
 
@@ -1555,8 +1606,9 @@ router.get('/collections/:id', async (req, res) => {
 
   const needsPassword = collection.password && !verified && !isOwnerOrAdmin;
 
+  const liveFiles = collection.files.filter((f) => !isFileExpired(f));
   const files = needsPassword ? [] : await Promise.all(
-    collection.files.map(async (f) => ({
+    liveFiles.map(async (f) => ({
       shortId: f.shortId,
       originalName: f.originalName,
       mimeType: f.mimeType,
@@ -1587,7 +1639,7 @@ router.get('/collections/:id', async (req, res) => {
 router.get('/collections/:id/zip', async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id })
     .populate('owner', '_id')
-    .populate('files', 'shortId originalName storedName');
+    .populate('files', 'shortId originalName storedName expiresAt maxDownloads downloadCount');
   if (!collection) return res.status(404).json({ error: 'Collection not found' });
 
   if (collection.expiresAt && collection.expiresAt < new Date()) {
@@ -1603,13 +1655,14 @@ router.get('/collections/:id/zip', async (req, res) => {
     return res.status(401).json({ error: 'Password required' });
   }
 
-  if (!collection.files || collection.files.length === 0) {
+  const liveFiles = (collection.files || []).filter((f) => !isFileExpired(f));
+  if (liveFiles.length === 0) {
     return res.status(404).json({ error: 'Collection is empty' });
   }
 
   const safeName = (collection.name || 'collection')
     .replace(/[^\w.\- ]+/g, '_').trim().slice(0, 60) || 'collection';
-  await streamFilesAsZip(res, collection.files, safeName);
+  await streamFilesAsZip(res, liveFiles, safeName);
 });
 
 // Update a collection (owner / admin)

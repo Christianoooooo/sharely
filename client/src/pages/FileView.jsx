@@ -63,8 +63,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fmtSize, fmtDate } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faTrash, faCopy, faArrowUpRightFromSquare, faEye, faCalendar, faLink, faFolderPlus, faTag, faXmark, faAlignLeft, faBomb } from '@fortawesome/free-solid-svg-icons';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -174,11 +176,23 @@ function FileViewInner() {
   const [error, setError] = useState(null);
   const [tags, setTags] = useState([]);
   const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [description, setDescription] = useState('');
+  const [descDirty, setDescDirty] = useState(false);
+  const [savingDesc, setSavingDesc] = useState(false);
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [maxDownloads, setMaxDownloads] = useState('');
+  const [savingLifecycle, setSavingLifecycle] = useState(false);
 
   useEffect(() => {
     fetch(`/api/file/${shortId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data) => { setFile(data.file); setTags(data.file.tags || []); })
+      .then((data) => {
+        setFile(data.file);
+        setTags(data.file.tags || []);
+        setDescription(data.file.description || '');
+        setExpiresAt(data.file.expiresAt || null);
+        setMaxDownloads(data.file.maxDownloads != null ? String(data.file.maxDownloads) : '');
+      })
       .catch((code) => setError(code === 404 ? t('fileView.fileNotFound') : t('fileView.loadFailed')));
   }, [shortId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -250,6 +264,55 @@ function FileViewInner() {
     const next = tags.filter((t_) => t_ !== tag);
     setTags(next);
     saveTags(next);
+  }
+
+  async function saveLifecycle() {
+    const body = { expiresAt: expiresAt || null };
+    if (maxDownloads === '') {
+      body.maxDownloads = null;
+    } else {
+      const n = parseInt(maxDownloads, 10);
+      if (!Number.isInteger(n) || n < 1) {
+        toast({ title: t('fileView.selfDestructInvalid'), variant: 'destructive' });
+        return;
+      }
+      body.maxDownloads = n;
+    }
+    setSavingLifecycle(true);
+    try {
+      const r = await fetch(`/api/file/${shortId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      setFile((prev) => (prev ? { ...prev, expiresAt: data.expiresAt, maxDownloads: data.maxDownloads, downloadCount: data.downloadCount } : prev));
+      toast({ title: t('fileView.selfDestructSaved') });
+    } catch (err) {
+      toast({ title: err.message || t('fileView.selfDestructFailed'), variant: 'destructive' });
+    } finally {
+      setSavingLifecycle(false);
+    }
+  }
+
+  async function saveDescription() {
+    setSavingDesc(true);
+    try {
+      const r = await fetch(`/api/file/${shortId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
+      });
+      if (r.ok) {
+        toast({ title: t('fileView.descSaved') });
+        setDescDirty(false);
+      } else {
+        toast({ title: t('fileView.descFailed'), variant: 'destructive' });
+      }
+    } finally {
+      setSavingDesc(false);
+    }
   }
 
   return (
@@ -356,6 +419,74 @@ function FileViewInner() {
                 <span className="text-xs text-muted-foreground">{t('fileView.noPredefTags')}</span>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Description */}
+      {(canEdit || description) && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FontAwesomeIcon icon={faAlignLeft} className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-sm font-medium">{t('fileView.description')}</span>
+            </div>
+            {canEdit ? (
+              <>
+                <Textarea
+                  value={description}
+                  onChange={(e) => { setDescription(e.target.value); setDescDirty(true); }}
+                  placeholder={t('fileView.descriptionPlaceholder')}
+                  maxLength={1000}
+                  rows={3}
+                />
+                {descDirty && (
+                  <Button size="sm" onClick={saveDescription} disabled={savingDesc} className="gap-1.5">
+                    {savingDesc ? t('fileView.descSaving') : t('fileView.descSave')}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap break-words">{description}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Self-destruct (owner only) */}
+      {canEdit && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FontAwesomeIcon icon={faBomb} className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-sm font-medium">{t('fileView.selfDestruct')}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('fileView.selfDestructHint')}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium">{t('fileView.selfDestructExpiry')}</label>
+                <DateTimePicker defaultValue={expiresAt} onChange={setExpiresAt} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">{t('fileView.selfDestructMaxDownloads')}</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={maxDownloads}
+                  onChange={(e) => setMaxDownloads(e.target.value)}
+                  placeholder={t('fileView.selfDestructUnlimited')}
+                  className="h-10"
+                />
+                {file.maxDownloads != null && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('fileView.selfDestructUsed', { count: file.downloadCount || 0, max: file.maxDownloads })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button size="sm" onClick={saveLifecycle} disabled={savingLifecycle} className="gap-1.5">
+              {savingLifecycle ? t('fileView.descSaving') : t('fileView.selfDestructSave')}
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { fmtDate } from '@/lib/utils';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { QrCodePopover } from '@/components/QrCodePopover';
 
 function CreateLinkForm({ shortId, onCreated }) {
   const { t } = useTranslation();
@@ -170,6 +171,7 @@ function LinkRow({ link, onDelete }) {
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
+          <QrCodePopover url={link.url} filename={link.label || link.token} />
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={copyUrl} title={t('shareLink.copyUrl')}>
             <FontAwesomeIcon icon={copied ? faCircleCheck : faCopy} className="h-3.5 w-3.5" />
           </Button>
