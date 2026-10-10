@@ -28,6 +28,7 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const [users, setUsers] = useState([]);
+  const [defaultQuota, setDefaultQuota] = useState(0);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
   const [editingFolder, setEditingFolder] = useState(null); // { id, value }
@@ -46,10 +47,21 @@ export default function AdminUsers() {
     if (r.ok) {
       const data = await r.json();
       setUsers(data.users);
+      setDefaultQuota(data.defaultStorageQuota ?? 0);
     }
   }
 
   useEffect(() => { load(); }, []);
+
+  // Effective quota label for a user: own override, or the inherited site default.
+  function quotaLabel(storageQuota) {
+    if (storageQuota == null) {
+      const eff = defaultQuota > 0 ? fmtSize(defaultQuota) : t('adminUsers.quotaUnlimited');
+      return `${t('adminUsers.quotaDefault')} (${eff})`;
+    }
+    if (storageQuota === 0) return t('adminUsers.quotaUnlimited');
+    return fmtSize(storageQuota);
+  }
 
   useWebSocket((event, data) => {
     if (event === 'user:created') {
@@ -382,11 +394,7 @@ export default function AdminUsers() {
                       <span>
                         {fmtSize(u.storageUsed)}
                         {' / '}
-                        {u.storageQuota == null
-                          ? t('adminUsers.quotaDefault')
-                          : u.storageQuota === 0
-                            ? t('adminUsers.quotaUnlimited')
-                            : fmtSize(u.storageQuota)}
+                        {quotaLabel(u.storageQuota)}
                       </span>
                       <Button
                         variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
