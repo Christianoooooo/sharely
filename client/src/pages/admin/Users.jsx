@@ -37,6 +37,9 @@ export default function AdminUsers() {
   const [newPw, setNewPw] = useState('');
   const [savingPw, setSavingPw] = useState(false);
   const [newKeyDialog, setNewKeyDialog] = useState(null); // { username, apiKey }
+  const [quotaDialog, setQuotaDialog] = useState(null); // { id, username }
+  const [quotaInput, setQuotaInput] = useState('');
+  const [savingQuota, setSavingQuota] = useState(false);
 
   async function load() {
     const r = await fetch('/api/admin/users');
@@ -173,6 +176,43 @@ export default function AdminUsers() {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
       setSavingPw(false);
+    }
+  }
+
+  function openQuotaDialog(id, username, storageQuota) {
+    setQuotaInput(storageQuota == null ? '' : String(Math.round(storageQuota / (1024 * 1024))));
+    setQuotaDialog({ id, username });
+  }
+
+  async function saveQuota() {
+    const raw = quotaInput.trim();
+    let quota;
+    if (raw === '') {
+      quota = null;
+    } else {
+      const mb = Number(raw);
+      if (!Number.isFinite(mb) || mb < 0) {
+        toast({ title: t('adminUsers.quotaHint'), variant: 'destructive' });
+        return;
+      }
+      quota = Math.round(mb * 1024 * 1024);
+    }
+    setSavingQuota(true);
+    try {
+      const r = await fetch(`/api/admin/users/${quotaDialog.id}/quota`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quota }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      toast({ title: t('adminUsers.quotaSaved', { username: quotaDialog.username }) });
+      setQuotaDialog(null);
+      load();
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingQuota(false);
     }
   }
 
@@ -337,7 +377,26 @@ export default function AdminUsers() {
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{u.fileCount}</TableCell>
-                  <TableCell className="text-muted-foreground">{fmtSize(u.storageUsed)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <div className="flex items-center gap-1 group whitespace-nowrap">
+                      <span>
+                        {fmtSize(u.storageUsed)}
+                        {' / '}
+                        {u.storageQuota == null
+                          ? t('adminUsers.quotaDefault')
+                          : u.storageQuota === 0
+                            ? t('adminUsers.quotaUnlimited')
+                            : fmtSize(u.storageQuota)}
+                      </span>
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={t('adminUsers.titleEditQuota')}
+                        onClick={() => openQuotaDialog(u._id, u.username, u.storageQuota)}
+                      >
+                        <FontAwesomeIcon icon={faPencil} className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {u.email ? (
                       <div className="flex items-center gap-1.5">
@@ -464,6 +523,34 @@ export default function AdminUsers() {
             <Button variant="outline" onClick={() => setPwDialog(null)}>{t('adminUsers.cancel')}</Button>
             <Button onClick={savePassword} disabled={savingPw}>
               {savingPw ? t('adminUsers.saving') : t('adminUsers.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit storage quota dialog */}
+      <Dialog open={!!quotaDialog} onOpenChange={(open) => { if (!open) setQuotaDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('adminUsers.editQuotaTitle', { username: quotaDialog?.username })}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label>{t('adminUsers.quotaLabel')}</Label>
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              value={quotaInput}
+              onChange={(e) => setQuotaInput(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') saveQuota(); }}
+            />
+            <p className="text-xs text-muted-foreground">{t('adminUsers.quotaHint')}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuotaDialog(null)}>{t('adminUsers.cancel')}</Button>
+            <Button onClick={saveQuota} disabled={savingQuota}>
+              {savingQuota ? t('adminUsers.saving') : t('adminUsers.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

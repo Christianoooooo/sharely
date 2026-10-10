@@ -23,6 +23,7 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **Internationalization** — UI and email templates available in 8 languages: English, Deutsch, Français, Español, Italiano, Português, 日本語, 中文
 - **Email verification & password reset** — Requires SMTP configuration; tokens expire after 24 h (verification) / 1 h (reset)
 - **User management** — Role-based access control (admin/user), account activation/deactivation, custom folder names
+- **Storage quotas** — Per-user storage limits with a configurable site-wide default; uploads are rejected once a user reaches their quota, and each user sees their own usage in Settings
 - **Admin dashboard** — Stats overview, manage all users and files, audit log with CSV export
 - **Real-time UI** — WebSocket-powered live updates: file view counters, gallery refresh on upload/delete, admin stats and audit log stream in real time
 - **XBackBone migration** — Import your existing XBackBone installation including files and metadata

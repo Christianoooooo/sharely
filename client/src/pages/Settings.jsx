@@ -21,8 +21,9 @@ import { useAuth } from '@/context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes,
-  faShield, faDownload, faPencil, faEnvelope, faCircleCheck, faCircleExclamation, faTag, faXmark, faPlus,
+  faShield, faDownload, faPencil, faEnvelope, faCircleCheck, faCircleExclamation, faTag, faXmark, faPlus, faDatabase,
 } from '@fortawesome/free-solid-svg-icons';
+import { fmtSize } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,6 +62,15 @@ export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const [operatorEmail, setOperatorEmail] = useState('');
+
+  const [storage, setStorage] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/user/storage')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setStorage(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const emailVerified = searchParams.get('emailVerified');
@@ -322,6 +332,32 @@ export default function Settings() {
 
         {/* ── Profile ── */}
         <TabsContent value="profile" className="space-y-4">
+          {storage && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FontAwesomeIcon icon={faDatabase} className="h-4 w-4" />{t('settings.storageSection')}
+                </CardTitle>
+                <CardDescription>{t('settings.storageDescription')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm">
+                  {storage.unlimited
+                    ? t('settings.storageUnlimited', { used: fmtSize(storage.used) })
+                    : t('settings.storageUsed', { used: fmtSize(storage.used), quota: fmtSize(storage.quota) })}
+                </p>
+                {!storage.unlimited && (
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${Math.min(100, storage.quota > 0 ? (storage.used / storage.quota) * 100 : 0)}%` }}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">

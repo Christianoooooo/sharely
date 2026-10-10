@@ -10,6 +10,9 @@ const siteSettingsSchema = new mongoose.Schema({
   encryptionAtRest: { type: Boolean, default: false },
   sessionDurationDays: { type: Number, default: 7 },
   allowRegistration: { type: Boolean, default: true },
+  // Default per-user storage limit in bytes applied to users without an own
+  // storageQuota override. 0 = unlimited.
+  defaultStorageQuota: { type: Number, default: 0 },
 });
 
 siteSettingsSchema.statics.get = async function () {
