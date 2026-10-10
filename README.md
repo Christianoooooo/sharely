@@ -151,6 +151,9 @@ docker compose --profile updater up -d --build
 
 When you click **Install update**, the app container is rebuilt and restarted; it is briefly unavailable. The page reports progress and reconnects automatically. Leave `UPDATE_ENABLED=false` (and omit the profile) to keep the panel notification-only.
 
+> **Updating the updater itself:** the updater only rebuilds the `app` container, never itself. After changing anything under `updater/`, rebuild it once manually:
+> `docker compose --profile updater up -d --build updater`
+
 ## API Usage
 
 Get your API key from **Settings → API Key** in the web UI.

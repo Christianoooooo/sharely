@@ -334,6 +334,8 @@ Optional lässt sich ein Update per Knopfdruck einspielen. Dies übernimmt ein e
 
 Voraussetzungen: Deployment aus einem **Git-Checkout**, `UPDATE_ENABLED=true` in der `.env`, unveränderter `COMPOSE_PROJECT_NAME`, und Start inklusive Updater via `docker compose --profile updater up -d --build`. Der Updater liegt hinter dem Compose-Profil `updater` — ein normales `docker compose up` startet den privilegierten Container also nie. Beim Einspielen wird der App-Container neu gebaut und ist kurz nicht erreichbar; die Seite zeigt den Fortschritt und verbindet sich automatisch neu. Mit `UPDATE_ENABLED=false` (und ohne Profil) bleibt das Panel reine Benachrichtigung.
 
+Der Updater baut per `--no-deps` ausschließlich den App-Container neu — die Datenbank wird nie mit-recreated. Er aktualisiert jedoch **sich selbst nicht**: Nach Änderungen unter `updater/` ist einmalig `docker compose --profile updater up -d --build updater` nötig.
+
 ---
 
 ## 6. Datenmodelle
