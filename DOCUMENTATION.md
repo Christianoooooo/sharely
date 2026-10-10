@@ -1282,5 +1282,3 @@ npm run test:e2e:ui
 ---
 
 *Dokumentation generiert aus dem Quellcode von sharely v1.0.0*
-
-<!-- Test-Update 2026-10-10: Self-Update-Pipeline (pull + rebuild + restart) verifizieren. Diese Zeile kann gefahrlos wieder entfernt werden. -->

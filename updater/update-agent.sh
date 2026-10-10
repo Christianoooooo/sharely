@@ -54,7 +54,9 @@ while true; do
       git config --global --add safe.directory "$PROJECT_DIR"
       git pull --ff-only origin "$BRANCH"
       docker compose build "$APP_SERVICE"
-      docker compose up -d "$APP_SERVICE"
+      # --no-deps so only the app is recreated; the database (a dependency) must
+      # not be bounced on every update.
+      docker compose up -d --no-deps "$APP_SERVICE"
     ) >> "$LOG_FILE" 2>&1
     rc=$?
 
