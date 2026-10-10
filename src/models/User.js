@@ -88,6 +88,12 @@ const userSchema = new mongoose.Schema({
     type: [{ type: String, trim: true, maxlength: 50 }],
     default: [],
   },
+  // Per-user storage limit in bytes. null = inherit the site-wide default,
+  // 0 = explicitly unlimited, >0 = hard limit.
+  storageQuota: {
+    type: Number,
+    default: null,
+  },
 });
 
 userSchema.pre('save', async function (next) {

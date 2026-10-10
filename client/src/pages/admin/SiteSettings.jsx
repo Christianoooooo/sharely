@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { faShield, faCloud, faClock, faLock, faHourglass, faCodeBranch, faRotate, faCircleCheck, faCircleUp, faArrowUpRightFromSquare, faTriangleExclamation, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faShield, faCloud, faClock, faLock, faHourglass, faCodeBranch, faRotate, faCircleCheck, faCircleUp, faArrowUpRightFromSquare, faTriangleExclamation, faDownload, faDatabase } from '@fortawesome/free-solid-svg-icons';
 import { Badge } from '@/components/ui/badge';
 import { fmtDate } from '@/lib/utils';
 import {
@@ -27,6 +27,7 @@ export default function AdminSiteSettings() {
     fileRetentionDays: 0,
     encryptionAtRest: false,
     sessionDurationDays: 7,
+    defaultStorageQuota: 0,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -109,6 +110,7 @@ export default function AdminSiteSettings() {
           fileRetentionDays: data.fileRetentionDays ?? 0,
           encryptionAtRest: data.encryptionAtRest ?? false,
           sessionDurationDays: data.sessionDurationDays ?? 7,
+          defaultStorageQuota: Math.round((data.defaultStorageQuota ?? 0) / (1024 * 1024)),
         });
       })
       .finally(() => setLoading(false));
@@ -116,7 +118,14 @@ export default function AdminSiteSettings() {
 
   useWebSocket((event, data) => {
     if (event === 'settings:updated') {
-      setForm((prev) => ({ ...prev, ...data }));
+      // defaultStorageQuota is stored in bytes server-side but edited in MB here.
+      setForm((prev) => ({
+        ...prev,
+        ...data,
+        defaultStorageQuota: data.defaultStorageQuota != null
+          ? Math.round(data.defaultStorageQuota / (1024 * 1024))
+          : prev.defaultStorageQuota,
+      }));
     }
   });
 
@@ -131,6 +140,7 @@ export default function AdminSiteSettings() {
           ...form,
           fileRetentionDays: Number(form.fileRetentionDays) || 0,
           sessionDurationDays: Number(form.sessionDurationDays) || 7,
+          defaultStorageQuota: Math.max(0, Math.round((Number(form.defaultStorageQuota) || 0) * 1024 * 1024)),
         }),
       });
       const data = await r.json();
@@ -369,6 +379,36 @@ export default function AdminSiteSettings() {
               className="w-36"
             />
             <p className="text-xs text-muted-foreground">{t('adminSiteSettings.sessionHint')}</p>
+          </div>
+          <Button disabled={saving} onClick={handleSubmit}>
+            {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Default storage quota */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FontAwesomeIcon icon={faDatabase} className="h-4 w-4" />
+            {t('adminSiteSettings.storageSection')}
+          </CardTitle>
+          <CardDescription>{t('adminSiteSettings.storageDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="defaultStorageQuota">{t('adminSiteSettings.storageLabel')}</Label>
+            <Input
+              id="defaultStorageQuota"
+              type="number"
+              min="0"
+              step="1"
+              value={form.defaultStorageQuota}
+              onChange={(e) => setForm((p) => ({ ...p, defaultStorageQuota: e.target.value }))}
+              placeholder="0"
+              className="w-36"
+            />
+            <p className="text-xs text-muted-foreground">{t('adminSiteSettings.storageHint')}</p>
           </div>
           <Button disabled={saving} onClick={handleSubmit}>
             {saving ? t('adminSiteSettings.saving') : t('adminSiteSettings.save')}

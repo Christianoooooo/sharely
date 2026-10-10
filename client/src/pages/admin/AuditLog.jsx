@@ -36,6 +36,7 @@ const ACTION_COLORS = {
   admin_change_role: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   admin_regen_key: 'bg-orange-200 text-orange-900 dark:bg-orange-900 dark:text-orange-100',
   admin_change_password: 'bg-yellow-200 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100',
+  admin_set_quota: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
 };
 
 const ALL_ACTIONS = Object.keys(ACTION_COLORS);

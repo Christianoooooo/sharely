@@ -18,6 +18,7 @@ const sanitizeFilename = require('../utils/sanitizeFilename');
 const { resolveUploadPath, escapeRegex } = require('../utils/uploadPath');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { logAudit } = require('../utils/audit');
+const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -94,6 +95,12 @@ async function deleteFileRecord(req, file) {
 router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
+  const quota = await checkQuota(req.apiUser, req.file.size);
+  if (!quota.allowed) {
+    try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
+    return res.status(413).json({ error: 'Storage quota exceeded', used: quota.used, quota: quota.quota });
+  }
+
   // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
 
@@ -126,6 +133,16 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 500), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No files provided' });
+  }
+
+  const quotaUser = await User.findById(req.session.user.id).select('storageQuota');
+  const incomingSize = req.files.reduce((sum, f) => sum + f.size, 0);
+  const quota = await checkQuota(quotaUser, incomingSize);
+  if (!quota.allowed) {
+    for (const f of req.files) {
+      try { fs.unlinkSync(f.path); } catch { /* ignore */ }
+    }
+    return res.status(413).json({ error: 'Storage quota exceeded', used: quota.used, quota: quota.quota });
   }
 
   const created = [];
@@ -448,11 +465,12 @@ router.get('/admin/site-settings', requireAdmin, async (req, res) => {
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays ?? 7,
+    defaultStorageQuota: s.defaultStorageQuota ?? 0,
   });
 });
 
 router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
-  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays } = req.body;
+  const { operatorName, operatorAddress, operatorEmail, cloudflareAnalytics, fileRetentionDays, encryptionAtRest, sessionDurationDays, defaultStorageQuota } = req.body;
   const s = await SiteSettings.get();
   if (typeof operatorName === 'string') s.operatorName = operatorName.trim();
   if (typeof operatorAddress === 'string') s.operatorAddress = operatorAddress.trim();
@@ -467,6 +485,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
   if (typeof fileRetentionDays === 'number' && fileRetentionDays >= 0) s.fileRetentionDays = Math.floor(fileRetentionDays);
   if (typeof encryptionAtRest === 'boolean') s.encryptionAtRest = encryptionAtRest;
   if (typeof sessionDurationDays === 'number' && sessionDurationDays >= 1) s.sessionDurationDays = Math.floor(sessionDurationDays);
+  if (typeof defaultStorageQuota === 'number' && defaultStorageQuota >= 0) s.defaultStorageQuota = Math.floor(defaultStorageQuota);
   await s.save();
   const settingsPayload = {
     operatorName: s.operatorName,
@@ -476,6 +495,7 @@ router.patch('/admin/site-settings', requireAdmin, async (req, res) => {
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
     sessionDurationDays: s.sessionDurationDays,
+    defaultStorageQuota: s.defaultStorageQuota,
   };
   broadcast('settings:updated', settingsPayload, (c) => c.isAdmin);
   res.json(settingsPayload);
@@ -709,10 +729,40 @@ router.patch('/admin/users/:id/folder', requireAdmin, async (req, res) => {
   res.json({ folderName: user.folderName });
 });
 
+// ── Admin: per-user storage quota ───────────────────────────────────────────
+router.patch('/admin/users/:id/quota', requireAdmin, async (req, res) => {
+  const { quota } = req.body;
+  let value;
+  if (quota === null) {
+    value = null;
+  } else if (typeof quota === 'number' && Number.isFinite(quota) && quota >= 0) {
+    value = Math.floor(quota);
+  } else {
+    return res.status(400).json({ error: 'quota must be null or a non-negative number of bytes' });
+  }
+  const user = await User.findById(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  user.storageQuota = value;
+  await user.save();
+  await logAudit(req, 'admin_set_quota', { targetUsername: user.username, quota: value });
+  broadcast('user:updated', { id: user._id.toString(), storageQuota: value }, (c) => c.isAdmin);
+  res.json({ storageQuota: value });
+});
+
 // ── User: export data (GDPR Art. 20) ───────────────────────────────────────
 router.get('/user/predefined-tags', requireLogin, async (req, res) => {
   const user = await User.findById(req.session.user.id).select('predefinedTags');
   res.json({ tags: user?.predefinedTags || [] });
+});
+
+// ── User: storage usage & quota ─────────────────────────────────────────────
+router.get('/user/storage', requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.user.id).select('storageQuota');
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const settings = await SiteSettings.get();
+  const quota = resolveQuota(user.storageQuota, settings.defaultStorageQuota);
+  const used = await getStorageUsed(user._id);
+  res.json({ used, quota, unlimited: quota <= 0 });
 });
 
 router.patch('/user/predefined-tags', requireLogin, async (req, res) => {
@@ -934,7 +984,7 @@ router.patch('/user/embed-mode', requireLogin, async (req, res) => {
 });
 
 // ── Chunked upload: init session ───────────────────────────────────────────
-router.post('/chunk/init', requireLogin, (req, res) => {
+router.post('/chunk/init', requireLogin, async (req, res) => {
   const { filename, mimeType, totalSize, totalChunks } = req.body;
 
   if (!filename || !mimeType || !totalSize || !totalChunks) {
@@ -953,6 +1003,12 @@ router.post('/chunk/init', requireLogin, (req, res) => {
 
   if (isBlockedFile(mimeType, filename)) {
     return res.status(400).json({ error: 'File type not allowed' });
+  }
+
+  const quotaUser = await User.findById(req.session.user.id).select('storageQuota');
+  const quota = await checkQuota(quotaUser, totalSizeInt);
+  if (!quota.allowed) {
+    return res.status(413).json({ error: 'Storage quota exceeded', used: quota.used, quota: quota.quota });
   }
 
   const uploadId = crypto.randomBytes(16).toString('hex');
@@ -1049,8 +1105,14 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
     }
   }
 
-  const user = await User.findById(meta.userId).select('folderName username');
+  const user = await User.findById(meta.userId).select('folderName username storageQuota');
   if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const quota = await checkQuota(user, meta.totalSize);
+  if (!quota.allowed) {
+    try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    return res.status(413).json({ error: 'Storage quota exceeded', used: quota.used, quota: quota.quota });
+  }
 
   const folder = user.folderName || user.username;
   const userDir = path.join(UPLOAD_DIR, folder);
