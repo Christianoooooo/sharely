@@ -507,6 +507,31 @@ export default function Gallery() {
     setBulkMoveCollOpen(false);
   }
 
+  async function bulkDownload() {
+    const shortIds = Array.from(selected);
+    if (shortIds.length === 0) return;
+    try {
+      const r = await fetch('/api/files/zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shortIds }),
+      });
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sharely-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: t('gallery.bulkDownloaded', { count: shortIds.length }) });
+    } catch {
+      toast({ title: t('gallery.bulkDownloadFailed'), variant: 'destructive' });
+    }
+  }
+
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ page, q, type });
@@ -715,6 +740,11 @@ export default function Gallery() {
               <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />{t('gallery.bulkMoveToCollection')}
             </Button>
           )}
+
+          {/* Download as ZIP */}
+          <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={bulkDownload} className="gap-1.5">
+            <FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />{t('gallery.bulkDownload')}
+          </Button>
 
           {/* Delete */}
           <Button size="sm" variant="destructive" disabled={selected.size === 0} onClick={() => setBulkDeleteOpen(true)} className="gap-1.5">
