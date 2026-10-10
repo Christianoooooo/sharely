@@ -583,7 +583,8 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
     storageUsed: statsMap[u._id.toString()]?.size || 0,
   }));
 
-  res.json({ users: result });
+  const settings = await SiteSettings.get();
+  res.json({ users: result, defaultStorageQuota: settings.defaultStorageQuota ?? 0 });
 });
 
 router.post('/admin/users', requireAdmin, async (req, res) => {
