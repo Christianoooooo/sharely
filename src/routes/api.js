@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const archiver = require('archiver');
 const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
 const { requireLogin, requireAdmin, requireApiKey } = require('../middleware/auth');
@@ -297,6 +298,55 @@ router.post('/files/bulk', requireLogin, async (req, res) => {
   }
 
   res.status(400).json({ error: 'Invalid action' });
+});
+
+// ── Bulk download as ZIP ─────────────────────────────────────────────────────
+router.post('/files/zip', requireLogin, async (req, res) => {
+  const { shortIds } = req.body;
+  if (!Array.isArray(shortIds) || shortIds.length === 0) {
+    return res.status(400).json({ error: 'No files specified' });
+  }
+
+  const isAdmin = req.session.user.role === 'admin';
+  const filter = { shortId: { $in: shortIds.slice(0, 1000) } };
+  if (!isAdmin) filter.uploader = req.session.user.id;
+  const files = await File.find(filter);
+  if (files.length === 0) return res.status(404).json({ error: 'No files found' });
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="sharely-${stamp}.zip"`);
+
+  // Store-only: uploads are overwhelmingly pre-compressed media, so deflating
+  // would burn CPU for virtually no size gain.
+  const archive = archiver('zip', { zlib: { level: 0 } });
+  archive.on('error', (err) => {
+    console.error('[zip] archive error:', err.message);
+    res.destroy(err);
+  });
+  archive.pipe(res);
+
+  // De-duplicate entry names so files sharing an originalName do not overwrite
+  // each other inside the archive.
+  const usedNames = new Map();
+  for (const file of files) {
+    let fp;
+    try { fp = resolveUploadPath(file.storedName); } catch { continue; }
+    if (!fs.existsSync(fp)) continue;
+
+    let name = (file.originalName || file.shortId).replace(/[/\\]/g, '_');
+    if (usedNames.has(name)) {
+      const n = usedNames.get(name) + 1;
+      usedNames.set(name, n);
+      const dot = name.lastIndexOf('.');
+      name = dot > 0 ? `${name.slice(0, dot)} (${n})${name.slice(dot)}` : `${name} (${n})`;
+    } else {
+      usedNames.set(name, 0);
+    }
+    archive.file(fp, { name });
+  }
+
+  await archive.finalize();
 });
 
 // ── Tag suggestions for current user ────────────────────────────────────────
