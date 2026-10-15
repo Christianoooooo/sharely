@@ -84,7 +84,13 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ clientPromise: dbReady.then(() => mongoose.connection.getClient()) }),
+  // touchAfter makes session touches lazy: the maxAge middleware below resets
+  // cookie.maxAge on every request, which otherwise writes the session to Mongo
+  // on every authenticated request. With 7-day sessions a daily touch is enough.
+  store: MongoStore.create({
+    clientPromise: dbReady.then(() => mongoose.connection.getClient()),
+    touchAfter: 24 * 3600,
+  }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7,
     httpOnly: true,
