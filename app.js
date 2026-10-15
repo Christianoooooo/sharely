@@ -186,6 +186,7 @@ function requireSameOrigin(req, res, next) {
 app.use('/api/install', requireSameOrigin, require('./src/routes/install'));
 app.use('/api/auth', requireSameOrigin, require('./src/routes/auth'));
 app.use('/api/admin/import', requireSameOrigin, require('./src/routes/import'));
+app.use('/api/pastes', requireSameOrigin, require('./src/routes/pastes'));
 app.use('/api', requireSameOrigin, require('./src/routes/api'));
 
 // Raw file serving (not JSON)

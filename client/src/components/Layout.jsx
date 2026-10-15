@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars, faFolderOpen, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faImages, faUpload, faGear, faRightFromBracket, faUser, faTableCellsLarge, faChevronDown, faBoxOpen, faClockRotateLeft, faBars, faFolderOpen, faHeart, faFileLines } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/lib/utils';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +59,7 @@ export function Layout({ children }) {
               <NavLink to="/gallery" icon={faImages}>{t('nav.gallery')}</NavLink>
               <NavLink to="/upload" icon={faUpload}>{t('nav.upload')}</NavLink>
               <NavLink to="/collections" icon={faFolderOpen}>{t('nav.collections')}</NavLink>
+              <NavLink to="/pastes" icon={faFileLines}>{t('nav.pastes')}</NavLink>
               {user?.role === 'admin' && (
                 <NavLink to="/admin" icon={faTableCellsLarge}>{t('nav.admin')}</NavLink>
               )}
@@ -89,6 +90,11 @@ export function Layout({ children }) {
                 <DropdownMenuItem asChild>
                   <Link to="/collections" className="flex items-center gap-2 cursor-pointer">
                     <FontAwesomeIcon icon={faFolderOpen} className="h-4 w-4" />{t('nav.collections')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/pastes" className="flex items-center gap-2 cursor-pointer">
+                    <FontAwesomeIcon icon={faFileLines} className="h-4 w-4" />{t('nav.pastes')}
                   </Link>
                 </DropdownMenuItem>
                 {user?.role === 'admin' && (

@@ -15,7 +15,8 @@
     "xbackbone": "XBackBone Migration",
     "siteSettings": "Website-Einstellungen",
     "auditLog": "Zugriffsprotokoll",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "pastes": "Pastes"
   },
   "footer": {
     "poweredBy": "Bereitgestellt von",
@@ -834,5 +835,56 @@
   "dateTimePicker": {
     "pickDate": "Datum auswählen…",
     "timeInPast": "Uhrzeit liegt in der Vergangenheit"
+  },
+  "pastes": {
+    "title": "Pastes",
+    "subtitle": "Code-Snippets und Text erstellen und teilen.",
+    "new": "Neuer Paste",
+    "newTitle": "Neuer Paste",
+    "editTitle": "Paste bearbeiten",
+    "titleField": "Titel",
+    "language": "Sprache",
+    "content": "Inhalt",
+    "private": "Privat",
+    "untitled": "Ohne Titel",
+    "createBtn": "Paste erstellen",
+    "saveBtn": "Änderungen speichern",
+    "saving": "Speichern…",
+    "created": "Paste erstellt",
+    "saved": "Paste gespeichert",
+    "createFailed": "Paste konnte nicht erstellt werden",
+    "saveFailed": "Paste konnte nicht gespeichert werden",
+    "loading": "Lädt…",
+    "empty": "Noch keine Pastes",
+    "emptyHint": "Erstelle deinen ersten Paste, um Code oder Text zu teilen.",
+    "copyUrl": "Link kopieren",
+    "urlCopied": "Link kopiert",
+    "open": "Öffnen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "deleted": "Paste gelöscht",
+    "deleteFailed": "Paste konnte nicht gelöscht werden",
+    "deleteTitle": "Paste löschen?",
+    "deleteDesc": "Der Paste wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "confirmDelete": "Löschen"
+  },
+  "pasteView": {
+    "loading": "Lädt…",
+    "expired": "Dieser Paste ist abgelaufen",
+    "notFound": "Paste nicht gefunden",
+    "loadFailed": "Paste konnte nicht geladen werden",
+    "goHome": "Zur Startseite",
+    "passwordRequired": "Passwort erforderlich",
+    "passwordLabel": "Passwort",
+    "verifying": "Wird geprüft…",
+    "unlock": "Entsperren",
+    "wrongPassword": "Falsches Passwort",
+    "by": "von {{owner}}",
+    "expiresAt": "läuft ab {{date}}",
+    "copy": "Inhalt kopieren",
+    "copied": "In Zwischenablage kopiert",
+    "raw": "Raw anzeigen",
+    "download": "Herunterladen",
+    "manage": "Deine Pastes verwalten"
   }
 }
