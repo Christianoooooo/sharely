@@ -36,7 +36,7 @@ function timingSafeEqualStr(a, b) {
  * Serve a file with HTTP Range request support.
  * Adds Accept-Ranges + Content-Length headers; responds 206 for partial requests.
  */
-async function serveFile(req, res, filePath, file, forceDownload = false) {
+async function serveFile(req, res, filePath, file, forceDownload = false, cacheControl = null) {
   let stat;
   try {
     stat = await fs.promises.stat(filePath);
@@ -44,6 +44,8 @@ async function serveFile(req, res, filePath, file, forceDownload = false) {
     return res.status(404).send('File data missing');
   }
   const fileSize = stat.size;
+
+  if (cacheControl) res.setHeader('Cache-Control', cacheControl);
 
   const type = file.displayType;
   const active = ACTIVE_CONTENT.test(file.mimeType);
@@ -174,7 +176,10 @@ router.get('/:shortId/raw', async (req, res) => {
   if (!file) return res.status(404).send('Not found');
   if (isFileExpired(file)) return res.status(410).send('This file is no longer available');
 
-  await serveFile(req, res, resolveUploadPath(file.storedName), file, false);
+  // Stored files are immutable; cache in the viewer's own browser only when the
+  // file cannot self-destruct, so a later deletion is never served from cache.
+  const cacheControl = !file.expiresAt && !file.maxDownloads ? 'private, max-age=3600' : null;
+  await serveFile(req, res, resolveUploadPath(file.storedName), file, false, cacheControl);
 });
 
 // GET /f/:shortId/delete/:token — ShareX deletion URL (per-file token)

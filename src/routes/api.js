@@ -1336,7 +1336,7 @@ router.get('/admin/audit-log/export', requireAdmin, async (req, res) => {
   if (userFilter) filter.username = { $regex: escapeRegex(userFilter), $options: 'i' };
   if (actionFilter) filter.action = actionFilter;
 
-  const logs = await AuditLog.find(filter).sort({ timestamp: -1 });
+  const logs = await AuditLog.find(filter).sort({ timestamp: -1 }).lean();
 
   const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const header = 'timestamp,username,action,ip,meta\n';

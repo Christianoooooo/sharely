@@ -199,7 +199,19 @@ app.use('/docs', require('./src/routes/docs'));
 
 // Serve React SPA in production
 const clientDist = path.join(__dirname, 'client/dist');
-app.use(express.static(clientDist));
+// index:false so the catch-all serves a revalidated index.html; the content-
+// hashed bundles under /assets are immutable and cached for a year, the rest
+// (favicon) for an hour.
+app.use(express.static(clientDist, {
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  },
+}));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
