@@ -111,10 +111,10 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 
   const trimmedEmail = (email || '').toLowerCase().trim();
-  if (mailer.isConfigured()) {
-    if (!trimmedEmail) {
-      return res.status(400).json({ error: 'Email address required' });
-    }
+  if (mailer.isConfigured() && !trimmedEmail) {
+    return res.status(400).json({ error: 'Email address required' });
+  }
+  if (trimmedEmail) {
     if (!(await validateEmail(trimmedEmail)).valid) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
