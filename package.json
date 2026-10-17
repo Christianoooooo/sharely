@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "test": "node src/utils/validateEmail.test.js && node src/utils/stripMetadata.test.js",
     "build": "cd client && npm install && npm run build",
     "migrate:user-folders": "node scripts/migrate-uploads-to-user-folders.js",
     "migrate:thumbnails": "node scripts/generate-missing-thumbnails.js",
