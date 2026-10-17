@@ -22,6 +22,7 @@ const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQu
 const { streamFilesAsZip } = require('../utils/zipFiles');
 const { isFileExpired } = require('../utils/fileLifecycle');
 const { stripFileInPlace } = require('../utils/stripMetadata');
+const { validateEmail } = require('../utils/validateEmail');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -980,7 +981,7 @@ router.patch('/user/email', requireLogin, async (req, res) => {
   const trimmed = (email || '').toLowerCase().trim();
 
   if (trimmed) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) || trimmed.length > 254) {
+    if (!(await validateEmail(trimmed)).valid) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
     const conflict = await User.findOne({ email: trimmed, _id: { $ne: user._id } });

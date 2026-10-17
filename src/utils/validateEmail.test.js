@@ -2,7 +2,6 @@
 const MX_FIXTURES = {
   'example.com': [{ exchange: 'mx.example.com', priority: 10 }],
   'gmail.com': [{ exchange: 'gmail-smtp-in.l.google.com', priority: 5 }],
-  'b.c': [],
 };
 require('dns').promises.resolveMx = async (domain) => {
   if (domain in MX_FIXTURES) return MX_FIXTURES[domain];
@@ -12,13 +11,16 @@ require('dns').promises.resolveMx = async (domain) => {
 const { validateEmail } = require('./validateEmail');
 
 const cases = [
-  { email: 'user@example.com',  expectValid: true },
-  { email: 'invalid',           expectValid: false },
-  { email: 'user@.com',         expectValid: false },
-  { email: 'user@gmail.com',    expectValid: true },
-  { email: 'bad@@domain.com',   expectValid: false },
-  { email: 'no-at-sign',        expectValid: false },
-  { email: 'a@b.c',             expectValid: false }, // b.c resolves but has no MX records
+  { email: 'user@example.com',    expectValid: true },
+  { email: 'user@gmail.com',      expectValid: true },
+  { email: 'invalid',             expectValid: false },
+  { email: 'user@.com',           expectValid: false },
+  { email: 'bad@@domain.com',     expectValid: false },
+  { email: 'no-at-sign',          expectValid: false },
+  { email: 'user@sdklaskd.de.',   expectValid: false }, // trailing dot rejected by format
+  { email: 'user@foo..bar.com',   expectValid: false }, // double dot rejected by format
+  { email: 'user@example.c',      expectValid: false }, // single-char TLD rejected by format
+  { email: 'user@no-mail.test',   expectValid: false }, // valid format, no MX records
 ];
 
 (async () => {

@@ -6,6 +6,7 @@ const { rateLimit } = require('express-rate-limit');
 const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
+const { validateEmail } = require('../utils/validateEmail');
 const mailer = require('../utils/mailer');
 const { broadcast } = require('../ws');
 
@@ -114,7 +115,7 @@ router.post('/register', authLimiter, async (req, res) => {
     if (!trimmedEmail) {
       return res.status(400).json({ error: 'Email address required' });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail) || trimmedEmail.length > 254) {
+    if (!(await validateEmail(trimmedEmail)).valid) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
     const emailExists = await User.findOne({ email: trimmedEmail });
