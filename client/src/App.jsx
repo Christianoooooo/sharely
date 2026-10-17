@@ -28,12 +28,15 @@ import Install from '@/pages/Install';
 import ShareView from '@/pages/ShareView';
 import CollectionView from '@/pages/CollectionView';
 import Collections from '@/pages/Collections';
+import Pastes from '@/pages/Pastes';
+import PasteView from '@/pages/PasteView';
 
 const PAGE_TITLES = {
   '/gallery': 'Gallery',
   '/upload': 'Upload',
   '/settings': 'Settings',
   '/collections': 'Collections',
+  '/pastes': 'Pastes',
   '/admin': 'Dashboard',
   '/admin/users': 'Users',
   '/admin/files': 'Files',
@@ -99,12 +102,14 @@ function App() {
             <Route path="/f/:shortId" element={<FileView />} />
             <Route path="/s/:token" element={<ShareView />} />
             <Route path="/c/:id" element={<CollectionView />} />
+            <Route path="/p/:shortId" element={<PasteView />} />
 
             {/* Protected */}
             <Route path="/gallery" element={<ProtectedRoute><Layout><Gallery /></Layout></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><Layout><Upload /></Layout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
             <Route path="/collections" element={<ProtectedRoute><Layout><Collections /></Layout></ProtectedRoute>} />
+            <Route path="/pastes" element={<ProtectedRoute><Layout><Pastes /></Layout></ProtectedRoute>} />
 
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute adminOnly><Layout><AdminDashboard /></Layout></ProtectedRoute>} />

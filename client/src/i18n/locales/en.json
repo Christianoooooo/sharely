@@ -15,7 +15,8 @@
     "xbackbone": "XBackBone Migration",
     "siteSettings": "Site Settings",
     "auditLog": "Audit Log",
-    "logout": "Logout"
+    "logout": "Logout",
+    "pastes": "Pastes"
   },
   "footer": {
     "poweredBy": "Powered by",
@@ -834,5 +835,56 @@
   "dateTimePicker": {
     "pickDate": "Pick a date…",
     "timeInPast": "Time is in the past"
+  },
+  "pastes": {
+    "title": "Pastes",
+    "subtitle": "Create and share code snippets and text.",
+    "new": "New Paste",
+    "newTitle": "New Paste",
+    "editTitle": "Edit Paste",
+    "titleField": "Title",
+    "language": "Language",
+    "content": "Content",
+    "private": "Private",
+    "untitled": "Untitled",
+    "createBtn": "Create Paste",
+    "saveBtn": "Save Changes",
+    "saving": "Saving…",
+    "created": "Paste created",
+    "saved": "Paste saved",
+    "createFailed": "Failed to create paste",
+    "saveFailed": "Failed to save paste",
+    "loading": "Loading…",
+    "empty": "No pastes yet",
+    "emptyHint": "Create your first paste to share code or text.",
+    "copyUrl": "Copy link",
+    "urlCopied": "Link copied",
+    "open": "Open",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleted": "Paste deleted",
+    "deleteFailed": "Failed to delete paste",
+    "deleteTitle": "Delete paste?",
+    "deleteDesc": "This permanently deletes the paste. This cannot be undone.",
+    "confirmDelete": "Delete"
+  },
+  "pasteView": {
+    "loading": "Loading…",
+    "expired": "This paste has expired",
+    "notFound": "Paste not found",
+    "loadFailed": "Failed to load paste",
+    "goHome": "Go home",
+    "passwordRequired": "Password required",
+    "passwordLabel": "Password",
+    "verifying": "Verifying…",
+    "unlock": "Unlock",
+    "wrongPassword": "Wrong password",
+    "by": "by {{owner}}",
+    "expiresAt": "expires {{date}}",
+    "copy": "Copy content",
+    "copied": "Copied to clipboard",
+    "raw": "View raw",
+    "download": "Download",
+    "manage": "Manage your pastes"
   }
 }
