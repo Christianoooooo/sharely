@@ -6,6 +6,20 @@ on:
   pull_request:
 
 jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run unit tests
+        run: npm test
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
