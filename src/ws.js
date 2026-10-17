@@ -8,6 +8,7 @@ const SiteSettings = require('./models/SiteSettings');
 const AuditLog = require('./models/AuditLog');
 const { deleteThumbnail, thumbPath } = require('./utils/generateThumbnail');
 const { UPLOAD_DIR, resolveUploadPath, escapeRegex } = require('./utils/uploadPath');
+const { validateEmail } = require('./utils/validateEmail');
 const mailer = require('./utils/mailer');
 
 const clients = new Set();
@@ -275,7 +276,7 @@ async function handleAction(client, { id, action, payload = {} }) {
       if (!valid) return err('Password is incorrect', 401);
       const trimmed = (email || '').toLowerCase().trim();
       if (trimmed) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) || trimmed.length > 254) {
+        if (!(await validateEmail(trimmed)).valid) {
           return err('Invalid email address');
         }
         const conflict = await User.findOne({ email: trimmed, _id: { $ne: user._id } });
