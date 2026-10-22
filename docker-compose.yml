@@ -8,7 +8,8 @@ services:
     ports:
       # Loopback only: the app trusts X-Forwarded-For from its first hop, so it
       # must be reachable solely through the reverse proxy. Set BIND_ADDRESS=0.0.0.0
-      # only for setups without a proxy.
+      # only behind an external firewall or without a proxy (README: "Cloudflare
+      # Tunnel / proxy in a container").
       - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-3000}:3000"
     environment:
       MONGODB_URI: "mongodb://${MONGO_APP_USER:-appuser}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-sharely}?authSource=${MONGO_DB_NAME:-sharely}"

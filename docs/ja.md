@@ -295,7 +295,7 @@ sharely/
 | 変数 | デフォルト | 説明 |
 |---|---|---|
 | `PORT` | `3000` | HTTPサーバーのTCPポート |
-| `BIND_ADDRESS` | `127.0.0.1` | Dockerがポートを公開するホストアドレス。リバースプロキシ利用時はループバックのまま、`0.0.0.0` はプロキシなしの場合のみ |
+| `BIND_ADDRESS` | `127.0.0.1` | Dockerがポートを公開するホストアドレス。リバースプロキシ利用時はループバックのまま、`0.0.0.0` は外部ファイアウォールがある場合かプロキシなしの場合のみ (「Cloudflare Tunnel / コンテナ内のプロキシ」を参照) |
 | `TRUST_PROXY` | `1` | 信頼するプロキシのホップ数（例: Cloudflare → nginx なら `2`）。構成と一致しないとクライアントIPとレート制限が不正確になる |
 | `MONGODB_URI` | _（Docker Composeから構築）_ | 完全なMongoDB接続URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDBルートパスワード |
@@ -1123,6 +1123,21 @@ server {
 ```
 
 > `.env`の`BASE_URL`は公開ドメインと一致する必要があります。
+
+### Cloudflare Tunnel / コンテナ内のプロキシ
+
+Dockerはデフォルトでアプリのポートを `127.0.0.1` にのみ公開します（`BIND_ADDRESS`）。上記のnginxの例のようにホスト上で直接動作するプロキシは到達できますが、独自のコンテナで動作するプロキシや `cloudflared` は到達できず、**502 Bad Gateway** を返します。
+
+- **推奨：** プロキシのコンテナをsharelyのDockerネットワーク（`<プロジェクト>_default`、デフォルトは `sharely_default`）に接続し、`http://app:3000` を指定します。この場合ポートを公開する必要はありません：
+  ```bash
+  docker network connect sharely_default <cloudflared-or-proxy-container>
+  ```
+  再起動後も維持するには、プロキシのcomposeファイルでネットワークを `external` として宣言してください。
+- **ポート3000をインターネットから遮断する外部ファイアウォールがある場合**（例：Hetzner Cloud Firewall）：`.env` に `BIND_ADDRESS=0.0.0.0` を設定します。そのようなファイアウォールなしでは行わないでください。Dockerは `ufw` などのホストファイアウォールを迂回し、ポートに直接到達した者はTLSを回避して `X-Forwarded-For` を偽装でき、レート制限が無効になります。
+
+プロキシは元の `Host` ヘッダー（`Origin` と `Host` が一致しないとWebSocket接続は拒否されます）と `X-Forwarded-Proto`（セキュアCookieとHSTSに必要）を転送する必要があります。Cloudflare Tunnelとnginxの例はデフォルトでこれを行います。トンネル設定で `httpHostHeader` を設定しないでください。設定後、監査ログに実際のクライアントIPが表示されることを確認し、そうでなければ `TRUST_PROXY` を調整してください。
+
+> **アップグレードの注意：** 以前のバージョンはポート3000をすべてのインターフェースに公開していました。プロキシがコンテナで動作している場合は、更新前に `BIND_ADDRESS` を設定するか、上記のとおりネットワークを接続してください。
 
 ### 初回起動
 

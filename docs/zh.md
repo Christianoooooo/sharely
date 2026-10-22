@@ -295,7 +295,7 @@ sharely/
 | 变量 | 默认值 | 描述 |
 |---|---|---|
 | `PORT` | `3000` | HTTP 服务器的 TCP 端口 |
-| `BIND_ADDRESS` | `127.0.0.1` | Docker 发布端口所用的主机地址。使用反向代理时保持回环地址；仅在无代理时使用 `0.0.0.0` |
+| `BIND_ADDRESS` | `127.0.0.1` | Docker 发布端口所用的主机地址。使用反向代理时保持回环地址；仅在有外部防火墙或无代理时使用 `0.0.0.0` (参见“Cloudflare Tunnel / 容器中的代理”) |
 | `TRUST_PROXY` | `1` | 受信任的代理跳数（例如 Cloudflare → nginx 为 `2`）；必须与实际部署一致，否则客户端 IP 和速率限制会出错 |
 | `MONGODB_URI` | _（由 Docker Compose 构建）_ | 完整的 MongoDB 连接 URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root 密码 |
@@ -1123,6 +1123,21 @@ server {
 ```
 
 > `.env` 中的 `BASE_URL` 必须与公开域名一致。
+
+### Cloudflare Tunnel / 容器中的代理
+
+默认情况下，Docker 只在 `127.0.0.1` 上发布应用端口（`BIND_ADDRESS`）。直接运行在主机上的代理（如上面的 nginx 示例）可以访问它；运行在独立容器中的代理或 `cloudflared` 则无法访问，并返回 **502 Bad Gateway**。
+
+- **推荐：** 将代理容器加入 sharely 的 Docker 网络（`<项目>_default`，默认为 `sharely_default`），并指向 `http://app:3000`。这样无需发布任何端口：
+  ```bash
+  docker network connect sharely_default <cloudflared-or-proxy-container>
+  ```
+  若要在重启后保持，请在代理的 compose 文件中将该网络声明为 `external`。
+- **如果有外部防火墙**从互联网屏蔽端口 3000（例如 Hetzner Cloud Firewall）：在 `.env` 中设置 `BIND_ADDRESS=0.0.0.0`。没有此类防火墙时不要这样做：Docker 会绕过 `ufw` 等主机防火墙，任何能直接访问该端口的人都可以绕过 TLS 并伪造 `X-Forwarded-For`，使速率限制失效。
+
+代理必须转发原始 `Host` 头（如果 `Origin` 与 `Host` 不一致，WebSocket 连接会被拒绝）以及 `X-Forwarded-Proto`（安全 Cookie 和 HSTS 需要）。Cloudflare Tunnel 和 nginx 示例默认会这样做；不要在隧道配置中设置 `httpHostHeader`。配置完成后，请检查审计日志中显示的是真实客户端 IP，否则调整 `TRUST_PROXY`。
+
+> **升级提示：** 早期版本会在所有网络接口上发布端口 3000。如果你的代理运行在容器中，请在更新前设置 `BIND_ADDRESS` 或按上述方式连接网络。
 
 ### 首次启动
 
