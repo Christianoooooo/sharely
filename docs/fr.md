@@ -297,6 +297,8 @@ Toutes les variables sont chargées depuis `.env` (via `dotenv`). Le fichier `.e
 | `PORT` | `3000` | Port TCP du serveur HTTP |
 | `BIND_ADDRESS` | `127.0.0.1` | Adresse de l'hôte sur laquelle Docker publie le port. Derrière un reverse proxy, garder loopback ; `0.0.0.0` uniquement derrière un pare-feu externe ou sans proxy (voir « Cloudflare Tunnel / proxy dans un conteneur ») |
 | `TRUST_PROXY` | `1` | Nombre de sauts de proxy de confiance (ex. `2` pour Cloudflare → nginx) ; doit correspondre à votre configuration, sinon IP clientes et limites de débit sont fausses |
+| `ENCRYPTION_KEY` | — | Clé de 32 octets (`openssl rand -base64 32`). Si elle est définie, les nouveaux fichiers et miniatures sont stockés chiffrés (voir « Chiffrement au repos »). **Sa perte rend les fichiers chiffrés illisibles** |
+| `INSTALL_TOKEN` | _(aléatoire, écrit dans le journal)_ | Jeton requis pour terminer l'installation initiale |
 | `MONGODB_URI` | _(construit depuis Docker Compose)_ | URI de connexion MongoDB complète |
 | `MONGO_ROOT_PASSWORD` | — | Mot de passe root MongoDB |
 | `MONGO_APP_USER` | `appuser` | Nom d'utilisateur applicatif MongoDB |
@@ -360,6 +362,7 @@ Toutes les variables sont chargées depuis `.env` (via `dotenv`). Le fichier `.e
   originalName: String (assaini)
   storedName:   String (chemin relatif : "folderName/8hex.ext")
   mimeType:     String
+  encrypted:    Boolean
   size:         Number (octets)
   uploader:     ObjectId → User
   views:        Number
@@ -458,7 +461,7 @@ Tous les endpoints JSON retournent `Content-Type: application/json`. Erreurs : `
 |---|---|---|---|
 | `GET` | `/me` | Session | Utilisateur connecté |
 | `POST` | `/login` | — | Connexion (limité : 10/15min) |
-| `POST` | `/register` | — | Inscription (limité, premier utilisateur devient admin) |
+| `POST` | `/register` | — | Inscription (limité ; le premier admin est créé uniquement via l'installation) |
 | `POST` | `/logout` | — | Déconnexion |
 | `GET` | `/smtp-enabled` | — | Vérifie si SMTP est configuré |
 | `GET` | `/verify-email?token=` | — | Vérifier l'adresse e-mail |
@@ -1139,9 +1142,18 @@ Le proxy doit transmettre l'en-tête `Host` d'origine (les connexions WebSocket 
 
 > **Note de mise à jour :** Les versions précédentes publiaient le port 3000 sur toutes les interfaces. Si votre proxy tourne dans un conteneur, définissez `BIND_ADDRESS` ou connectez le réseau comme décrit ci-dessus avant la mise à jour.
 
+### Chiffrement au repos
+
+Avec `ENCRYPTION_KEY` défini, sharely chiffre chaque nouvel envoi et sa miniature avec AES-256-GCM avant de les stocker (une clé par fichier, dérivée de la clé principale). Les fichiers sont déchiffrés à la volée lors de leur distribution, y compris pour les requêtes Range et les téléchargements ZIP.
+
+- Générez la clé une fois avec `openssl rand -base64 32`, placez-la dans `.env` et **sauvegardez-la séparément** : sans elle, les fichiers chiffrés sont irrécupérables. Changer ou supprimer la clé ensuite n'est pas pris en charge.
+- Les fichiers existants restent non chiffrés jusqu'à l'exécution de la migration (sauvegardez d'abord le volume `uploads`) : `docker compose exec app npm run migrate:encrypt`
+- Non couvert : pastes, noms de fichiers et autres métadonnées dans MongoDB, avatars et mémoire du serveur en cours d'exécution. Pendant son traitement (assemblage des morceaux, suppression des métadonnées, génération de la miniature), un envoi existe brièvement en clair sur le disque.
+- Le réglage d'administration sur le chiffrement du disque/volume ne fait que déclarer un chiffrement du volume dans la politique de confidentialité et en est indépendant.
+
 ### Premier démarrage
 
-Le premier utilisateur enregistré reçoit automatiquement le rôle `admin` (`User.countDocuments() === 0`).
+Au premier démarrage sans utilisateur, sharely écrit un jeton d'installation dans le journal (`docker compose logs app`), ou utilise `INSTALL_TOKEN` s'il est défini. La page d'installation demande ce jeton et crée le compte administrateur ; l'inscription normale ne crée jamais d'administrateur.
 
 ---
 

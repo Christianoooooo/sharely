@@ -297,6 +297,8 @@ Alle Variablen werden aus `.env` geladen (via `dotenv`). Die Datei `.env.example
 | `PORT` | `3000` | TCP-Port des HTTP-Servers |
 | `BIND_ADDRESS` | `127.0.0.1` | Host-Adresse, auf der Docker den Port veröffentlicht. Hinter Reverse Proxy auf Loopback lassen; `0.0.0.0` nur hinter externer Firewall oder ohne Proxy (siehe „Cloudflare Tunnel / Proxy im Container“) |
 | `TRUST_PROXY` | `1` | Anzahl vertrauenswürdiger Proxy-Hops (z. B. `2` für Cloudflare → nginx); muss zum Setup passen, sonst sind Client-IPs und Rate-Limits falsch |
+| `ENCRYPTION_KEY` | — | 32-Byte-Schlüssel (`openssl rand -base64 32`). Ist er gesetzt, werden neue Uploads und Thumbnails verschlüsselt gespeichert (siehe „Verschlüsselung gespeicherter Dateien“). **Geht er verloren, sind verschlüsselte Dateien unlesbar** |
+| `INSTALL_TOKEN` | _(zufällig, wird ins Log geschrieben)_ | Token, das für die Erstinstallation nötig ist |
 | `MONGODB_URI` | _(aus Docker Compose konstruiert)_ | Vollständige MongoDB-Verbindungs-URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB-Root-Passwort |
 | `MONGO_APP_USER` | `appuser` | MongoDB-App-Nutzername |
@@ -382,6 +384,7 @@ Der Updater baut per `--no-deps` ausschließlich den App-Container neu — die D
   originalName: String (sanitisiert)
   storedName:   String (relativer Pfad: "folderName/8hex.ext")
   mimeType:     String
+  encrypted:    Boolean
   size:         Number (Bytes)
   uploader:     ObjectId → User
   views:        Number
@@ -480,7 +483,7 @@ Alle JSON-Endpunkte geben `Content-Type: application/json` zurück. Fehler: `{ "
 |---|---|---|---|
 | `GET` | `/me` | Session | Eingeloggter Nutzer |
 | `POST` | `/login` | — | Einloggen (rate-limited: 10/15min) |
-| `POST` | `/register` | — | Registrieren (rate-limited, erster Nutzer wird Admin) |
+| `POST` | `/register` | — | Registrieren (rate-limited; der erste Admin entsteht nur über die Installation) |
 | `POST` | `/logout` | — | Ausloggen |
 | `GET` | `/smtp-enabled` | — | Prüft ob SMTP konfiguriert ist |
 | `GET` | `/verify-email?token=` | — | E-Mail-Adresse bestätigen |
@@ -1161,9 +1164,18 @@ Der Proxy muss den originalen `Host`-Header weiterreichen (WebSocket-Verbindunge
 
 > **Upgrade-Hinweis:** Frühere Versionen haben Port 3000 auf allen Interfaces veröffentlicht. Läuft der Proxy in einem Container, vor dem Update `BIND_ADDRESS` setzen oder das Netz wie oben beschrieben verbinden.
 
+### Verschlüsselung gespeicherter Dateien
+
+Ist `ENCRYPTION_KEY` gesetzt, verschlüsselt sharely jeden neuen Upload und sein Thumbnail vor dem Speichern mit AES-256-GCM (ein eigener, aus dem Hauptschlüssel abgeleiteter Schlüssel pro Datei). Beim Ausliefern wird live entschlüsselt, auch für Range-Requests und ZIP-Downloads.
+
+- Schlüssel einmalig mit `openssl rand -base64 32` erzeugen, in die `.env` eintragen und **getrennt sichern**: Ohne ihn lassen sich verschlüsselte Dateien nicht wiederherstellen. Ein späterer Wechsel oder das Entfernen des Schlüssels wird nicht unterstützt.
+- Bestehende Dateien bleiben unverschlüsselt, bis die Migration läuft (vorher das `uploads`-Volume sichern): `docker compose exec app npm run migrate:encrypt`
+- Nicht abgedeckt: Pastes, Dateinamen und andere Metadaten in MongoDB, Avatare sowie der Arbeitsspeicher des laufenden Servers. Während ein Upload verarbeitet wird (Zusammensetzen der Chunks, Metadaten-Entfernung, Thumbnail-Erzeugung), liegt er kurz unverschlüsselt auf der Platte.
+- Die Admin-Einstellung zur Festplatten-/Volume-Verschlüsselung erklärt nur eine Volume-Verschlüsselung in der Datenschutzerklärung und ist davon unabhängig.
+
 ### Erster Start
 
-Der erste registrierte Nutzer erhält automatisch die `admin`-Rolle (`User.countDocuments() === 0`).
+Beim ersten Start ohne Nutzer schreibt sharely ein Setup-Token ins Log (`docker compose logs app`), alternativ gilt `INSTALL_TOKEN`, falls gesetzt. Die Installationsseite verlangt dieses Token und legt damit das Admin-Konto an; über die normale Registrierung entsteht nie ein Admin.
 
 ---
 

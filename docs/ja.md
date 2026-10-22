@@ -297,6 +297,8 @@ sharely/
 | `PORT` | `3000` | HTTPサーバーのTCPポート |
 | `BIND_ADDRESS` | `127.0.0.1` | Dockerがポートを公開するホストアドレス。リバースプロキシ利用時はループバックのまま、`0.0.0.0` は外部ファイアウォールがある場合かプロキシなしの場合のみ (「Cloudflare Tunnel / コンテナ内のプロキシ」を参照) |
 | `TRUST_PROXY` | `1` | 信頼するプロキシのホップ数（例: Cloudflare → nginx なら `2`）。構成と一致しないとクライアントIPとレート制限が不正確になる |
+| `ENCRYPTION_KEY` | — | 32バイトの鍵（`openssl rand -base64 32`）。設定すると、新しいアップロードとサムネイルが暗号化して保存されます（「保存データの暗号化」を参照）。**紛失すると暗号化されたファイルは読めなくなります** |
+| `INSTALL_TOKEN` | _（ランダム、ログに出力）_ | 初回セットアップの完了に必要なトークン |
 | `MONGODB_URI` | _（Docker Composeから構築）_ | 完全なMongoDB接続URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDBルートパスワード |
 | `MONGO_APP_USER` | `appuser` | MongoDBアプリケーションユーザー名 |
@@ -360,6 +362,7 @@ sharely/
   originalName: String (サニタイズ済み)
   storedName:   String (相対パス："folderName/8hex.ext")
   mimeType:     String
+  encrypted:    Boolean
   size:         Number (バイト)
   uploader:     ObjectId → User
   views:        Number
@@ -458,7 +461,7 @@ shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char f
 |---|---|---|---|
 | `GET` | `/me` | セッション | 現在ログイン中のユーザー |
 | `POST` | `/login` | — | ログイン（レート制限：10回/15分） |
-| `POST` | `/register` | — | 登録（レート制限あり、最初のユーザーが管理者になる） |
+| `POST` | `/register` | — | 登録（レート制限あり。最初の管理者はセットアップでのみ作成） |
 | `POST` | `/logout` | — | ログアウト |
 | `GET` | `/smtp-enabled` | — | SMTPが設定されているか確認 |
 | `GET` | `/verify-email?token=` | — | メールアドレスを認証 |
@@ -1139,9 +1142,18 @@ Dockerはデフォルトでアプリのポートを `127.0.0.1` にのみ公開�
 
 > **アップグレードの注意：** 以前のバージョンはポート3000をすべてのインターフェースに公開していました。プロキシがコンテナで動作している場合は、更新前に `BIND_ADDRESS` を設定するか、上記のとおりネットワークを接続してください。
 
+### 保存データの暗号化
+
+`ENCRYPTION_KEY` を設定すると、sharely は新しいアップロードとそのサムネイルを保存前に AES-256-GCM で暗号化します（マスター鍵から導出したファイルごとの鍵）。配信時にはその場で復号され、Range リクエストや ZIP ダウンロードにも対応します。
+
+- 鍵は `openssl rand -base64 32` で一度だけ生成し、`.env` に設定して**別途バックアップ**してください。鍵がなければ暗号化されたファイルは復元できません。後から鍵を変更・削除することはサポートされていません。
+- 既存のファイルは移行を実行するまで暗号化されません（事前に `uploads` ボリュームをバックアップ）：`docker compose exec app npm run migrate:encrypt`
+- 対象外：ペースト、MongoDB 内のファイル名やその他のメタデータ、アバター、実行中のサーバーのメモリ。アップロードの処理中（チャンクの結合、メタデータ削除、サムネイル生成）は、一時的に暗号化されずにディスク上に存在します。
+- ディスク/ボリューム暗号化に関する管理設定は、プライバシーポリシーでボリューム暗号化を表明するだけで、この機能とは無関係です。
+
 ### 初回起動
 
-最初に登録したユーザーは自動的に`admin`ロールを付与されます（`User.countDocuments() === 0`）。
+ユーザーがいない状態での初回起動時、sharely はセットアップトークンをログ（`docker compose logs app`）に出力します。`INSTALL_TOKEN` が設定されている場合はそれを使用します。インストールページでこのトークンを入力すると管理者アカウントが作成されます。通常の登録で管理者が作成されることはありません。
 
 ---
 

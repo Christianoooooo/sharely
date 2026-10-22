@@ -64,7 +64,7 @@ Edit `.env` with your settings (see [Configuration](#configuration)), then:
 docker compose up -d
 ```
 
-The app is now running at `http://localhost:3000`. Register the first account — it will automatically be an admin.
+The app is now running at `http://localhost:3000`. The setup page asks for a setup token, which the app prints to its log on first start (`docker compose logs app`); the account you create there is the admin.
 
 ### Local Development
 
@@ -93,6 +93,8 @@ Copy `.env.example` to `.env` and adjust the values:
 | `PORT` | `3000` | Port the server listens on |
 | `BIND_ADDRESS` | `127.0.0.1` | Host address the Docker port is published on. Keep loopback behind a reverse proxy; `0.0.0.0` only behind an external firewall or without a proxy (see "Cloudflare Tunnel / proxy in a container") |
 | `TRUST_PROXY` | `1` | Number of trusted reverse-proxy hops (e.g. `2` for Cloudflare → nginx); must match your setup or client IPs/rate limits are wrong |
+| `ENCRYPTION_KEY` | — | 32-byte key (`openssl rand -base64 32`). If set, new uploads and thumbnails are stored encrypted (see "Encryption at rest"). **Losing it makes encrypted files unreadable** |
+| `INSTALL_TOKEN` | _(random, printed to the log)_ | Token required to complete the first-run setup |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root password (required) |
 | `MONGO_APP_USER` | `appuser` | MongoDB application user |
 | `MONGO_APP_PASSWORD` | — | MongoDB application user password (required) |
@@ -337,6 +339,15 @@ By default Docker publishes the app port only on `127.0.0.1` (`BIND_ADDRESS`). A
 The proxy must pass on the original `Host` header (WebSocket connections are rejected if `Origin` and `Host` differ) and `X-Forwarded-Proto` (needed for secure cookies and HSTS). Cloudflare Tunnel and the nginx example do this by default; do not set `httpHostHeader` in the tunnel configuration. After setting up, check that the audit log shows real client IPs; otherwise adjust `TRUST_PROXY`.
 
 > **Upgrade note:** Earlier versions published port 3000 on all interfaces. If your proxy runs in a container, set `BIND_ADDRESS` or attach the network as described above before updating.
+
+## Encryption at rest
+
+With `ENCRYPTION_KEY` set, sharely encrypts every new upload and its thumbnail with AES-256-GCM before storing it (one key per file, derived from the master key). Files are decrypted on the fly when served, including Range requests and ZIP downloads.
+
+- Generate the key once with `openssl rand -base64 32`, put it in `.env` and **back it up separately**: without it, encrypted files cannot be recovered. Changing or removing the key later is not supported.
+- Existing files stay unencrypted until you run the migration (back up the `uploads` volume first): `docker compose exec app npm run migrate:encrypt`
+- Not covered: pastes, file names and other metadata in MongoDB, avatars, and the process memory of the running server. While an upload is processed (chunk assembly, metadata stripping, thumbnail generation) it briefly exists unencrypted on disk.
+- The admin setting for disk/volume encryption only declares volume encryption in the privacy policy and is independent of this.
 
 ## Thumbnails
 

@@ -297,6 +297,8 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
 | `PORT` | `3000` | TCP port of the HTTP server |
 | `BIND_ADDRESS` | `127.0.0.1` | Host address Docker publishes the port on. Keep loopback behind a reverse proxy; `0.0.0.0` only behind an external firewall or without a proxy (see "Cloudflare Tunnel / proxy in a container") |
 | `TRUST_PROXY` | `1` | Number of trusted proxy hops (e.g. `2` for Cloudflare → nginx); must match your setup or client IPs and rate limits are wrong |
+| `ENCRYPTION_KEY` | — | 32-byte key (`openssl rand -base64 32`). If set, new uploads and thumbnails are stored encrypted (see "Encryption at rest"). **Losing it makes encrypted files unreadable** |
+| `INSTALL_TOKEN` | _(random, printed to the log)_ | Token required to complete the first-run setup |
 | `MONGODB_URI` | _(constructed from Docker Compose)_ | Full MongoDB connection URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root password |
 | `MONGO_APP_USER` | `appuser` | MongoDB application username |
@@ -360,6 +362,7 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
   originalName: String (sanitized)
   storedName:   String (relative path: "folderName/8hex.ext")
   mimeType:     String
+  encrypted:    Boolean
   size:         Number (bytes)
   uploader:     ObjectId → User
   views:        Number
@@ -458,7 +461,7 @@ All JSON endpoints return `Content-Type: application/json`. Errors: `{ "error": 
 |---|---|---|---|
 | `GET` | `/me` | Session | Currently logged-in user |
 | `POST` | `/login` | — | Log in (rate-limited: 10/15min) |
-| `POST` | `/register` | — | Register (rate-limited, first user becomes admin) |
+| `POST` | `/register` | — | Register (rate-limited; the first admin is created only via setup) |
 | `POST` | `/logout` | — | Log out |
 | `GET` | `/smtp-enabled` | — | Check whether SMTP is configured |
 | `GET` | `/verify-email?token=` | — | Verify email address |
@@ -1139,9 +1142,18 @@ The proxy must pass on the original `Host` header (WebSocket connections are rej
 
 > **Upgrade note:** Earlier versions published port 3000 on all interfaces. If your proxy runs in a container, set `BIND_ADDRESS` or attach the network as described above before updating.
 
+### Encryption at rest
+
+With `ENCRYPTION_KEY` set, sharely encrypts every new upload and its thumbnail with AES-256-GCM before storing it (one key per file, derived from the master key). Files are decrypted on the fly when served, including Range requests and ZIP downloads.
+
+- Generate the key once with `openssl rand -base64 32`, put it in `.env` and **back it up separately**: without it, encrypted files cannot be recovered. Changing or removing the key later is not supported.
+- Existing files stay unencrypted until you run the migration (back up the `uploads` volume first): `docker compose exec app npm run migrate:encrypt`
+- Not covered: pastes, file names and other metadata in MongoDB, avatars, and the process memory of the running server. While an upload is processed (chunk assembly, metadata stripping, thumbnail generation) it briefly exists unencrypted on disk.
+- The admin setting for disk/volume encryption only declares volume encryption in the privacy policy and is independent of this.
+
 ### First Start
 
-The first registered user automatically receives the `admin` role (`User.countDocuments() === 0`).
+On first start without users, sharely prints a setup token to the log (`docker compose logs app`), or uses `INSTALL_TOKEN` if set. The install page asks for this token and creates the admin account; regular registration never creates an admin.
 
 ---
 

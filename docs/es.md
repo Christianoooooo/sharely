@@ -297,6 +297,8 @@ Todas las variables se cargan desde `.env` (mediante `dotenv`). El archivo `.env
 | `PORT` | `3000` | Puerto TCP del servidor HTTP |
 | `BIND_ADDRESS` | `127.0.0.1` | Dirección del host donde Docker publica el puerto. Detrás de un proxy inverso, mantener loopback; `0.0.0.0` solo tras un firewall externo o sin proxy (ver «Cloudflare Tunnel / proxy en un contenedor») |
 | `TRUST_PROXY` | `1` | Número de saltos de proxy de confianza (p. ej. `2` para Cloudflare → nginx); debe coincidir con tu configuración o las IP de cliente y los límites de tasa serán incorrectos |
+| `ENCRYPTION_KEY` | — | Clave de 32 bytes (`openssl rand -base64 32`). Si se define, los nuevos archivos y miniaturas se guardan cifrados (ver «Cifrado en reposo»). **Si se pierde, los archivos cifrados son ilegibles** |
+| `INSTALL_TOKEN` | _(aleatorio, se escribe en el registro)_ | Token necesario para completar la instalación inicial |
 | `MONGODB_URI` | _(construida desde Docker Compose)_ | URI de conexión MongoDB completa |
 | `MONGO_ROOT_PASSWORD` | — | Contraseña root de MongoDB |
 | `MONGO_APP_USER` | `appuser` | Nombre de usuario de aplicación MongoDB |
@@ -360,6 +362,7 @@ Todas las variables se cargan desde `.env` (mediante `dotenv`). El archivo `.env
   originalName: String (saneado)
   storedName:   String (ruta relativa: "folderName/8hex.ext")
   mimeType:     String
+  encrypted:    Boolean
   size:         Number (bytes)
   uploader:     ObjectId → User
   views:        Number
@@ -458,7 +461,7 @@ Todos los endpoints JSON devuelven `Content-Type: application/json`. Errores: `{
 |---|---|---|---|
 | `GET` | `/me` | Sesión | Usuario actualmente conectado |
 | `POST` | `/login` | — | Iniciar sesión (limitado: 10/15min) |
-| `POST` | `/register` | — | Registrarse (limitado, el primer usuario se convierte en admin) |
+| `POST` | `/register` | — | Registrarse (limitado; el primer admin solo se crea en la instalación) |
 | `POST` | `/logout` | — | Cerrar sesión |
 | `GET` | `/smtp-enabled` | — | Comprobar si SMTP está configurado |
 | `GET` | `/verify-email?token=` | — | Verificar dirección de email |
@@ -1139,9 +1142,18 @@ El proxy debe reenviar la cabecera `Host` original (las conexiones WebSocket se 
 
 > **Nota de actualización:** Las versiones anteriores publicaban el puerto 3000 en todas las interfaces. Si tu proxy se ejecuta en un contenedor, establece `BIND_ADDRESS` o conecta la red como se describe arriba antes de actualizar.
 
+### Cifrado en reposo
+
+Con `ENCRYPTION_KEY` definido, sharely cifra cada nueva subida y su miniatura con AES-256-GCM antes de guardarlas (una clave por archivo, derivada de la clave maestra). Los archivos se descifran al vuelo al servirlos, incluidas las peticiones Range y las descargas ZIP.
+
+- Genera la clave una vez con `openssl rand -base64 32`, ponla en `.env` y **guárdala por separado**: sin ella, los archivos cifrados no se pueden recuperar. No se admite cambiar ni eliminar la clave después.
+- Los archivos existentes siguen sin cifrar hasta que ejecutes la migración (haz antes una copia del volumen `uploads`): `docker compose exec app npm run migrate:encrypt`
+- No cubre: pastes, nombres de archivo y otros metadatos en MongoDB, avatares ni la memoria del servidor en ejecución. Mientras se procesa una subida (unión de fragmentos, eliminación de metadatos, generación de miniaturas) existe brevemente sin cifrar en el disco.
+- El ajuste de administración sobre cifrado de disco/volumen solo declara el cifrado del volumen en la política de privacidad y es independiente de esto.
+
 ### Primer inicio
 
-El primer usuario registrado recibe automáticamente el rol `admin` (`User.countDocuments() === 0`).
+En el primer inicio sin usuarios, sharely escribe un token de instalación en el registro (`docker compose logs app`), o usa `INSTALL_TOKEN` si está definido. La página de instalación pide este token y crea la cuenta de administrador; el registro normal nunca crea un administrador.
 
 ---
 

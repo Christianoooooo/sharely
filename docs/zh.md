@@ -297,6 +297,8 @@ sharely/
 | `PORT` | `3000` | HTTP 服务器的 TCP 端口 |
 | `BIND_ADDRESS` | `127.0.0.1` | Docker 发布端口所用的主机地址。使用反向代理时保持回环地址；仅在有外部防火墙或无代理时使用 `0.0.0.0` (参见“Cloudflare Tunnel / 容器中的代理”) |
 | `TRUST_PROXY` | `1` | 受信任的代理跳数（例如 Cloudflare → nginx 为 `2`）；必须与实际部署一致，否则客户端 IP 和速率限制会出错 |
+| `ENCRYPTION_KEY` | — | 32 字节密钥（`openssl rand -base64 32`）。设置后，新上传的文件和缩略图将加密存储（参见“静态数据加密”）。**丢失后加密文件将无法读取** |
+| `INSTALL_TOKEN` | _（随机，写入日志）_ | 完成首次安装所需的令牌 |
 | `MONGODB_URI` | _（由 Docker Compose 构建）_ | 完整的 MongoDB 连接 URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root 密码 |
 | `MONGO_APP_USER` | `appuser` | MongoDB 应用用户名 |
@@ -360,6 +362,7 @@ sharely/
   originalName: String（已净化）
   storedName:   String（相对路径："folderName/8hex.ext"）
   mimeType:     String
+  encrypted:    Boolean
   size:         Number（字节）
   uploader:     ObjectId → User
   views:        Number
@@ -458,7 +461,7 @@ shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char f
 |---|---|---|---|
 | `GET` | `/me` | 会话 | 当前登录用户 |
 | `POST` | `/login` | — | 登录（限流：10 次/15 分钟） |
-| `POST` | `/register` | — | 注册（限流，第一个用户成为管理员） |
+| `POST` | `/register` | — | 注册（限流；第一个管理员只能通过安装向导创建） |
 | `POST` | `/logout` | — | 退出登录 |
 | `GET` | `/smtp-enabled` | — | 检查 SMTP 是否已配置 |
 | `GET` | `/verify-email?token=` | — | 验证邮箱地址 |
@@ -1139,9 +1142,18 @@ server {
 
 > **升级提示：** 早期版本会在所有网络接口上发布端口 3000。如果你的代理运行在容器中，请在更新前设置 `BIND_ADDRESS` 或按上述方式连接网络。
 
+### 静态数据加密
+
+设置 `ENCRYPTION_KEY` 后，sharely 会在存储前使用 AES-256-GCM 加密每个新上传的文件及其缩略图（每个文件使用从主密钥派生的独立密钥）。提供文件时会实时解密，包括 Range 请求和 ZIP 下载。
+
+- 使用 `openssl rand -base64 32` 生成一次密钥，写入 `.env` 并**单独备份**：没有它，加密文件将无法恢复。不支持之后更换或删除密钥。
+- 现有文件在运行迁移前保持未加密（请先备份 `uploads` 卷）：`docker compose exec app npm run migrate:encrypt`
+- 不包括：粘贴内容、MongoDB 中的文件名和其他元数据、头像以及运行中服务器的内存。上传在处理期间（合并分块、去除元数据、生成缩略图）会短暂以未加密形式存在于磁盘上。
+- 管理设置中的磁盘/卷加密选项仅在隐私政策中声明卷加密，与此功能无关。
+
 ### 首次启动
 
-第一个注册的用户将自动获得 `admin` 角色（`User.countDocuments() === 0`）。
+在没有用户的情况下首次启动时，sharely 会将安装令牌写入日志（`docker compose logs app`），如果设置了 `INSTALL_TOKEN` 则使用该值。安装页面要求输入此令牌并创建管理员账户；普通注册永远不会创建管理员。
 
 ---
 
