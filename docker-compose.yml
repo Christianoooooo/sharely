@@ -6,11 +6,15 @@ services:
   app:
     build: .
     ports:
-      - "${PORT:-3000}:3000"
+      # Loopback only: the app trusts X-Forwarded-For from its first hop, so it
+      # must be reachable solely through the reverse proxy. Set BIND_ADDRESS=0.0.0.0
+      # only for setups without a proxy.
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-3000}:3000"
     environment:
       MONGODB_URI: "mongodb://${MONGO_APP_USER:-appuser}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-sharely}?authSource=${MONGO_DB_NAME:-sharely}"
       SESSION_SECRET: "${SESSION_SECRET}"
       BASE_URL: "${BASE_URL:-http://localhost:3000}"
+      TRUST_PROXY: "${TRUST_PROXY:-1}"
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-100}"
       ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
       SITE_NAME: "${SITE_NAME:-sharely}"

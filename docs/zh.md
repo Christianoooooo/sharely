@@ -295,6 +295,8 @@ sharely/
 | 变量 | 默认值 | 描述 |
 |---|---|---|
 | `PORT` | `3000` | HTTP 服务器的 TCP 端口 |
+| `BIND_ADDRESS` | `127.0.0.1` | Docker 发布端口所用的主机地址。使用反向代理时保持回环地址；仅在无代理时使用 `0.0.0.0` |
+| `TRUST_PROXY` | `1` | 受信任的代理跳数（例如 Cloudflare → nginx 为 `2`）；必须与实际部署一致，否则客户端 IP 和速率限制会出错 |
 | `MONGODB_URI` | _（由 Docker Compose 构建）_ | 完整的 MongoDB 连接 URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root 密码 |
 | `MONGO_APP_USER` | `appuser` | MongoDB 应用用户名 |

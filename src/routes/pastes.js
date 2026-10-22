@@ -1,11 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const { rateLimit } = require('express-rate-limit');
 const Paste = require('../models/Paste');
 const { requireLogin } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
+
+// Paste passwords are often short; only failed attempts count.
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later.' },
+});
 const MAX_CONTENT = 500000;
 
 function isExpired(paste) {
@@ -82,7 +93,7 @@ router.post('/', requireLogin, async (req, res) => {
 });
 
 // ── Verify paste password — stores result in session ────────────────────────
-router.post('/:shortId/verify', async (req, res) => {
+router.post('/:shortId/verify', verifyLimiter, async (req, res) => {
   const paste = await Paste.findOne({ shortId: req.params.shortId });
   if (!paste) return res.status(404).json({ error: 'Paste not found' });
   if (isExpired(paste)) return res.status(410).json({ error: 'expired' });

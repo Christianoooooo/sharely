@@ -46,21 +46,36 @@ const app = express();
 
 // Trust the first proxy (nginx / Cloudflare) so that express-rate-limit can
 // read the real client IP from the X-Forwarded-For header without throwing
-// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
-app.set('trust proxy', 1);
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR. TRUST_PROXY must match the actual proxy
+// chain (e.g. 2 for Cloudflare → nginx), otherwise client IPs are wrong or spoofable.
+function parseTrustProxy(value) {
+  if (value === undefined || value === '') return 1;
+  if (/^\d+$/.test(value)) return Number(value);
+  if (value === 'true' || value === 'false') return value === 'true';
+  return value;
+}
+app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
 
 // Concise request logging to stdout (picked up by the Docker json-file driver).
 // Skips the container healthcheck (wget) and static bundle assets so the log
 // stays readable and its capped history keeps actual activity instead of noise.
 const SKIP_LOG = /\.(?:js|css|map|png|jpe?g|gif|svg|ico|webp|woff2?|ttf)$/i;
-app.use(morgan(':date[iso] :remote-addr :method :url :status :res[content-length]B :response-time ms', {
+// Credentials travel in some URLs (API key query, delete/share/email tokens);
+// keep them out of the logs.
+morgan.token('safe-url', (req) => (req.originalUrl || req.url)
+  .replace(/([?&](?:api_key|token)=)[^&#]*/gi, '$1[redacted]')
+  .replace(/^(\/f\/[^/?#]+\/delete\/)[^/?#]+/, '$1[redacted]')
+  .replace(/^(\/s\/|\/api\/share-links\/)[^/?#]+/, '$1[redacted]'));
+app.use(morgan(':date[iso] :remote-addr :method :safe-url :status :res[content-length]B :response-time ms', {
   skip: (req) => req.headers['user-agent']?.startsWith('Wget') || SKIP_LOG.test(req.path),
 }));
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-app.use((_req, res, next) => {
+app.use((req, res, next) => {
+  // Only meaningful over HTTPS (req.secure honours X-Forwarded-Proto via trust proxy).
+  if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader(
@@ -96,7 +111,9 @@ const sessionMiddleware = session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    // 'auto': Secure whenever the request arrived via HTTPS, independent of NODE_ENV
+    // (which the Docker setup does not set); plain-HTTP local setups keep working.
+    secure: 'auto',
     sameSite: 'strict',
   },
 });
