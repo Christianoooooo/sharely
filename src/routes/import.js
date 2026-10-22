@@ -33,6 +33,7 @@ const { requireAdmin } = require('../middleware/auth');
 const File = require('../models/File');
 const User = require('../models/User');
 const sanitizeFilename = require('../utils/sanitizeFilename');
+const { normalizeMime } = require('../utils/mime');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
@@ -294,10 +295,10 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
         fs.mkdirSync(destDir, { recursive: true });
         fs.copyFileSync(srcPath, destPath);
 
-        const mimeType =
+        const mimeType = normalizeMime(
           media.mimetype ||
           mime.lookup(media.filename) ||
-          'application/octet-stream';
+          'application/octet-stream');
 
         await File.create({
           shortId: media.code || undefined, // preserve XBackBone code as shortId

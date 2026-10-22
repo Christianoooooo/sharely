@@ -18,6 +18,9 @@ const fileSchema = new mongoose.Schema({
   deleteToken: {
     type: String,
     unique: true,
+    // Excluded from queries so it never reaches API/WS responses; load it
+    // explicitly with .select('+deleteToken') where the token is verified.
+    select: false,
     default: () => crypto.randomBytes(16).toString('hex'), // 32 hex chars
   },
   originalName: {

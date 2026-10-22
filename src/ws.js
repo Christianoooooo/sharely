@@ -140,7 +140,8 @@ async function handleAction(client, { id, action, payload = {} }) {
     // ── File actions ─────────────────────────────────────────────────────────
     case 'file:get': {
       const { shortId } = payload;
-      if (!shortId) return err('shortId required');
+      // Must be a plain string: an object would be passed to Mongo as a query operator.
+      if (typeof shortId !== 'string' || !shortId) return err('shortId required');
       const file = await File.findOneAndUpdate(
         { shortId },
         { $inc: { views: 1 } },
@@ -203,7 +204,7 @@ async function handleAction(client, { id, action, payload = {} }) {
 
     case 'file:delete': {
       const { shortId } = payload;
-      if (!shortId) return err('shortId required');
+      if (typeof shortId !== 'string' || !shortId) return err('shortId required');
       const file = await File.findOne({ shortId });
       if (!file) return err('File not found', 404);
       const isOwner = file.uploader.toString() === userId;

@@ -18,6 +18,7 @@ const { initWS, broadcast } = require('./src/ws');
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
+const { normalizeMime } = require('./src/utils/mime');
 const { generateThumbnail } = require('./src/utils/generateThumbnail');
 const { logAudit } = require('./src/utils/audit');
 const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
@@ -148,14 +149,15 @@ app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApi
     diskPath = newPath;
   }
 
+  const mimeType = normalizeMime(req.file.mimetype);
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
-    mimeType: req.file.mimetype,
+    mimeType,
     size: req.file.size,
     uploader: user._id,
   });
-  generateThumbnail(diskPath, req.file.mimetype, file.shortId).catch(() => {});
+  generateThumbnail(diskPath, mimeType, file.shortId).catch(() => {});
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const uploaderId = String(user._id);
   broadcast('file:uploaded', { shortId: file.shortId, uploaderId }, (c) => c.userId === uploaderId);
