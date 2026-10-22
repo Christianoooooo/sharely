@@ -84,6 +84,31 @@ function resolveChunkDir(uploadId) {
   return path.join(CHUNK_DIR, uploadId);
 }
 
+// Declared sizes of the user's unfinished chunk uploads. Counted against the
+// quota so parallel sessions cannot each claim the full remaining space.
+async function pendingChunkBytes(userId) {
+  let total = 0;
+  const entries = await fs.promises.readdir(CHUNK_DIR, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      const meta = JSON.parse(await fs.promises.readFile(path.join(CHUNK_DIR, entry.name, 'meta.json'), 'utf8'));
+      if (String(meta.userId) === String(userId)) total += meta.totalSize || 0;
+    } catch { /* session dir without readable meta */ }
+  }
+  return total;
+}
+
+// Bytes already stored for an upload session, excluding the chunk about to be replaced.
+async function storedChunkBytes(sessionDir, exceptIndex) {
+  let total = 0;
+  for (const name of await fs.promises.readdir(sessionDir)) {
+    if (!name.startsWith('chunk-') || name === `chunk-${exceptIndex}`) continue;
+    total += (await fs.promises.stat(path.join(sessionDir, name))).size;
+  }
+  return total;
+}
+
 const UPLOAD_DIR = _BASE_UPLOAD_DIR;
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
 
@@ -1082,7 +1107,8 @@ router.post('/chunk/init', requireLogin, async (req, res) => {
   }
 
   const quotaUser = await User.findById(req.session.user.id).select('storageQuota');
-  const quota = await checkQuota(quotaUser, totalSizeInt);
+  const pending = await pendingChunkBytes(req.session.user.id);
+  const quota = await checkQuota(quotaUser, totalSizeInt + pending);
   if (!quota.allowed) {
     return res.status(413).json({ error: 'Storage quota exceeded', used: quota.used, quota: quota.quota });
   }
@@ -1145,6 +1171,19 @@ router.post('/chunk/:uploadId', requireLogin, chunkMulter.single('chunk'), async
 
   if (!req.file) {
     return res.status(400).json({ error: 'No chunk data' });
+  }
+
+  // Quota was checked against the declared totalSize at init; enforce it on the
+  // bytes actually received. Concurrent chunks can overshoot by at most their own
+  // size, which the exact size check in /complete then rejects.
+  let stored;
+  try {
+    stored = await storedChunkBytes(sessionDir, chunkIndex);
+  } catch {
+    return rejectWith(404, 'Upload session not found');
+  }
+  if (stored + req.file.size > meta.totalSize) {
+    return rejectWith(413, 'Upload exceeds declared size');
   }
 
   await fs.promises.rename(req.file.path, path.join(sessionDir, `chunk-${chunkIndex}`));
@@ -1221,10 +1260,16 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
 
   try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
 
+  const realSize = (await fs.promises.stat(finalPath)).size;
+  if (realSize !== meta.totalSize) {
+    try { fs.unlinkSync(finalPath); } catch { /* ignore */ }
+    return res.status(400).json({ error: 'Assembled size does not match declared size' });
+  }
+
   const storedName = path.relative(UPLOAD_DIR, finalPath);
   // meta.json may predate init-time normalization (upload started before deploy).
   const mimeType = normalizeMime(meta.mimeType);
-  const size = await stripIfEnabled(finalPath, mimeType, meta.totalSize);
+  const size = await stripIfEnabled(finalPath, mimeType, realSize);
   const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
