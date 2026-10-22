@@ -283,7 +283,7 @@ The app maintains a persistent WebSocket connection (`/ws`) for all authenticate
 |---|---|---|
 | `file:uploaded` | Uploader only | `{ shortId, uploaderId }` |
 | `file:deleted` | Owner only | `{ shortId, uploaderId }` |
-| `file:view` | All clients | `{ shortId, views }` |
+| `file:view` | Owner + admins | `{ shortId, views }` |
 | `user:created` | Admins | `{ id, username, role }` |
 | `user:deleted` | Admins | `{ id }` |
 | `user:updated` | Admins | `{ id, …changed fields }` |

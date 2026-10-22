@@ -15,7 +15,29 @@ function resolveUploadPath(storedName) {
   return resolved;
 }
 
+const CHUNK_DIR = path.join(UPLOAD_DIR, '.chunks');
+const CHUNK_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+// Abandoned chunked uploads (tab closed, network lost) are never completed or
+// cancelled by the client, so their parts would otherwise stay on disk forever.
+async function cleanupStaleChunks() {
+  const cutoff = Date.now() - CHUNK_MAX_AGE_MS;
+  const entries = await fs.promises.readdir(CHUNK_DIR, { withFileTypes: true }).catch(() => []);
+  let removed = 0;
+  for (const entry of entries) {
+    const p = path.join(CHUNK_DIR, entry.name);
+    try {
+      if ((await fs.promises.stat(p)).mtimeMs < cutoff) {
+        await fs.promises.rm(p, { recursive: true, force: true });
+        removed++;
+      }
+    } catch { /* removed concurrently */ }
+  }
+  if (removed > 0) console.log(`[retention] Removed ${removed} stale chunk upload(s)`);
+}
+
 async function runRetentionCleanup() {
+  await cleanupStaleChunks();
   try {
     const now = new Date();
     const toDelete = new Map(); // _id (string) -> file doc, de-duplicated across criteria

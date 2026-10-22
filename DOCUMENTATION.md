@@ -375,7 +375,7 @@ Der Updater baut per `--no-deps` ausschließlich den App-Container neu — die D
 
 ```
 {
-  shortId:      String (8 Hex-Zeichen: 6 Timestamp + 2 Random, unique)
+  shortId:      String (24 Hex-Zeichen, zufällig, unique)
   deleteToken:  String (32 Hex-Zeichen, unique)
   originalName: String (sanitisiert)
   storedName:   String (relativer Pfad: "folderName/8hex.ext")
@@ -394,14 +394,14 @@ Der Updater baut per `--no-deps` ausschließlich den App-Container neu — die D
 
 **Short-ID-Algorithmus:**
 ```
-shortId = hex(seconds_since_2024-01-01, 6 chars) + randomBytes(2).hex()
+shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char format
 ```
 
 ### Collection (`src/models/Collection.js`)
 
 ```
 {
-  shortId:     String (8 Hex, unique)
+  shortId:     String (24 Hex, unique)
   name:        String (max 100)
   description: String (max 500)
   owner:       ObjectId → User
@@ -723,7 +723,7 @@ GET /api/site-settings
 |---|---|---|
 | `file:uploaded` | Uploader | `{ shortId, uploaderId }` |
 | `file:deleted` | Datei-Owner | `{ shortId, uploaderId }` |
-| `file:view` | Alle | `{ shortId, views }` |
+| `file:view` | Datei-Owner + Admins | `{ shortId, views }` |
 | `user:created` | Admins | `{ id, username, role, ... }` |
 | `user:deleted` | Admins | `{ id }` |
 | `user:updated` | Admins | `{ id, ...geänderte Felder }` |

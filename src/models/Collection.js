@@ -1,12 +1,10 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-const EPOCH = Math.floor(new Date('2024-01-01').getTime() / 1000);
-
+// Purely random (96 bit): the ID is the only secret guarding public /f/, /p/
+// and /c/ URLs, so it must not be guessable from the creation time.
 function generateShortId() {
-  const ts = (Math.floor(Date.now() / 1000) - EPOCH).toString(16).padStart(6, '0');
-  const rand = crypto.randomBytes(2).toString('hex');
-  return ts + rand;
+  return crypto.randomBytes(12).toString('hex');
 }
 
 const collectionSchema = new mongoose.Schema({

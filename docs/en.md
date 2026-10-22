@@ -353,7 +353,7 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
 
 ```
 {
-  shortId:      String (8 hex characters: 6 timestamp + 2 random, unique)
+  shortId:      String (24 hex characters, random, unique)
   deleteToken:  String (32 hex characters, unique)
   originalName: String (sanitized)
   storedName:   String (relative path: "folderName/8hex.ext")
@@ -372,14 +372,14 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
 
 **Short ID Algorithm:**
 ```
-shortId = hex(seconds_since_2024-01-01, 6 chars) + randomBytes(2).hex()
+shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char format
 ```
 
 ### Collection (`src/models/Collection.js`)
 
 ```
 {
-  shortId:     String (8 Hex, unique)
+  shortId:     String (24 Hex, unique)
   name:        String (max 100)
   description: String (max 500)
   owner:       ObjectId → User
@@ -701,7 +701,7 @@ GET /api/site-settings
 |---|---|---|
 | `file:uploaded` | Uploader | `{ shortId, uploaderId }` |
 | `file:deleted` | File owner | `{ shortId, uploaderId }` |
-| `file:view` | All | `{ shortId, views }` |
+| `file:view` | File owner + admins | `{ shortId, views }` |
 | `user:created` | Admins | `{ id, username, role, ... }` |
 | `user:deleted` | Admins | `{ id }` |
 | `user:updated` | Admins | `{ id, ...changed fields }` |

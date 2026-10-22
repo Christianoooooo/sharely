@@ -353,7 +353,7 @@ sharely/
 
 ```
 {
-  shortId:      String (16進数8文字：タイムスタンプ6文字 + ランダム2文字、ユニーク)
+  shortId:      String (ランダムな16進数24文字、ユニーク)
   deleteToken:  String (16進数32文字、ユニーク)
   originalName: String (サニタイズ済み)
   storedName:   String (相対パス："folderName/8hex.ext")
@@ -372,14 +372,14 @@ sharely/
 
 **Short IDアルゴリズム：**
 ```
-shortId = hex(seconds_since_2024-01-01, 6 chars) + randomBytes(2).hex()
+shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char format
 ```
 
 ### Collection（`src/models/Collection.js`）
 
 ```
 {
-  shortId:     String (16進数8文字、ユニーク)
+  shortId:     String (16進数24文字、ユニーク)
   name:        String (最大100)
   description: String (最大500)
   owner:       ObjectId → User
@@ -701,7 +701,7 @@ GET /api/site-settings
 |---|---|---|
 | `file:uploaded` | アップロードしたユーザー | `{ shortId, uploaderId }` |
 | `file:deleted` | ファイルオーナー | `{ shortId, uploaderId }` |
-| `file:view` | 全員 | `{ shortId, views }` |
+| `file:view` | ファイルオーナー + 管理者 | `{ shortId, views }` |
 | `user:created` | 管理者 | `{ id, username, role, ... }` |
 | `user:deleted` | 管理者 | `{ id }` |
 | `user:updated` | 管理者 | `{ id, ...変更されたフィールド }` |

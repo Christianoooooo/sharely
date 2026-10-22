@@ -12,6 +12,7 @@ const { validateEmail } = require('./utils/validateEmail');
 const mailer = require('./utils/mailer');
 
 const clients = new Set();
+const REVALIDATE_INTERVAL_MS = 30_000;
 let wss = null;
 
 function initWS(server, sessionMiddleware) {
@@ -30,10 +31,14 @@ function initWS(server, sessionMiddleware) {
         userId: String(user.id),
         isAdmin: user.role === 'admin',
         session: req.session,
+        sessionId: req.sessionID,
+        sessionStore: req.sessionStore,
         ip: req.ip ?? req.socket?.remoteAddress ?? null,
+        alive: true,
       };
       clients.add(client);
 
+      ws.on('pong', () => { client.alive = true; });
       ws.on('message', (raw) => {
         let msg;
         try { msg = JSON.parse(raw); } catch { return; }
@@ -49,6 +54,46 @@ function initWS(server, sessionMiddleware) {
       ws.on('error', () => clients.delete(client));
     });
   });
+
+  // Push-only clients never send a message, so logout, deactivation and role
+  // changes must also be picked up here or admin broadcasts keep flowing.
+  setInterval(() => {
+    for (const client of clients) {
+      if (!client.alive) {
+        client.ws.terminate();
+        clients.delete(client);
+        continue;
+      }
+      client.alive = false;
+      client.ws.ping();
+      revalidateClient(client)
+        .then((valid) => { if (!valid) closeClient(client); })
+        .catch(() => { /* transient DB/store error: keep connection, retry next sweep */ });
+    }
+  }, REVALIDATE_INTERVAL_MS);
+}
+
+/**
+ * Re-checks that the client's session still exists and its user is active,
+ * and refreshes the cached admin flag.
+ * @param {object} client - Connected client entry.
+ * @returns {Promise<boolean>} false if the connection must be closed.
+ * @throws {Error} on session store or database errors.
+ */
+async function revalidateClient(client) {
+  const session = await new Promise((resolve, reject) => {
+    client.sessionStore.get(client.sessionId, (e, s) => (e ? reject(e) : resolve(s)));
+  });
+  if (!session?.user || String(session.user.id) !== client.userId) return false;
+  const dbUser = await User.findById(client.userId).select('role isActive').lean();
+  if (!dbUser || !dbUser.isActive) return false;
+  client.isAdmin = dbUser.role === 'admin';
+  return true;
+}
+
+function closeClient(client) {
+  clients.delete(client);
+  client.ws.close(1008, 'Unauthorized');
 }
 
 /**
@@ -100,6 +145,13 @@ async function handleAction(client, { id, action, payload = {} }) {
   const ok  = (data)            => sendTo(client, id, data, null, null);
   const err = (msg, status = 400) => sendTo(client, id, null, msg, status);
 
+  // Permissions are re-read per message: the handshake snapshot goes stale on
+  // logout, deactivation or role change.
+  if (!(await revalidateClient(client))) {
+    err('Not authenticated', 401);
+    closeClient(client);
+    return;
+  }
   const { userId, isAdmin } = client;
 
   switch (action) {
@@ -148,7 +200,9 @@ async function handleAction(client, { id, action, payload = {} }) {
         { new: true },
       ).populate('uploader', 'username avatarExt');
       if (!file) return err('File not found', 404);
-      broadcast('file:view', { shortId, views: file.views }, () => true);
+      const viewOwnerId = String(file.uploader?._id ?? file.uploader);
+      broadcast('file:view', { shortId, views: file.views },
+        (c) => c.userId === viewOwnerId || c.isAdmin);
       const obj = file.toObject();
       if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
       return ok({ file: obj });

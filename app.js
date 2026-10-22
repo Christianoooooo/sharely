@@ -129,10 +129,19 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many uploads, please try again later.' },
 });
 
+// Multer has already written the file when auth runs; without this, rejected
+// unauthenticated uploads would pile up in the uploads root.
+function discardUploadOnError(req, res, next) {
+  res.on('finish', () => {
+    if (res.statusCode >= 400 && req.file?.path) fs.unlink(req.file.path, () => {});
+  });
+  next();
+}
+
 // ShareX upload endpoint — multer runs first so req.body.token is available for auth.
 // Because auth runs after multer, the file lands in the root uploads dir initially;
 // we move it into the user's subfolder once the user identity is known.
-app.post('/upload', uploadLimiter, uploadMiddleware.single('upload'), requireApiKey, async (req, res) => {
+app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single('upload'), requireApiKey, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
   const user = req.apiUser;
