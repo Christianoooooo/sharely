@@ -81,14 +81,30 @@ function initWS(server, sessionMiddleware) {
  * @throws {Error} on session store or database errors.
  */
 async function revalidateClient(client) {
-  const session = await new Promise((resolve, reject) => {
-    client.sessionStore.get(client.sessionId, (e, s) => (e ? reject(e) : resolve(s)));
-  });
+  const session = await loadStoredSession(client);
   if (!session?.user || String(session.user.id) !== client.userId) return false;
-  const dbUser = await User.findById(client.userId).select('role isActive').lean();
+  const dbUser = await User.findById(client.userId).select('role isActive sessionVersion').lean();
   if (!dbUser || !dbUser.isActive) return false;
+  if ((dbUser.sessionVersion || 0) !== (session.user.sv || 0)) return false;
   client.isAdmin = dbUser.role === 'admin';
   return true;
+}
+
+function loadStoredSession(client) {
+  return new Promise((resolve, reject) => {
+    client.sessionStore.get(client.sessionId, (e, s) => (e ? reject(e) : resolve(s)));
+  });
+}
+
+// Writes the new sessionVersion into the stored session (not the handshake copy,
+// which may be stale) so the caller stays logged in after changing the password.
+async function keepOwnSession(client, sessionVersion) {
+  const session = await loadStoredSession(client);
+  if (!session?.user) return;
+  session.user.sv = sessionVersion;
+  await new Promise((resolve, reject) => {
+    client.sessionStore.set(client.sessionId, session, (e) => (e ? reject(e) : resolve()));
+  });
 }
 
 function closeClient(client) {
@@ -294,7 +310,9 @@ async function handleAction(client, { id, action, payload = {} }) {
       const valid = await user.comparePassword(currentPassword);
       if (!valid) return err('Current password is incorrect', 401);
       user.password = newPassword;
+      user.sessionVersion = (user.sessionVersion || 0) + 1;
       await user.save();
+      await keepOwnSession(client, user.sessionVersion);
       await wsAudit(client, 'change_password');
       return ok({ success: true });
     }
@@ -630,7 +648,9 @@ async function handleAction(client, { id, action, payload = {} }) {
       const user = await User.findById(id);
       if (!user) return err('Not found', 404);
       user.password = password;
+      user.sessionVersion = (user.sessionVersion || 0) + 1;
       await user.save();
+      if (user._id.toString() === userId) await keepOwnSession(client, user.sessionVersion);
       await wsAudit(client, 'admin_change_password', { targetUsername: user.username });
       return ok({ success: true });
     }

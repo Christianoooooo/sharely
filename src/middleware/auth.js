@@ -44,4 +44,20 @@ async function requireApiKey(req, res, next) {
   next();
 }
 
-module.exports = { requireLogin, requireAdmin, requireApiKey };
+/**
+ * Starts a new session for the user under a fresh session ID (prevents session fixation).
+ * @param {import('express').Request} req - Request whose session is replaced.
+ * @param {{_id: any, username: string, role: string, sessionVersion?: number}} user - Authenticated user.
+ * @returns {Promise<void>} Resolves once the new session is stored.
+ */
+function establishSession(req, user) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((err) => {
+      if (err) return reject(err);
+      req.session.user = { id: user._id, username: user.username, role: user.role, sv: user.sessionVersion || 0 };
+      req.session.save((e) => (e ? reject(e) : resolve()));
+    });
+  });
+}
+
+module.exports = { requireLogin, requireAdmin, requireApiKey, establishSession };
