@@ -13,6 +13,7 @@ const SiteSettings = require('./src/models/SiteSettings');
 const uploadMiddleware = require('./src/middleware/upload');
 const { requireApiKey } = require('./src/middleware/auth');
 const File = require('./src/models/File');
+const User = require('./src/models/User');
 const { initWS, broadcast } = require('./src/ws');
 
 const migrateUserFolders = require('./src/migrations/migrateUserFolders');
@@ -119,6 +120,26 @@ async function getSessionMaxAge() {
 app.use(async (req, _res, next) => {
   if (req.session) req.session.cookie.maxAge = await getSessionMaxAge();
   next();
+});
+
+// The session only holds a login-time snapshot of the user; re-read it so
+// deletion, deactivation, demotion and password changes take effect at once.
+app.use(async (req, _res, next) => {
+  const sessUser = req.session?.user;
+  if (!sessUser || SKIP_LOG.test(req.path)) return next();
+  try {
+    const user = await User.findById(sessUser.id).select('username role isActive sessionVersion').lean();
+    if (!user || !user.isActive || (user.sessionVersion || 0) !== (sessUser.sv || 0)) {
+      // regenerate instead of destroy: handlers still expect req.session to exist.
+      return req.session.regenerate((err) => next(err));
+    }
+    if (sessUser.role !== user.role || sessUser.username !== user.username) {
+      req.session.user = { ...sessUser, role: user.role, username: user.username };
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 const uploadLimiter = rateLimit({

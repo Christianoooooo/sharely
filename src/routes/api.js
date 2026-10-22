@@ -776,7 +776,11 @@ router.patch('/admin/users/:id/password', requireAdmin, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
   user.password = password;
+  user.sessionVersion = (user.sessionVersion || 0) + 1;
   await user.save();
+  if (user._id.toString() === req.session.user.id.toString()) {
+    req.session.user = { ...req.session.user, sv: user.sessionVersion };
+  }
   await logAudit(req, 'admin_change_password', { targetUsername: user.username });
   res.json({ success: true });
 });
@@ -992,7 +996,10 @@ router.patch('/user/password', requireLogin, async (req, res) => {
   const valid = await user.comparePassword(currentPassword);
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
   user.password = newPassword;
+  user.sessionVersion = (user.sessionVersion || 0) + 1;
   await user.save();
+  // Keep this session valid; all others are now rejected.
+  req.session.user = { ...req.session.user, sv: user.sessionVersion };
   await logAudit(req, 'change_password');
   res.json({ success: true });
 });

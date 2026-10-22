@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
+const { establishSession } = require('../middleware/auth');
 
 // GET /api/install/status
 router.get('/status', async (_req, res) => {
@@ -69,7 +70,7 @@ router.post('/setup', async (req, res) => {
       { upsert: true, new: true },
     );
 
-    req.session.user = { id: user._id, username: user.username, role: user.role };
+    await establishSession(req, user);
     await logAudit(req, 'register');
 
     res.status(201).json({

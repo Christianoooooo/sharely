@@ -49,6 +49,12 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Bumped on password change/reset; sessions carrying an older value are
+  // rejected, which logs out every other device.
+  sessionVersion: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

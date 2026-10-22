@@ -9,6 +9,7 @@ const { logAudit } = require('../utils/audit');
 const { validateEmail } = require('../utils/validateEmail');
 const mailer = require('../utils/mailer');
 const { broadcast } = require('../ws');
+const { establishSession } = require('../middleware/auth');
 
 // A valid bcrypt hash of a random value, compared against when no user is found
 // so login timing does not reveal whether a username exists.
@@ -73,7 +74,7 @@ router.post('/login', authLimiter, async (req, res) => {
   if (!valid) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-  req.session.user = { id: user._id, username: user.username, role: user.role };
+  await establishSession(req, user);
   await logAudit(req, 'login');
   res.json({
     user: {
@@ -144,7 +145,7 @@ router.post('/register', authLimiter, async (req, res) => {
     mailer.sendEmailVerificationEmail(trimmedEmail, username, verifyUrl, user.language || 'en').catch((err) => {
       console.error('Failed to send verification email on register:', err.message);
     });
-    req.session.user = { id: user._id, username: user.username, role: user.role };
+    await establishSession(req, user);
     await logAudit(req, 'register');
     broadcast('stats:invalidate', {}, (c) => c.isAdmin);
     return res.status(201).json({
@@ -153,7 +154,7 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 
   const user = await User.create(userData);
-  req.session.user = { id: user._id, username: user.username, role: user.role };
+  await establishSession(req, user);
   await logAudit(req, 'register');
   broadcast('stats:invalidate', {}, (c) => c.isAdmin);
   res.status(201).json({
@@ -253,6 +254,7 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Invalid or expired reset token' });
   }
   user.password = newPassword;
+  user.sessionVersion = (user.sessionVersion || 0) + 1;
   user.passwordResetToken = null;
   user.passwordResetExpires = null;
   await user.save();
