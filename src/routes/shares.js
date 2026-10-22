@@ -1,5 +1,5 @@
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const bcrypt = require('bcryptjs');
 const ShareLink = require('../models/ShareLink');
 const { resolveUploadPath, serveFile } = require('./files');

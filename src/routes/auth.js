@@ -1,5 +1,5 @@
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
@@ -129,8 +129,11 @@ router.post('/register', authLimiter, async (req, res) => {
   if (exists) {
     return res.status(409).json({ error: 'Username already taken' });
   }
-  const count = await User.countDocuments();
-  const role = count === 0 ? 'admin' : 'user';
+  // The first (admin) account is created only via the token-protected install setup.
+  if (await User.countDocuments() === 0) {
+    return res.status(403).json({ error: 'Installation required' });
+  }
+  const role = 'user';
 
   const userData = { username, password, role };
   if (trimmedEmail) {

@@ -16,6 +16,8 @@ services:
       SESSION_SECRET: "${SESSION_SECRET}"
       BASE_URL: "${BASE_URL:-http://localhost:3000}"
       TRUST_PROXY: "${TRUST_PROXY:-1}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:-}"
+      INSTALL_TOKEN: "${INSTALL_TOKEN:-}"
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-100}"
       ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
       SITE_NAME: "${SITE_NAME:-sharely}"

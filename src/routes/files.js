@@ -1,12 +1,14 @@
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const fs = require('fs');
 const crypto = require('crypto');
+const { pipeline } = require('stream');
 const File = require('../models/File');
 const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { resolveUploadPath } = require('../utils/uploadPath');
 const { isFileExpired } = require('../utils/fileLifecycle');
 const { normalizeMime, SAFE_INLINE } = require('../utils/mime');
+const fileCrypto = require('../utils/fileCrypto');
 
 /** Regex matching known social-media / link-preview crawlers. */
 const BOT_UA = /discord|twitterbot|facebookexternalhit|telegram|slack|whatsapp|linkedinbot|skype|vkshare|pinterest|tumblr|mastodon/i;
@@ -33,18 +35,60 @@ function timingSafeEqualStr(a, b) {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
+// pipeline() instead of pipe(): a read or decrypt error (file deleted mid-download,
+// tampered ciphertext) must end the response, not escape as an uncaught exception.
+function sendStream(stream, res) {
+  pipeline(stream, res, (err) => {
+    if (err && err.code !== 'ERR_STREAM_PREMATURE_CLOSE') console.error('[serve] stream failed:', err.message);
+  });
+}
+
+/**
+ * Checks expiry and download cap and counts the fetch once per viewer session (never for owner/admin).
+ * @param {import('express').Request} req - Request; its session records counted files.
+ * @param {object} file - File document.
+ * @param {boolean} fullFetchOnly - true for inline views, where only fetches from byte 0 count.
+ * @returns {Promise<boolean>} false if the file is expired or its cap is used up.
+ */
+async function admitDownload(req, file, fullFetchOnly) {
+  // Per-session counting keeps preview + download and video seeking at one download.
+  if (file.expiresAt && new Date(file.expiresAt) < new Date()) return false;
+  if (!file.maxDownloads) return true;
+  const counted = req.session.countedDownloads || [];
+  if (counted.includes(file.shortId)) return true;
+  if ((file.downloadCount || 0) >= file.maxDownloads) return false;
+  const user = req.session.user;
+  if (user && (String(user.id) === String(file.uploader) || user.role === 'admin')) return true;
+  const range = req.headers.range;
+  if (fullFetchOnly && range && !/^bytes=0-/.test(range)) return true;
+  // Atomic so concurrent requests cannot exceed maxDownloads.
+  const result = await File.updateOne(
+    { _id: file._id, downloadCount: { $lt: file.maxDownloads } },
+    { $inc: { downloadCount: 1 } },
+  );
+  if (result.modifiedCount === 0) return false;
+  req.session.countedDownloads = [...counted, file.shortId].slice(-200);
+  return true;
+}
+
 /**
  * Serve a file with HTTP Range request support.
  * Adds Accept-Ranges + Content-Length headers; responds 206 for partial requests.
  */
 async function serveFile(req, res, filePath, file, forceDownload = false, cacheControl = null) {
-  let stat;
+  if (file.encrypted && !fileCrypto.isEnabled()) {
+    console.error(`[serve] ${file.shortId} is encrypted but ENCRYPTION_KEY is not set`);
+    return res.status(500).send('File cannot be decrypted');
+  }
+  let fileSize;
   try {
-    stat = await fs.promises.stat(filePath);
+    fileSize = file.encrypted ? await fileCrypto.getPlainSize(filePath) : (await fs.promises.stat(filePath)).size;
   } catch {
     return res.status(404).send('File data missing');
   }
-  const fileSize = stat.size;
+  const open = (range) => (file.encrypted
+    ? fileCrypto.createDecryptStream(filePath, range)
+    : fs.createReadStream(filePath, range));
 
   if (cacheControl) res.setHeader('Cache-Control', cacheControl);
 
@@ -77,7 +121,7 @@ async function serveFile(req, res, filePath, file, forceDownload = false, cacheC
   const rangeHeader = req.headers.range;
   if (!rangeHeader) {
     res.setHeader('Content-Length', fileSize);
-    return fs.createReadStream(filePath).pipe(res);
+    return sendStream(open({}), res);
   }
 
   // Parse "bytes=start-end"
@@ -88,7 +132,8 @@ async function serveFile(req, res, filePath, file, forceDownload = false, cacheC
   }
 
   const start = match[1] !== '' ? parseInt(match[1], 10) : fileSize - parseInt(match[2], 10);
-  const end   = match[2] !== '' ? parseInt(match[2], 10) : fileSize - 1;
+  // Suffix ranges ("bytes=-N") mean the last N bytes, i.e. they end at the last byte.
+  const end   = match[1] !== '' && match[2] !== '' ? parseInt(match[2], 10) : fileSize - 1;
 
   if (Number.isNaN(start) || Number.isNaN(end) || start < 0 || end >= fileSize || start > end) {
     res.setHeader('Content-Range', `bytes */${fileSize}`);
@@ -98,7 +143,7 @@ async function serveFile(req, res, filePath, file, forceDownload = false, cacheC
   res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
   res.setHeader('Content-Length', end - start + 1);
   res.status(206);
-  fs.createReadStream(filePath, { start, end }).pipe(res);
+  sendStream(open({ start, end }), res);
 }
 
 // GET /f/:shortId — embed handler for social-media bots; fall through for browsers
@@ -164,21 +209,27 @@ router.get('/:shortId', async (req, res, next) => {
 });
 
 // GET /f/:shortId/thumb — serve generated thumbnail (video / PDF)
-router.get('/:shortId/thumb', (req, res) => {
-  const stream = fs.createReadStream(thumbPath(req.params.shortId));
-  stream.on('error', () => { if (!res.headersSent) res.status(404).send('No thumbnail'); });
-  stream.on('open', () => {
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    stream.pipe(res);
-  });
+router.get('/:shortId/thumb', async (req, res) => {
+  // Express decodes %2F in params; without this, ..%2F could escape the thumbnail dir.
+  if (!/^[\w-]+$/.test(req.params.shortId)) return res.status(404).send('No thumbnail');
+  const tp = thumbPath(req.params.shortId);
+  let encrypted;
+  try {
+    encrypted = await fileCrypto.isEncryptedFile(tp);
+  } catch {
+    return res.status(404).send('No thumbnail');
+  }
+  if (encrypted && !fileCrypto.isEnabled()) return res.status(404).send('No thumbnail');
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  sendStream(encrypted ? fileCrypto.createDecryptStream(tp) : fs.createReadStream(tp), res);
 });
 
 // GET /f/:shortId/raw — serve file inline
 router.get('/:shortId/raw', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
-  if (isFileExpired(file)) return res.status(410).send('This file is no longer available');
+  if (!(await admitDownload(req, file, true))) return res.status(410).send('This file is no longer available');
 
   // Stored files are immutable; cache in the viewer's own browser only when the
   // file cannot self-destruct, so a later deletion is never served from cache.
@@ -206,17 +257,12 @@ router.get('/:shortId/delete/:token', async (req, res) => {
 router.get('/:shortId/download', async (req, res) => {
   const file = await File.findOne({ shortId: req.params.shortId });
   if (!file) return res.status(404).send('Not found');
-  if (isFileExpired(file)) return res.status(410).send('This file is no longer available');
 
   const filePath = resolveUploadPath(file.storedName);
   // Verify existence before counting so a missing file is not billed.
   try { await fs.promises.access(filePath); } catch { return res.status(404).send('File data missing'); }
 
-  // Count the download only when a cap is set; atomic so concurrent downloads
-  // cannot exceed maxDownloads.
-  if (file.maxDownloads) {
-    await File.updateOne({ _id: file._id }, { $inc: { downloadCount: 1 } });
-  }
+  if (!(await admitDownload(req, file, false))) return res.status(410).send('This file is no longer available');
 
   await serveFile(req, res, filePath, file, true);
 });

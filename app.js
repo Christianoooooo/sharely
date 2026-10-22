@@ -5,6 +5,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 const { rateLimit } = require('express-rate-limit');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
@@ -20,9 +21,13 @@ const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
 const { normalizeMime } = require('./src/utils/mime');
-const { generateThumbnail } = require('./src/utils/generateThumbnail');
+const { sealUpload, startThumbnail } = require('./src/utils/storeUpload');
 const { logAudit } = require('./src/utils/audit');
 const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
+const { wrapAsync } = require('./src/utils/asyncRouter');
+const { lookupLimiter } = require('./src/middleware/lookupLimiter');
+const { announceSetupToken } = require('./src/utils/setupToken');
+const fileCrypto = require('./src/utils/fileCrypto');
 
 // Survive transient failures (mostly MongoDB network blips) instead of letting
 // the container restart policy turn them into a crash-loop. A rejected DB
@@ -31,12 +36,19 @@ const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled promise rejection:', reason instanceof Error ? reason.stack : reason);
 });
+// A synchronous throw that reached the top leaves state undefined (half-written
+// files, open handles); exit and let the container restart policy bring us back.
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err.stack || err);
+  console.error('Uncaught exception, exiting:', err.stack || err);
+  process.exit(1);
 });
 
 if (!process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET environment variable is not set.');
+  process.exit(1);
+}
+if (fileCrypto.getKeyError()) {
+  console.error(`FATAL: ${fileCrypto.getKeyError()}`);
   process.exit(1);
 }
 
@@ -66,7 +78,22 @@ morgan.token('safe-url', (req) => (req.originalUrl || req.url)
   .replace(/([?&](?:api_key|token)=)[^&#]*/gi, '$1[redacted]')
   .replace(/^(\/f\/[^/?#]+\/delete\/)[^/?#]+/, '$1[redacted]')
   .replace(/^(\/s\/|\/api\/share-links\/)[^/?#]+/, '$1[redacted]'));
-app.use(morgan(':date[iso] :remote-addr :method :safe-url :status :res[content-length]B :response-time ms', {
+// Docker logs are only rotated by size, so they can outlive any stated retention
+// period; keep them free of full client IPs (IPv4 /24, IPv6 /48). The audit log
+// keeps full IPs for its 90-day TTL.
+function anonymizeIp(ip) {
+  if (!ip) return '-';
+  const v4 = ip.replace(/^::ffff:/i, '');
+  if (net.isIPv4(v4)) return v4.replace(/\.\d+$/, '.0');
+  if (!net.isIPv6(ip)) return '-';
+  const [head, tail] = ip.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const groups = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t];
+  return `${groups.slice(0, 3).join(':')}::`;
+}
+morgan.token('anon-addr', (req) => anonymizeIp(req.ip || req.socket?.remoteAddress));
+app.use(morgan(':date[iso] :anon-addr :method :safe-url :status :res[content-length]B :response-time ms', {
   skip: (req) => req.headers['user-agent']?.startsWith('Wget') || SKIP_LOG.test(req.path),
 }));
 
@@ -78,6 +105,11 @@ app.use((req, res, next) => {
   if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Share, paste and file URLs are secrets; keep them out of Referer headers sent
+  // to external links. Not no-referrer: that can turn Origin into "null" on
+  // same-origin form posts, which requireSameOrigin would reject.
+  res.setHeader('Referrer-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader(
     'Content-Security-Policy',
     // static.cloudflareinsights.com is allowed in script-src so the Cloudflare
@@ -85,7 +117,7 @@ app.use((req, res, next) => {
     // cloudflareinsights.com is allowed in connect-src so the beacon can report
     // back to Cloudflare's collection endpoint.
     // frame-ancestors 'self' allows the PDF viewer iframe (same-origin) to work.
-    "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self';",
+    "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none';",
   );
   next();
 });
@@ -179,7 +211,7 @@ function discardUploadOnError(req, res, next) {
 // ShareX upload endpoint — multer runs first so req.body.token is available for auth.
 // Because auth runs after multer, the file lands in the root uploads dir initially;
 // we move it into the user's subfolder once the user identity is known.
-app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single('upload'), requireApiKey, async (req, res) => {
+app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single('upload'), wrapAsync(requireApiKey), wrapAsync(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
   const user = req.apiUser;
@@ -197,14 +229,16 @@ app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single
   }
 
   const mimeType = normalizeMime(req.file.mimetype);
+  const sealed = await sealUpload(diskPath);
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType,
+    encrypted: sealed.encrypted,
     size: req.file.size,
     uploader: user._id,
   });
-  generateThumbnail(diskPath, mimeType, file.shortId).catch(() => {});
+  startThumbnail(sealed, mimeType, file.shortId);
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const uploaderId = String(user._id);
   broadcast('file:uploaded', { shortId: file.shortId, uploaderId }, (c) => c.userId === uploaderId);
@@ -214,7 +248,7 @@ app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single
     url: `${base}/f/${file.shortId}`,
     delete_url: `${base}/f/${file.shortId}/delete/${file.deleteToken}`,
   });
-});
+}));
 
 // CSRF protection: reject cross-origin requests by comparing Origin to Host.
 // sameSite:'strict' cookies already block most CSRF; this is an additional layer.
@@ -239,10 +273,10 @@ app.use('/api/pastes', requireSameOrigin, require('./src/routes/pastes'));
 app.use('/api', requireSameOrigin, require('./src/routes/api'));
 
 // Raw file serving (not JSON)
-app.use('/f', require('./src/routes/files'));
+app.use('/f', lookupLimiter, require('./src/routes/files'));
 
 // Share link file serving (password/expiry/download-limit checked server-side)
-app.use('/s', require('./src/routes/shares'));
+app.use('/s', lookupLimiter, require('./src/routes/shares'));
 
 // Documentation page — only served on sharely.christian.pizza
 app.use('/docs', require('./src/routes/docs'));
@@ -266,8 +300,10 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-app.use((err, _req, res, _next) => {
+app.use((err, _req, res, next) => {
   console.error(err.stack);
+  // Mid-stream failure (e.g. file download): let Express abort the connection.
+  if (res.headersSent) return next(err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -279,6 +315,10 @@ const PORT = process.env.PORT || 3000;
   await migrateApiKeyHashes();
   await runRetentionCleanup();
   setInterval(runRetentionCleanup, 24 * 60 * 60 * 1000);
+  if (await User.countDocuments() === 0) announceSetupToken();
+  if (!fileCrypto.isEnabled() && await File.exists({ encrypted: true })) {
+    console.error('[crypto] Encrypted files exist but ENCRYPTION_KEY is not set; they cannot be served.');
+  }
   const server = http.createServer(app);
   initWS(server, sessionMiddleware, app.get('trust proxy fn'));
   server.listen(PORT, () => {

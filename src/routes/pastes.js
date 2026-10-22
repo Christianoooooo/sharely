@@ -1,10 +1,11 @@
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
 const Paste = require('../models/Paste');
 const { requireLogin } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
+const { lookupLimiter } = require('../middleware/lookupLimiter');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3000';
 
@@ -113,7 +114,7 @@ router.post('/:shortId/verify', verifyLimiter, async (req, res) => {
 });
 
 // ── Raw text (public — mirrors the view's gating) ───────────────────────────
-router.get('/:shortId/raw', async (req, res) => {
+router.get('/:shortId/raw', lookupLimiter, async (req, res) => {
   const paste = await Paste.findOne({ shortId: req.params.shortId }).populate('owner', 'username');
   if (!paste) return res.status(404).send('Not found');
   if (isExpired(paste)) return res.status(410).send('This paste is no longer available');
@@ -131,7 +132,7 @@ router.get('/:shortId/raw', async (req, res) => {
 });
 
 // ── Get a paste (public — gated by private/password) ────────────────────────
-router.get('/:shortId', async (req, res) => {
+router.get('/:shortId', lookupLimiter, async (req, res) => {
   const paste = await Paste.findOne({ shortId: req.params.shortId }).populate('owner', 'username');
   if (!paste) return res.status(404).json({ error: 'Paste not found' });
   if (isExpired(paste)) return res.status(410).json({ error: 'expired' });

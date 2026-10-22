@@ -33,6 +33,11 @@ const fileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Stored file is in the src/utils/fileCrypto.js format (ENCRYPTION_KEY needed to read it).
+  encrypted: {
+    type: Boolean,
+    default: false,
+  },
   size: {
     type: Number,
     required: true,

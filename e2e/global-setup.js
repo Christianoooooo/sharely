@@ -30,6 +30,7 @@ module.exports = async function globalSetup() {
   if (!installed) {
     const r = await api.post('/api/install/setup', {
       data: {
+        setupToken: process.env.INSTALL_TOKEN || 'e2e-install-token',
         username: ADMIN_USER,
         password: ADMIN_PASS,
         confirmPassword: ADMIN_PASS,
