@@ -15,6 +15,7 @@ const SiteSettings = require('../models/SiteSettings');
 const ShareLink = require('../models/ShareLink');
 const Collection = require('../models/Collection');
 const sanitizeFilename = require('../utils/sanitizeFilename');
+const { normalizeMime } = require('../utils/mime');
 const { resolveUploadPath, escapeRegex } = require('../utils/uploadPath');
 const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { logAudit } = require('../utils/audit');
@@ -115,17 +116,18 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 
   // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
-  const size = await stripIfEnabled(req.file.path, req.file.mimetype, req.file.size);
+  const mimeType = normalizeMime(req.file.mimetype);
+  const size = await stripIfEnabled(req.file.path, mimeType, req.file.size);
 
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
-    mimeType: req.file.mimetype,
+    mimeType,
     size,
     uploader: req.apiUser._id,
   });
 
-  generateThumbnail(req.file.path, req.file.mimetype, file.shortId).catch(() => {});
+  generateThumbnail(req.file.path, mimeType, file.shortId).catch(() => {});
 
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const apiUploaderId = String(req.apiUser._id);
@@ -163,15 +165,16 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
   for (const f of req.files) {
     // storedName is relative to UPLOAD_DIR (e.g. "username/a1b2c3d4.jpg")
     const storedName = path.relative(UPLOAD_DIR, f.path);
-    const size = await stripIfEnabled(f.path, f.mimetype, f.size);
+    const mimeType = normalizeMime(f.mimetype);
+    const size = await stripIfEnabled(f.path, mimeType, f.size);
     const doc = await File.createUnique({
       originalName: sanitizeFilename(f.originalname),
       storedName,
-      mimeType: f.mimetype,
+      mimeType,
       size,
       uploader: req.session.user.id,
     });
-    generateThumbnail(f.path, f.mimetype, doc.shortId).catch(() => {});
+    generateThumbnail(f.path, mimeType, doc.shortId).catch(() => {});
     created.push(doc.toObject());
     await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
     broadcast('file:uploaded', { shortId: doc.shortId, uploaderId }, (c) => c.userId === uploaderId);
@@ -1055,11 +1058,12 @@ router.patch('/user/embed-mode', requireLogin, async (req, res) => {
 
 // ── Chunked upload: init session ───────────────────────────────────────────
 router.post('/chunk/init', requireLogin, async (req, res) => {
-  const { filename, mimeType, totalSize, totalChunks } = req.body;
+  const { filename, totalSize, totalChunks } = req.body;
 
-  if (!filename || !mimeType || !totalSize || !totalChunks) {
+  if (!filename || !req.body.mimeType || !totalSize || !totalChunks) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+  const mimeType = normalizeMime(req.body.mimeType);
 
   const totalChunksInt = parseInt(totalChunks, 10);
   if (!Number.isInteger(totalChunksInt) || totalChunksInt < 1 || totalChunksInt > 10000) {
@@ -1216,16 +1220,18 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch { /* ignore */ }
 
   const storedName = path.relative(UPLOAD_DIR, finalPath);
-  const size = await stripIfEnabled(finalPath, meta.mimeType, meta.totalSize);
+  // meta.json may predate init-time normalization (upload started before deploy).
+  const mimeType = normalizeMime(meta.mimeType);
+  const size = await stripIfEnabled(finalPath, mimeType, meta.totalSize);
   const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
-    mimeType: meta.mimeType,
+    mimeType,
     size,
     uploader: meta.userId,
   });
 
-  generateThumbnail(finalPath, meta.mimeType, doc.shortId).catch(() => {});
+  generateThumbnail(finalPath, mimeType, doc.shortId).catch(() => {});
   await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
 
   const chunkUploaderId = String(meta.userId);
@@ -1482,7 +1488,7 @@ router.delete('/share-links/:token', requireLogin, async (req, res) => {
 
 // Get share link metadata — public, used by ShareView page
 router.get('/share-links/:token', async (req, res) => {
-  const link = await ShareLink.findOne({ token: req.params.token }).populate('file', 'originalName mimeType size shortId');
+  const link = await ShareLink.findOne({ token: req.params.token }).populate('file', 'originalName mimeType size');
   if (!link) return res.status(404).json({ error: 'Share link not found' });
 
   if (link.expiresAt && link.expiresAt < new Date()) {
@@ -1498,11 +1504,12 @@ router.get('/share-links/:token', async (req, res) => {
     downloadLimit: link.downloadLimit,
     downloadCount: link.downloadCount,
     label: link.label,
+    // No shortId: /f/<shortId> is public and would bypass the link's password,
+    // expiry and download limit.
     file: {
       originalName: link.file?.originalName,
       size: link.file?.size,
       mimeType: link.file?.mimeType,
-      shortId: link.file?.shortId,
     },
   });
 });

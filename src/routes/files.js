@@ -6,6 +6,7 @@ const File = require('../models/File');
 const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
 const { resolveUploadPath } = require('../utils/uploadPath');
 const { isFileExpired } = require('../utils/fileLifecycle');
+const { normalizeMime, SAFE_INLINE } = require('../utils/mime');
 
 /** Regex matching known social-media / link-preview crawlers. */
 const BOT_UA = /discord|twitterbot|facebookexternalhit|telegram|slack|whatsapp|linkedinbot|skype|vkshare|pinterest|tumblr|mastodon/i;
@@ -47,15 +48,18 @@ async function serveFile(req, res, filePath, file, forceDownload = false, cacheC
 
   if (cacheControl) res.setHeader('Cache-Control', cacheControl);
 
+  // Normalized here as well so records stored before upload-time normalization
+  // cannot smuggle a second, renderable type past the checks below.
+  const mime = normalizeMime(file.mimeType);
   const type = file.displayType;
-  const active = ACTIVE_CONTENT.test(file.mimeType);
-  const inline = !forceDownload && !active && ['image', 'video', 'audio', 'pdf', 'text', 'code'].includes(type);
-  const isTextPreview = inline && (type === 'text' || type === 'code');
+  const active = ACTIVE_CONTENT.test(mime);
+  const isTextPreview = !forceDownload && !active && !SAFE_INLINE.test(mime) && (type === 'text' || type === 'code');
+  const inline = !forceDownload && !active && (SAFE_INLINE.test(mime) || isTextPreview);
 
   // Text/code is previewed as text/plain so an HTML payload carrying a text/* MIME
-  // cannot be rendered; active content (HTML/SVG/XML) keeps its real type but is
-  // forced to download (inline=false above).
-  const contentType = isTextPreview ? 'text/plain; charset=utf-8' : file.mimeType;
+  // cannot be rendered; anything not inline is sent as octet-stream so it can be
+  // neither rendered as a document nor loaded as a same-origin script.
+  const contentType = isTextPreview ? 'text/plain; charset=utf-8' : inline ? mime : 'application/octet-stream';
   res.setHeader('Content-Type', contentType);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   // Sandbox everything except trusted inline media (raster image/video/audio/pdf)
@@ -184,7 +188,7 @@ router.get('/:shortId/raw', async (req, res) => {
 
 // GET /f/:shortId/delete/:token — ShareX deletion URL (per-file token)
 router.get('/:shortId/delete/:token', async (req, res) => {
-  const file = await File.findOne({ shortId: req.params.shortId });
+  const file = await File.findOne({ shortId: req.params.shortId }).select('+deleteToken');
   if (!file) return res.status(404).json({ error: 'File not found' });
 
   if (!file.deleteToken || !timingSafeEqualStr(file.deleteToken, req.params.token)) {
