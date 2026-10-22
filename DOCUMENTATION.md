@@ -295,7 +295,7 @@ Alle Variablen werden aus `.env` geladen (via `dotenv`). Die Datei `.env.example
 | Variable | Standard | Beschreibung |
 |---|---|---|
 | `PORT` | `3000` | TCP-Port des HTTP-Servers |
-| `BIND_ADDRESS` | `127.0.0.1` | Host-Adresse, auf der Docker den Port veröffentlicht. Hinter Reverse Proxy auf Loopback lassen; `0.0.0.0` nur ohne Proxy |
+| `BIND_ADDRESS` | `127.0.0.1` | Host-Adresse, auf der Docker den Port veröffentlicht. Hinter Reverse Proxy auf Loopback lassen; `0.0.0.0` nur hinter externer Firewall oder ohne Proxy (siehe „Cloudflare Tunnel / Proxy im Container“) |
 | `TRUST_PROXY` | `1` | Anzahl vertrauenswürdiger Proxy-Hops (z. B. `2` für Cloudflare → nginx); muss zum Setup passen, sonst sind Client-IPs und Rate-Limits falsch |
 | `MONGODB_URI` | _(aus Docker Compose konstruiert)_ | Vollständige MongoDB-Verbindungs-URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB-Root-Passwort |
@@ -1145,6 +1145,21 @@ server {
 ```
 
 > `BASE_URL` in `.env` muss der öffentlichen Domain entsprechen.
+
+### Cloudflare Tunnel / Proxy im Container
+
+Docker veröffentlicht den App-Port standardmäßig nur auf `127.0.0.1` (`BIND_ADDRESS`). Ein Proxy, der direkt auf dem Host läuft, wie im nginx-Beispiel oben, erreicht ihn. Ein Proxy oder `cloudflared` in einem eigenen Container erreicht ihn nicht und antwortet mit **502 Bad Gateway**.
+
+- **Empfohlen:** Den Proxy-Container in das Docker-Netz von sharely hängen (`<projekt>_default`, standardmäßig `sharely_default`) und auf `http://app:3000` zeigen lassen. Dann muss gar kein Port veröffentlicht werden:
+  ```bash
+  docker network connect sharely_default <cloudflared-or-proxy-container>
+  ```
+  Damit das Neustarts übersteht, das Netz in der Compose-Datei des Proxys als `external` eintragen.
+- **Mit externer Firewall**, die Port 3000 aus dem Internet blockiert (z. B. Hetzner Cloud Firewall): `BIND_ADDRESS=0.0.0.0` in der `.env` setzen. Ohne eine solche Firewall nicht machen: Docker umgeht Host-Firewalls wie `ufw`, und wer den Port direkt erreicht, umgeht TLS und kann `X-Forwarded-For` fälschen, womit die Rate-Limits wirkungslos sind.
+
+Der Proxy muss den originalen `Host`-Header weiterreichen (WebSocket-Verbindungen werden abgelehnt, wenn `Origin` und `Host` nicht übereinstimmen) sowie `X-Forwarded-Proto` (nötig für Secure-Cookies und HSTS). Cloudflare Tunnel und das nginx-Beispiel tun das standardmäßig; in der Tunnel-Konfiguration kein `httpHostHeader` setzen. Nach der Einrichtung prüfen, ob im Audit-Log echte Client-IPs stehen; sonst `TRUST_PROXY` anpassen.
+
+> **Upgrade-Hinweis:** Frühere Versionen haben Port 3000 auf allen Interfaces veröffentlicht. Läuft der Proxy in einem Container, vor dem Update `BIND_ADDRESS` setzen oder das Netz wie oben beschrieben verbinden.
 
 ### Erster Start
 

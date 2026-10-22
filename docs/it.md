@@ -295,7 +295,7 @@ Tutte le variabili vengono caricate da `.env` (tramite `dotenv`). Il file `.env.
 | Variabile | Predefinito | Descrizione |
 |---|---|---|
 | `PORT` | `3000` | Porta TCP del server HTTP |
-| `BIND_ADDRESS` | `127.0.0.1` | Indirizzo host su cui Docker pubblica la porta. Dietro un reverse proxy mantenere loopback; `0.0.0.0` solo senza proxy |
+| `BIND_ADDRESS` | `127.0.0.1` | Indirizzo host su cui Docker pubblica la porta. Dietro un reverse proxy mantenere loopback; `0.0.0.0` solo dietro un firewall esterno o senza proxy (vedi «Cloudflare Tunnel / proxy in un container») |
 | `TRUST_PROXY` | `1` | Numero di hop proxy attendibili (es. `2` per Cloudflare → nginx); deve corrispondere al setup, altrimenti IP client e rate limit sono errati |
 | `MONGODB_URI` | _(costruita da Docker Compose)_ | URI di connessione MongoDB completa |
 | `MONGO_ROOT_PASSWORD` | — | Password root di MongoDB |
@@ -1123,6 +1123,21 @@ server {
 ```
 
 > `BASE_URL` in `.env` deve corrispondere al dominio pubblico.
+
+### Cloudflare Tunnel / proxy in un container
+
+Per impostazione predefinita Docker pubblica la porta dell'app solo su `127.0.0.1` (`BIND_ADDRESS`). Un proxy eseguito direttamente sull'host, come l'esempio nginx sopra, la raggiunge. Un proxy o `cloudflared` in un proprio container no, e risponde con **502 Bad Gateway**.
+
+- **Consigliato:** collegare il container del proxy alla rete Docker di sharely (`<progetto>_default`, predefinita `sharely_default`) e puntarlo a `http://app:3000`. In questo modo non serve pubblicare alcuna porta:
+  ```bash
+  docker network connect sharely_default <cloudflared-or-proxy-container>
+  ```
+  Per mantenerlo dopo i riavvii, dichiarare la rete come `external` nel file compose del proxy.
+- **Con un firewall esterno** che blocca la porta 3000 da Internet (ad es. Hetzner Cloud Firewall): impostare `BIND_ADDRESS=0.0.0.0` in `.env`. Non farlo senza un tale firewall: Docker aggira i firewall dell'host come `ufw`, e chi raggiunge direttamente la porta aggira TLS e può falsificare `X-Forwarded-For`, rendendo inefficaci i rate limit.
+
+Il proxy deve inoltrare l'header `Host` originale (le connessioni WebSocket vengono rifiutate se `Origin` e `Host` differiscono) e `X-Forwarded-Proto` (necessario per cookie sicuri e HSTS). Cloudflare Tunnel e l'esempio nginx lo fanno di default; non impostare `httpHostHeader` nella configurazione del tunnel. Dopo la configurazione, verificare che l'audit log mostri gli IP reali dei client; altrimenti regolare `TRUST_PROXY`.
+
+> **Nota di aggiornamento:** Le versioni precedenti pubblicavano la porta 3000 su tutte le interfacce. Se il proxy gira in un container, impostare `BIND_ADDRESS` o collegare la rete come descritto sopra prima dell'aggiornamento.
 
 ### Primo avvio
 
