@@ -148,7 +148,9 @@ async function handleAction(client, { id, action, payload = {} }) {
         { new: true },
       ).populate('uploader', 'username avatarExt');
       if (!file) return err('File not found', 404);
-      broadcast('file:view', { shortId, views: file.views }, () => true);
+      const viewOwnerId = String(file.uploader?._id ?? file.uploader);
+      broadcast('file:view', { shortId, views: file.views },
+        (c) => c.userId === viewOwnerId || c.isAdmin);
       const obj = file.toObject();
       if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
       return ok({ file: obj });

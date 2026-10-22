@@ -353,7 +353,7 @@ sharely/
 
 ```
 {
-  shortId:      String（8 个十六进制字符：6 位时间戳 + 2 位随机，唯一）
+  shortId:      String（24 个随机十六进制字符，唯一）
   deleteToken:  String（32 个十六进制字符，唯一）
   originalName: String（已净化）
   storedName:   String（相对路径："folderName/8hex.ext"）
@@ -372,14 +372,14 @@ sharely/
 
 **Short ID 算法：**
 ```
-shortId = hex(seconds_since_2024-01-01, 6 chars) + randomBytes(2).hex()
+shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char format
 ```
 
 ### Collection（`src/models/Collection.js`）
 
 ```
 {
-  shortId:     String（8 位十六进制，唯一）
+  shortId:     String（24 位十六进制，唯一）
   name:        String（最大 100）
   description: String（最大 500）
   owner:       ObjectId → User
@@ -701,7 +701,7 @@ GET /api/site-settings
 |---|---|---|
 | `file:uploaded` | 上传者 | `{ shortId, uploaderId }` |
 | `file:deleted` | 文件所有者 | `{ shortId, uploaderId }` |
-| `file:view` | 所有人 | `{ shortId, views }` |
+| `file:view` | 文件所有者 + 管理员 | `{ shortId, views }` |
 | `user:created` | 管理员 | `{ id, username, role, ... }` |
 | `user:deleted` | 管理员 | `{ id }` |
 | `user:updated` | 管理员 | `{ id, ...已更改字段 }` |

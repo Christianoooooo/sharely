@@ -378,7 +378,9 @@ router.get('/file/:shortId', async (req, res) => {
   if (!file) return res.status(404).json({ error: 'File not found' });
   if (isFileExpired(file)) return res.status(410).json({ error: 'This file is no longer available' });
 
-  broadcast('file:view', { shortId: req.params.shortId, views: file.views }, () => true);
+  const viewOwnerId = String(file.uploader?._id ?? file.uploader);
+  broadcast('file:view', { shortId: req.params.shortId, views: file.views },
+    (c) => c.userId === viewOwnerId || c.isAdmin);
 
   const obj = file.toObject();
   if (obj.uploader?.avatarExt) obj.uploader.avatarUrl = `/api/user/avatar/${obj.uploader._id}`;
