@@ -295,6 +295,8 @@ sharely/
 | 変数 | デフォルト | 説明 |
 |---|---|---|
 | `PORT` | `3000` | HTTPサーバーのTCPポート |
+| `BIND_ADDRESS` | `127.0.0.1` | Dockerがポートを公開するホストアドレス。リバースプロキシ利用時はループバックのまま、`0.0.0.0` はプロキシなしの場合のみ |
+| `TRUST_PROXY` | `1` | 信頼するプロキシのホップ数（例: Cloudflare → nginx なら `2`）。構成と一致しないとクライアントIPとレート制限が不正確になる |
 | `MONGODB_URI` | _（Docker Composeから構築）_ | 完全なMongoDB接続URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDBルートパスワード |
 | `MONGO_APP_USER` | `appuser` | MongoDBアプリケーションユーザー名 |

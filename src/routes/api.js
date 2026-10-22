@@ -42,6 +42,16 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many uploads, please try again later.' },
 });
 
+// Share-link and collection passwords are often short; only failed attempts count.
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later.' },
+});
+
 // ── Avatar helpers ──────────────────────────────────────────────────────────
 const _BASE_UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads');
 const AVATAR_DIR = path.join(_BASE_UPLOAD_DIR, '.avatars');
@@ -1569,7 +1579,7 @@ router.get('/share-links/:token', async (req, res) => {
 });
 
 // Verify share link password — stores result in session
-router.post('/share-links/:token/verify', async (req, res) => {
+router.post('/share-links/:token/verify', verifyLimiter, async (req, res) => {
   const link = await ShareLink.findOne({ token: req.params.token });
   if (!link) return res.status(404).json({ error: 'Share link not found' });
 
@@ -1819,7 +1829,7 @@ router.delete('/collections/:id/files/:fileShortId', requireLogin, async (req, r
 });
 
 // Verify collection password — stores result in session
-router.post('/collections/:id/verify', async (req, res) => {
+router.post('/collections/:id/verify', verifyLimiter, async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id });
   if (!collection) return res.status(404).json({ error: 'Collection not found' });
 

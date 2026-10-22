@@ -91,6 +91,8 @@ Copy `.env.example` to `.env` and adjust the values:
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `3000` | Port the server listens on |
+| `BIND_ADDRESS` | `127.0.0.1` | Host address the Docker port is published on. Keep loopback behind a reverse proxy; `0.0.0.0` only without one |
+| `TRUST_PROXY` | `1` | Number of trusted reverse-proxy hops (e.g. `2` for Cloudflare → nginx); must match your setup or client IPs/rate limits are wrong |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root password (required) |
 | `MONGO_APP_USER` | `appuser` | MongoDB application user |
 | `MONGO_APP_PASSWORD` | — | MongoDB application user password (required) |

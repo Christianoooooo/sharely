@@ -295,6 +295,8 @@ Todas las variables se cargan desde `.env` (mediante `dotenv`). El archivo `.env
 | Variable | Por defecto | Descripción |
 |---|---|---|
 | `PORT` | `3000` | Puerto TCP del servidor HTTP |
+| `BIND_ADDRESS` | `127.0.0.1` | Dirección del host donde Docker publica el puerto. Detrás de un proxy inverso, mantener loopback; `0.0.0.0` solo sin proxy |
+| `TRUST_PROXY` | `1` | Número de saltos de proxy de confianza (p. ej. `2` para Cloudflare → nginx); debe coincidir con tu configuración o las IP de cliente y los límites de tasa serán incorrectos |
 | `MONGODB_URI` | _(construida desde Docker Compose)_ | URI de conexión MongoDB completa |
 | `MONGO_ROOT_PASSWORD` | — | Contraseña root de MongoDB |
 | `MONGO_APP_USER` | `appuser` | Nombre de usuario de aplicación MongoDB |
