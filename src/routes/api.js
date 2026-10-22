@@ -24,6 +24,7 @@ const { streamFilesAsZip } = require('../utils/zipFiles');
 const { isFileExpired } = require('../utils/fileLifecycle');
 const { stripFileInPlace } = require('../utils/stripMetadata');
 const { validateEmail } = require('../utils/validateEmail');
+const { deleteUserData } = require('../utils/deleteUserData');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const { getUpdateStatus } = require('../utils/updateCheck');
@@ -47,6 +48,17 @@ const verifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later.' },
+});
+
+// Account actions that check the password or send mail, limited per user (not
+// per IP) so a stolen session cannot brute-force the password or mail-bomb.
+const accountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => String(req.session.user.id),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many attempts, please try again later.' },
@@ -751,14 +763,7 @@ router.delete('/admin/users/:id', requireAdmin, async (req, res) => {
   if (user._id.toString() === req.session.user.id.toString()) {
     return res.status(400).json({ error: 'Cannot delete yourself' });
   }
-  const userFiles = await File.find({ uploader: user._id });
-  for (const f of userFiles) {
-    try {
-      const fp = resolveUploadPath(f.storedName);
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
-    } catch { /* skip invalid paths */ }
-  }
-  await File.deleteMany({ uploader: user._id });
+  await deleteUserData(user);
   await logAudit(req, 'admin_delete_user', { targetUsername: user.username });
   const deletedUserId = user._id.toString();
   await user.deleteOne();
@@ -924,7 +929,7 @@ router.get('/user/export', requireLogin, async (req, res) => {
 });
 
 // ── User: delete own account (GDPR Art. 17) ────────────────────────────────
-router.delete('/user/account', requireLogin, async (req, res) => {
+router.delete('/user/account', requireLogin, accountLimiter, async (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: 'Password required' });
 
@@ -934,27 +939,8 @@ router.delete('/user/account', requireLogin, async (req, res) => {
   const valid = await user.comparePassword(password);
   if (!valid) return res.status(401).json({ error: 'Password is incorrect' });
 
-  const userFiles = await File.find({ uploader: user._id });
-  for (const f of userFiles) {
-    try {
-      const fp = resolveUploadPath(f.storedName);
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
-    } catch { /* skip invalid paths */ }
-    deleteThumbnail(f.shortId);
-  }
-  await File.deleteMany({ uploader: user._id });
-
-  if (user.avatarExt) {
-    try {
-      fs.unlinkSync(path.join(AVATAR_DIR, `${user._id}${user.avatarExt}`));
-    } catch { /* ignore */ }
-  }
-
-  // Anonymize audit log entries before deleting the user (Art. 17 GDPR)
-  await AuditLog.updateMany(
-    { userId: user._id },
-    { $set: { username: '[deleted]', ip: null, userId: null } },
-  );
+  // GDPR Art. 17: files, links, pastes, collections, avatar; audit log anonymized
+  await deleteUserData(user);
 
   await logAudit(req, 'delete_account');
   const selfDeleteId = user._id.toString();
@@ -965,7 +951,7 @@ router.delete('/user/account', requireLogin, async (req, res) => {
 });
 
 // ── User: change own username (GDPR Art. 16 – Rectification) ──────────────
-router.patch('/user/username', requireLogin, async (req, res) => {
+router.patch('/user/username', requireLogin, accountLimiter, async (req, res) => {
   const { newUsername, password } = req.body;
   if (!newUsername || !password) {
     return res.status(400).json({ error: 'New username and current password required' });
@@ -993,7 +979,7 @@ router.patch('/user/username', requireLogin, async (req, res) => {
 });
 
 // ── User: change own password ───────────────────────────────────────────────
-router.patch('/user/password', requireLogin, async (req, res) => {
+router.patch('/user/password', requireLogin, accountLimiter, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: 'Current and new password required' });
@@ -1015,7 +1001,7 @@ router.patch('/user/password', requireLogin, async (req, res) => {
 });
 
 // ── User: set email address ─────────────────────────────────────────────────
-router.patch('/user/email', requireLogin, async (req, res) => {
+router.patch('/user/email', requireLogin, accountLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!password) return res.status(400).json({ error: 'Password required' });
 
@@ -1067,7 +1053,7 @@ router.patch('/user/language', requireLogin, async (req, res) => {
 });
 
 // ── User: resend verification email ────────────────────────────────────────
-router.post('/user/resend-verification', requireLogin, async (req, res) => {
+router.post('/user/resend-verification', requireLogin, accountLimiter, async (req, res) => {
   const user = await User.findById(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
   if (!user.email || user.emailVerified) return res.status(400).json({ error: 'No unverified email' });
