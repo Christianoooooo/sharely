@@ -280,7 +280,7 @@ const PORT = process.env.PORT || 3000;
   await runRetentionCleanup();
   setInterval(runRetentionCleanup, 24 * 60 * 60 * 1000);
   const server = http.createServer(app);
-  initWS(server, sessionMiddleware);
+  initWS(server, sessionMiddleware, app.get('trust proxy fn'));
   server.listen(PORT, () => {
     console.log(`sharely running on http://localhost:${PORT}`);
   });

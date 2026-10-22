@@ -1,4 +1,5 @@
 const { WebSocketServer } = require('ws');
+const proxyaddr = require('proxy-addr');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -10,15 +11,79 @@ const { deleteThumbnail, thumbPath } = require('./utils/generateThumbnail');
 const { UPLOAD_DIR, resolveUploadPath, escapeRegex } = require('./utils/uploadPath');
 const { validateEmail } = require('./utils/validateEmail');
 const mailer = require('./utils/mailer');
+const { deleteUserData } = require('./utils/deleteUserData');
 
 const clients = new Set();
 const REVALIDATE_INTERVAL_MS = 30_000;
+// Largest legitimate action payload is a few hundred bytes; ws defaults to 100 MiB.
+const MAX_PAYLOAD_BYTES = 64 * 1024;
+const MAX_CONNECTIONS_PER_IP = 20;
+// Per-connection token bucket: bursts of 30 messages, refilled at 5 per second.
+const MSG_BURST = 30;
+const MSG_REFILL_PER_MS = 5 / 1000;
+// Actions that check the password or send mail; limited per user across connections.
+const SENSITIVE_ACTIONS = new Set([
+  'user:change-password', 'user:change-username', 'user:change-email',
+  'user:delete-account', 'user:resend-verification',
+]);
+const SENSITIVE_MAX = 10;
+const SENSITIVE_WINDOW_MS = 15 * 60 * 1000;
+
+const connectionsPerIp = new Map();
+const sensitiveHits = new Map();
 let wss = null;
 
-function initWS(server, sessionMiddleware) {
-  wss = new WebSocketServer({ server, path: '/ws' });
+// Same rule as the HTTP requireSameOrigin check; browsers always send Origin on
+// WebSocket handshakes, so a cross-site page cannot open a socket with our cookie.
+function isSameOrigin(origin, host) {
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+function allowSensitive(userId) {
+  const now = Date.now();
+  const hits = (sensitiveHits.get(userId) || []).filter((t) => now - t < SENSITIVE_WINDOW_MS);
+  if (hits.length >= SENSITIVE_MAX) {
+    sensitiveHits.set(userId, hits);
+    return false;
+  }
+  hits.push(now);
+  sensitiveHits.set(userId, hits);
+  return true;
+}
+
+/**
+ * Attaches the WebSocket server to the HTTP server.
+ * @param {import('http').Server} server - HTTP server to handle upgrades on.
+ * @param {Function} sessionMiddleware - express-session middleware used to authenticate the handshake.
+ * @param {Function} trustProxy - Express 'trust proxy fn', used to derive the client IP.
+ */
+function initWS(server, sessionMiddleware, trustProxy) {
+  wss = new WebSocketServer({
+    server,
+    path: '/ws',
+    maxPayload: MAX_PAYLOAD_BYTES,
+    verifyClient: ({ origin, req }, done) => {
+      if (!isSameOrigin(origin, req.headers.host)) return done(false, 403);
+      req.clientIp = proxyaddr(req, trustProxy);
+      if ((connectionsPerIp.get(req.clientIp) || 0) >= MAX_CONNECTIONS_PER_IP) return done(false, 429);
+      done(true);
+    },
+  });
 
   wss.on('connection', (ws, req) => {
+    const ip = req.clientIp;
+    connectionsPerIp.set(ip, (connectionsPerIp.get(ip) || 0) + 1);
+    ws.on('close', () => {
+      const n = (connectionsPerIp.get(ip) || 1) - 1;
+      if (n > 0) connectionsPerIp.set(ip, n);
+      else connectionsPerIp.delete(ip);
+    });
+
     sessionMiddleware(req, {}, () => {
       const user = req.session?.user;
       if (!user) {
@@ -33,15 +98,25 @@ function initWS(server, sessionMiddleware) {
         session: req.session,
         sessionId: req.sessionID,
         sessionStore: req.sessionStore,
-        ip: req.ip ?? req.socket?.remoteAddress ?? null,
+        ip,
         alive: true,
       };
       clients.add(client);
 
+      let tokens = MSG_BURST;
+      let lastRefill = Date.now();
       ws.on('pong', () => { client.alive = true; });
       ws.on('message', (raw) => {
         let msg;
         try { msg = JSON.parse(raw); } catch { return; }
+        const now = Date.now();
+        tokens = Math.min(MSG_BURST, tokens + (now - lastRefill) * MSG_REFILL_PER_MS);
+        lastRefill = now;
+        if (tokens < 1) {
+          if (typeof msg?.id === 'string') sendTo(client, msg.id, null, 'Too many requests', 429);
+          return;
+        }
+        tokens -= 1;
         if (msg && typeof msg.id === 'string' && typeof msg.action === 'string') {
           handleAction(client, msg).catch((e) => {
             sendTo(client, msg.id, null, 'Internal server error', 500);
@@ -169,6 +244,9 @@ async function handleAction(client, { id, action, payload = {} }) {
     return;
   }
   const { userId, isAdmin } = client;
+  if (SENSITIVE_ACTIONS.has(action) && !allowSensitive(userId)) {
+    return err('Too many attempts, please try again later.', 429);
+  }
 
   switch (action) {
 
@@ -436,20 +514,8 @@ async function handleAction(client, { id, action, payload = {} }) {
       if (!user) return err('Not found', 404);
       const valid = await user.comparePassword(password);
       if (!valid) return err('Password is incorrect', 401);
-      const userFiles = await File.find({ uploader: user._id });
-      for (const f of userFiles) {
-        try {
-          const fp = resolveUploadPath(f.storedName);
-          if (fs.existsSync(fp)) fs.unlinkSync(fp);
-        } catch { /* skip invalid paths */ }
-        deleteThumbnail(f.shortId);
-      }
-      await File.deleteMany({ uploader: user._id });
-      // GDPR Art. 17 — anonymize audit log entries before deleting the user
-      await AuditLog.updateMany(
-        { userId: user._id },
-        { $set: { username: '[deleted]', ip: null, userId: null } },
-      );
+      // GDPR Art. 17: files, links, pastes, collections, avatar; audit log anonymized
+      await deleteUserData(user);
       await wsAudit(client, 'delete_account');
       const selfDeleteId = user._id.toString();
       await user.deleteOne();
@@ -612,14 +678,7 @@ async function handleAction(client, { id, action, payload = {} }) {
       const user = await User.findById(id);
       if (!user) return err('Not found', 404);
       if (user._id.toString() === userId) return err('Cannot delete yourself');
-      const userFiles = await File.find({ uploader: user._id });
-      for (const f of userFiles) {
-        try {
-          const fp = resolveUploadPath(f.storedName);
-          if (fs.existsSync(fp)) fs.unlinkSync(fp);
-        } catch { /* skip invalid paths */ }
-      }
-      await File.deleteMany({ uploader: user._id });
+      await deleteUserData(user);
       await wsAudit(client, 'admin_delete_user', { targetUsername: user.username });
       const deletedUserId = user._id.toString();
       await user.deleteOne();
