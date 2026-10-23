@@ -1,6 +1,6 @@
 # Sicherheitsaudit sharely – Stand nach Behebung
 
-**Stand:** 23.10.2026, `main` @ `f1622bb` (Merge von PR #202), CI auf `main` grün (Unit + E2E). Live-Prüfung auf der eigenen Instanz abgeschlossen (siehe unten).
+**Stand:** 23.10.2026, `main` @ `daddb0b` (Merge von PR #203), CI auf `main` grün (Unit + E2E). Live-Prüfung auf der eigenen Instanz abgeschlossen (siehe unten).
 **Ursprüngliches Audit:** 22.10.2026, `main` @ `d9ae6b5`.
 
 **Methode der Nachprüfung:**
@@ -15,7 +15,7 @@
 
 **Nicht prüfbar:**
 - Die Live-Instanz `sharely.christian.pizza` war aus der Audit-Umgebung nicht erreichbar. Die Live-Prüfung hat der Betreiber nach Anleitung selbst durchgeführt (Abschnitt „Live-Prüfung“).
-- Die Upload-Routen und das Migrationsskript wurden nicht gegen eine echte MongoDB ausgeführt, nur über die E2E-Tests in CI (Upload ohne Verschlüsselung).
+- Die Upload-Routen und das Migrationsskript liefen in der Audit-Umgebung nicht gegen eine echte MongoDB. Auf der Live-Instanz hat der Betreiber die Migration inzwischen ausgeführt (Abschnitt „Live-Prüfung“).
 
 ---
 
@@ -67,6 +67,7 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
   - PR #190 (`12dece5`): Neue IDs für Dateien, Pastes und Collections bestehen aus 96 Bit Zufall (24 Hex-Zeichen). `file:view` geht nur noch an Eigentümer und Admins.
   - PR #195 (`f31ae8a`): gemeinsames Rate-Limit für fehlgeschlagene Abrufe per ID oder Token (100 pro IP in 15 Minuten) auf `/f`, `/s`, `/api/file`, Share-Links, Collections und Pastes.
 - **Restrisiko:** Bereits vergebene 8-stellige IDs (Zeitstempel plus 16 Bit) bleiben gültig, damit geteilte Links nicht brechen. Sie sind nur noch durch das Rate-Limit geschützt. Import-IDs aus XBackBone behalten ihr ursprüngliches Format.
+- **Betreiberentscheidung (23.10.2026):** Die alten IDs bleiben bestehen, das Restrisiko ist bewusst akzeptiert. Ihr Bestand wächst nicht mehr, da neue Dateien nur noch zufällige IDs erhalten.
 
 #### H3 – Rechte nur beim Verbindungsaufbau geprüft — **behoben**
 - **Umsetzung:**
@@ -155,7 +156,7 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
   - Während der Verarbeitung liegt eine Datei kurz im Klartext auf der Platte. Liegengebliebene Klartext-Kopien entfernt der Retention-Job nach 1 Stunde.
   - Ein Schlüsselwechsel wird nicht unterstützt, und ein verlorener Schlüssel bedeutet Datenverlust.
   - Keine Ende-zu-Ende-Verschlüsselung: Der Server sieht die Inhalte beim Upload und Ausliefern.
-- **Nicht getestet:** das Migrationsskript gegen eine echte Datenbank.
+- **Betrieb:** Auf `sharely.christian.pizza` seit dem 23.10.2026 aktiv. Der gesamte Bestand (16.151 Datei-Einträge, rund 6 GB) wurde mit `migrate:encrypt` ohne Fehler migriert; Schlüssel getrennt gesichert, `.env` nur für root lesbar.
 
 #### D4 – Logs zeitlich unbegrenzt mit vollen IPs — **behoben** (PR #195, `f31ae8a`)
 - Das Access-Log speichert IPs gekürzt (IPv4 auf /24, IPv6 auf /48). Das Audit-Log behält volle IPs, mit 90 Tagen TTL.
@@ -187,15 +188,15 @@ Am 23.10.2026 nach dem Deploy von `af044e8` durch den Betreiber durchgeführt (C
 | Client-IPs im Audit-Log | Echte öffentliche IPs, `TRUST_PROXY=1` passt zum Tunnel |
 | Session-Cookie `connect.sid` | `HttpOnly`, `Secure`, `SameSite=Strict` |
 | Standard-Quota (H4) | Vorher unbegrenzt bei offener Registrierung (48 Nutzerkonten, zusammen rund 3,2 GB). Jetzt 1 GB Standard, Einzelkontingente für Admin und Vielnutzer; kein Konto über dem Limit |
+| Verschlüsselung (D3) | Vor der Migration Backup von Uploads (`gzip -t` geprüft) und Datenbank. Schlüssel nach dem Laden in der App bestätigt. Migration mit 0 Fehlern; die Zusammenfassungszeile des Skripts wurde nicht festgehalten. Stichproben bestanden: altes Bild, Video mit Spulen, PDF, Thumbnails, ZIP-Download (enthält entschlüsselte Dateien) |
 | WebSocket über den Tunnel | `101 Switching Protocols` mit `Origin: https://sharely.christian.pizza`, Origin-Prüfung lässt die eigene Seite durch |
 
 ---
 
 ## Offene Punkte
 
-1. **Alte 8-stellige Datei-IDs** sind weiterhin erratbar und nur durch das Rate-Limit geschützt. Eine Neuvergabe würde bestehende Links brechen und ist eine Betreiberentscheidung.
-2. **Verschlüsselung aktivieren** (optional): Schlüssel erzeugen und getrennt sichern, `uploads`-Volume sichern, dann `migrate:encrypt` ausführen.
-3. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
+1. **Klartext-Backups löschen:** Die vor der Verschlüsselung angelegten Backups (`uploads-before-encrypt.tgz`, `mongo-before-encrypt.archive`) enthalten alle Dateien unverschlüsselt und sollen nach einigen Tagen fehlerfreien Betriebs gelöscht werden.
+2. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
 
 ---
 
