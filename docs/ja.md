@@ -131,14 +131,14 @@ ShareX → POST /upload (token im Formular-Body)
 | レイヤー | 技術 | バージョン |
 |---|---|---|
 | **ランタイム** | Node.js | ≥ 22 |
-| **バックエンドフレームワーク** | Express.js | 4.x |
-| **データベース** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
+| **バックエンドフレームワーク** | Express.js | 5.x |
+| **データベース** | MongoDB + Mongoose | Mongo 7, Mongoose 9.x |
 | **セッション** | express-session + connect-mongo | — |
 | **リアルタイム** | WebSocket (`ws`) | 8.x |
 | **ファイルアップロード** | Multer | 2.x |
 | **ファイル暗号化** | AES-256-GCM, HKDF-SHA256 (Node Crypto) | — |
 | **メール** | Nodemailer | 10.x |
-| **パスワードハッシュ** | bcryptjs | 2.x (12ラウンド) |
+| **パスワードハッシュ** | bcryptjs | 3.x (12ラウンド) |
 | **APIキーハッシュ** | SHA-256 (Node Crypto) | — |
 | **レート制限** | express-rate-limit | 8.x |
 | **XBackBoneインポート** | sql.js | 1.x |
@@ -151,7 +151,7 @@ ShareX → POST /upload (token im Formular-Body)
 | **i18n** | i18next + react-i18next | — |
 | **シンタックスハイライト** | highlight.js | 11.x |
 | **コンテナ** | Docker + Docker Compose | — |
-| **テスト** | Playwright (E2E) | 1.60.x |
+| **テスト** | Playwright (E2E) | 1.64.x |
 
 ---
 

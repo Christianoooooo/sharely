@@ -12,7 +12,7 @@
  * Back up the uploads volume first. Without ENCRYPTION_KEY the files cannot be read again.
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const connectDB = require('../src/config/db');
 const File = require('../src/models/File');

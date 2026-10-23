@@ -15,21 +15,21 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "archiver": "^7.0.1",
-    "bcryptjs": "^2.4.3",
-    "connect-mongo": "^5.1.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.22.3",
+    "archiver": "^8.0.0",
+    "bcryptjs": "^3.0.3",
+    "connect-mongo": "^6.0.0",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "express-session": "^1.18.0",
-    "mime-types": "^2.1.35",
-    "mongoose": "^8.24.6",
+    "mime-types": "^3.0.2",
+    "mongoose": "^9.11.4",
     "morgan": "^1.12.1",
     "multer": "^2.5.0",
     "nodemailer": "^10.2.1",
     "proxy-addr": "^2.0.8",
-    "sql.js": "^1.14.1",
-    "ws": "^8.21.0"
+    "sql.js": "^1.15.1",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

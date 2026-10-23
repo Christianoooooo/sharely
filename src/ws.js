@@ -291,7 +291,7 @@ async function handleAction(client, { id, action, payload = {} }) {
       const file = await File.findOneAndUpdate(
         { shortId },
         { $inc: { views: 1 } },
-        { new: true },
+        { returnDocument: 'after' },
       ).populate('uploader', 'username avatarExt');
       if (!file) return err('File not found', 404);
       const viewOwnerId = String(file.uploader?._id ?? file.uploader);
@@ -460,7 +460,7 @@ async function handleAction(client, { id, action, payload = {} }) {
     case 'user:change-embed-mode': {
       const { embedMode } = payload;
       if (!['embed', 'raw'].includes(embedMode)) return err('Invalid embed mode');
-      const user = await User.findByIdAndUpdate(userId, { embedMode }, { new: true });
+      const user = await User.findByIdAndUpdate(userId, { embedMode }, { returnDocument: 'after' });
       if (!user) return err('User not found', 404);
       return ok({ embedMode: user.embedMode });
     }

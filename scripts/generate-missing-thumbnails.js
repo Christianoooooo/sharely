@@ -12,7 +12,7 @@
  * The script is idempotent: files that already have a thumbnail are skipped.
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const path = require('path');
 const fs = require('fs');
 const connectDB = require('../src/config/db');

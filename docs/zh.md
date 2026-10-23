@@ -131,14 +131,14 @@ ShareX → POST /upload (token im Formular-Body)
 | 层级 | 技术 | 版本 |
 |---|---|---|
 | **运行时** | Node.js | ≥ 22 |
-| **后端框架** | Express.js | 4.x |
-| **数据库** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
+| **后端框架** | Express.js | 5.x |
+| **数据库** | MongoDB + Mongoose | Mongo 7, Mongoose 9.x |
 | **会话管理** | express-session + connect-mongo | — |
 | **实时通信** | WebSocket (`ws`) | 8.x |
 | **文件上传** | Multer | 2.x |
 | **文件加密** | AES-256-GCM、HKDF-SHA256（Node Crypto） | — |
 | **邮件** | Nodemailer | 10.x |
-| **密码哈希** | bcryptjs | 2.x（12 轮） |
+| **密码哈希** | bcryptjs | 3.x（12 轮） |
 | **API 密钥哈希** | SHA-256（Node Crypto） | — |
 | **限流** | express-rate-limit | 8.x |
 | **XBackBone 导入** | sql.js | 1.x |
@@ -151,7 +151,7 @@ ShareX → POST /upload (token im Formular-Body)
 | **i18n** | i18next + react-i18next | — |
 | **语法高亮** | highlight.js | 11.x |
 | **容器** | Docker + Docker Compose | — |
-| **测试** | Playwright（E2E） | 1.60.x |
+| **测试** | Playwright（E2E） | 1.64.x |
 
 ---
 

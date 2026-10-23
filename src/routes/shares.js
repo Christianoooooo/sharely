@@ -73,7 +73,7 @@ router.get('/:token/download', async (req, res) => {
   const updated = await ShareLink.findOneAndUpdate(
     { _id: link._id },
     { $inc: { downloadCount: 1 } },
-    { new: true },
+    { returnDocument: 'after' },
   );
   link.downloadCount = updated.downloadCount;
 

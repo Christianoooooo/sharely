@@ -430,7 +430,7 @@ router.get('/file/:shortId', lookupLimiter, async (req, res) => {
   const file = await File.findOneAndUpdate(
     { shortId: req.params.shortId },
     { $inc: { views: 1 } },
-    { new: true },
+    { returnDocument: 'after' },
   ).populate('uploader', 'username avatarExt');
   if (!file) return res.status(404).json({ error: 'File not found' });
   if (isFileExpired(file)) return res.status(410).json({ error: 'This file is no longer available' });
@@ -1090,7 +1090,7 @@ router.patch('/user/embed-mode', requireLogin, async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.session.user.id,
     { embedMode },
-    { new: true },
+    { returnDocument: 'after' },
   );
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({ embedMode: user.embedMode });
@@ -1383,7 +1383,8 @@ router.get('/user/avatar/:userId', async (req, res) => {
 
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Security-Policy', 'sandbox');
-  res.sendFile(avatarPath);
+  // Express 5 refuses paths with dot segments by default; .avatars is ours.
+  res.sendFile(avatarPath, { dotfiles: 'allow' });
 });
 
 // ── Admin: audit log ────────────────────────────────────────────────────────

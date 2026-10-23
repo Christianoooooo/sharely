@@ -71,7 +71,7 @@ router.post('/setup', async (req, res) => {
         encryptionAtRest: !!encryptionAtRest,
         cloudflareAnalytics: !!cloudflareAnalytics,
       },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     );
 
     await establishSession(req, user);
