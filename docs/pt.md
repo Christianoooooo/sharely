@@ -131,14 +131,14 @@ ShareX → POST /upload (token im Formular-Body)
 | Camada | Tecnologia | Versão |
 |---|---|---|
 | **Runtime** | Node.js | ≥ 22 |
-| **Framework backend** | Express.js | 4.x |
-| **Banco de dados** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
+| **Framework backend** | Express.js | 5.x |
+| **Banco de dados** | MongoDB + Mongoose | Mongo 7, Mongoose 9.x |
 | **Sessões** | express-session + connect-mongo | — |
 | **Tempo real** | WebSocket (`ws`) | 8.x |
 | **Upload de arquivos** | Multer | 2.x |
 | **Criptografia de arquivos** | AES-256-GCM, HKDF-SHA256 (Node Crypto) | — |
 | **E-mail** | Nodemailer | 10.x |
-| **Hash de senhas** | bcryptjs | 2.x (12 rounds) |
+| **Hash de senhas** | bcryptjs | 3.x (12 rounds) |
 | **Hash de chaves API** | SHA-256 (Node Crypto) | — |
 | **Limitação de taxa** | express-rate-limit | 8.x |
 | **Importação XBackBone** | sql.js | 1.x |
@@ -151,7 +151,7 @@ ShareX → POST /upload (token im Formular-Body)
 | **i18n** | i18next + react-i18next | — |
 | **Destaque de sintaxe** | highlight.js | 11.x |
 | **Contêineres** | Docker + Docker Compose | — |
-| **Testes** | Playwright (E2E) | 1.60.x |
+| **Testes** | Playwright (E2E) | 1.64.x |
 
 ---
 

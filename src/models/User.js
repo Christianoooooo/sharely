@@ -102,7 +102,7 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   if (this.isNew) {
     if (!this.folderName) {
       this.folderName = crypto.randomBytes(8).toString('hex');
@@ -113,9 +113,8 @@ userSchema.pre('save', async function (next) {
       this.apiKeyPrefix = plaintext.slice(0, 8);
     }
   }
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 userSchema.methods.comparePassword = function (candidate) {

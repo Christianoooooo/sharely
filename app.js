@@ -1,8 +1,8 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const http = require('http');
 const express = require('express');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const { MongoStore } = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
@@ -99,6 +99,9 @@ app.use(morgan(':date[iso] :anon-addr :method :safe-url :status :res[content-len
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Express 5 leaves req.body undefined when no parser ran (e.g. bodyless POSTs);
+// the routes destructure it and rely on the Express 4 default.
+app.use((req, _res, next) => { if (req.body === undefined) req.body = {}; next(); });
 
 app.use((req, res, next) => {
   // Only meaningful over HTTPS (req.secure honours X-Forwarded-Proto via trust proxy).
@@ -290,7 +293,7 @@ app.use(express.static(clientDist, {
     }
   },
 }));
-app.get('*', (_req, res) => {
+app.get('/{*splat}', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 

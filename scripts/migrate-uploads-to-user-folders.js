@@ -16,7 +16,7 @@
  * a '/') are skipped without modification.
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');

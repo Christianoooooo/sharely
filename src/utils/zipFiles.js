@@ -1,5 +1,5 @@
 const fs = require('fs');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 const { resolveUploadPath } = require('./uploadPath');
 const fileCrypto = require('./fileCrypto');
 
@@ -18,7 +18,7 @@ function streamFilesAsZip(res, files, zipName) {
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="${zipName}.zip"`);
 
-  const archive = archiver('zip', { zlib: { level: 0 } });
+  const archive = new ZipArchive({ zlib: { level: 0 } });
   archive.on('error', (err) => {
     console.error('[zip] archive error:', err.message);
     res.destroy(err);

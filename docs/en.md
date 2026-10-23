@@ -131,14 +131,14 @@ ShareX → POST /upload (token im Formular-Body)
 | Layer | Technology | Version |
 |---|---|---|
 | **Runtime** | Node.js | ≥ 22 |
-| **Backend Framework** | Express.js | 4.x |
-| **Database** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
+| **Backend Framework** | Express.js | 5.x |
+| **Database** | MongoDB + Mongoose | Mongo 7, Mongoose 9.x |
 | **Sessions** | express-session + connect-mongo | — |
 | **Real-Time** | WebSocket (`ws`) | 8.x |
 | **File Upload** | Multer | 2.x |
 | **File Encryption** | AES-256-GCM, HKDF-SHA256 (Node Crypto) | — |
 | **Email** | Nodemailer | 10.x |
-| **Password Hashing** | bcryptjs | 2.x (12 Rounds) |
+| **Password Hashing** | bcryptjs | 3.x (12 Rounds) |
 | **API Key Hashing** | SHA-256 (Node Crypto) | — |
 | **Rate Limiting** | express-rate-limit | 8.x |
 | **XBackBone Import** | sql.js | 1.x |
@@ -151,7 +151,7 @@ ShareX → POST /upload (token im Formular-Body)
 | **i18n** | i18next + react-i18next | — |
 | **Syntax Highlighting** | highlight.js | 11.x |
 | **Container** | Docker + Docker Compose | — |
-| **Tests** | Playwright (E2E) | 1.60.x |
+| **Tests** | Playwright (E2E) | 1.64.x |
 
 ---
 
