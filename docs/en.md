@@ -1,6 +1,6 @@
 # Sharely — Technical Documentation
 
-> **Version:** 1.0.0 · **License:** MIT · **Node.js:** ≥ 20
+> **Version:** 1.0.0 · **License:** MIT · **Node.js:** ≥ 22
 
 ---
 
@@ -130,7 +130,7 @@ ShareX → POST /upload (token im Formular-Body)
 
 | Layer | Technology | Version |
 |---|---|---|
-| **Runtime** | Node.js | ≥ 20 |
+| **Runtime** | Node.js | ≥ 22 |
 | **Backend Framework** | Express.js | 4.x |
 | **Database** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **Sessions** | express-session + connect-mongo | — |
@@ -1281,7 +1281,7 @@ On first start without users, sharely prints a setup token to the log (`docker c
 
 ### Prerequisites
 
-- Node.js ≥ 20
+- Node.js ≥ 22
 - MongoDB (local or via Docker)
 - Optional: ffmpeg, ghostscript (for thumbnails)
 

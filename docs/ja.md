@@ -1,6 +1,6 @@
 # Sharely — 技術ドキュメント
 
-> **バージョン:** 1.0.0 · **ライセンス:** MIT · **Node.js:** ≥ 20
+> **バージョン:** 1.0.0 · **ライセンス:** MIT · **Node.js:** ≥ 22
 
 ---
 
@@ -130,7 +130,7 @@ ShareX → POST /upload (token im Formular-Body)
 
 | レイヤー | 技術 | バージョン |
 |---|---|---|
-| **ランタイム** | Node.js | ≥ 20 |
+| **ランタイム** | Node.js | ≥ 22 |
 | **バックエンドフレームワーク** | Express.js | 4.x |
 | **データベース** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **セッション** | express-session + connect-mongo | — |
@@ -1281,7 +1281,7 @@ Dockerはデフォルトでアプリのポートを `127.0.0.1` にのみ公開�
 
 ### 前提条件
 
-- Node.js ≥ 20
+- Node.js ≥ 22
 - MongoDB（ローカルまたはDocker経由）
 - オプション：ffmpeg、ghostscript（サムネイル用）
 
