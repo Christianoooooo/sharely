@@ -117,7 +117,7 @@ export function DateTimePicker({ defaultValue, onChange, className }) {
               onSelect={handleDaySelect}
               disabled={{ before: new Date() }}
               locale={locale}
-              initialFocus
+              autoFocus
             />
           </PopoverContent>
         </Popover>
