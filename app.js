@@ -21,7 +21,7 @@ const migrateUserFolders = require('./src/migrations/migrateUserFolders');
 const migrateApiKeyHashes = require('./src/migrations/migrateApiKeyHashes');
 const sanitizeFilename = require('./src/utils/sanitizeFilename');
 const { normalizeMime } = require('./src/utils/mime');
-const { sealUpload, startThumbnail } = require('./src/utils/storeUpload');
+const { sealUpload, startThumbnail, discardUncommittedUploads } = require('./src/utils/storeUpload');
 const { logAudit } = require('./src/utils/audit');
 const { runRetentionCleanup } = require('./src/jobs/retentionCleanup');
 const { wrapAsync } = require('./src/utils/asyncRouter');
@@ -199,19 +199,10 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many uploads, please try again later.' },
 });
 
-// Multer has already written the file when auth runs; without this, rejected
-// unauthenticated uploads would pile up in the uploads root.
-function discardUploadOnError(req, res, next) {
-  res.on('finish', () => {
-    if (res.statusCode >= 400 && req.file?.path) fs.unlink(req.file.path, () => {});
-  });
-  next();
-}
-
 // ShareX upload endpoint — multer runs first so req.body.token is available for auth.
 // Because auth runs after multer, the file lands in the root uploads dir initially;
 // we move it into the user's subfolder once the user identity is known.
-app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single('upload'), wrapAsync(requireApiKey), wrapAsync(async (req, res) => {
+app.post('/upload', uploadLimiter, discardUncommittedUploads, uploadMiddleware.single('upload'), wrapAsync(requireApiKey), wrapAsync(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
   const user = req.apiUser;
@@ -224,12 +215,14 @@ app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single
     fs.mkdirSync(userDir, { recursive: true });
     const newPath = path.join(userDir, req.file.filename);
     fs.renameSync(req.file.path, newPath);
+    req.file.path = newPath;
     storedName = path.join(folder, req.file.filename);
     diskPath = newPath;
   }
 
   const mimeType = normalizeMime(req.file.mimetype);
   const sealed = await sealUpload(diskPath);
+  req.file.sealed = sealed;
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
@@ -238,6 +231,7 @@ app.post('/upload', uploadLimiter, discardUploadOnError, uploadMiddleware.single
     size: req.file.size,
     uploader: user._id,
   });
+  req.file.committed = true;
   startThumbnail(sealed, mimeType, file.shortId);
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const uploaderId = String(user._id);

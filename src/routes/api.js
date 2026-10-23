@@ -19,7 +19,7 @@ const { normalizeMime } = require('../utils/mime');
 const { lookupLimiter } = require('../middleware/lookupLimiter');
 const { resolveUploadPath, escapeRegex } = require('../utils/uploadPath');
 const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
-const { sealUpload, startThumbnail } = require('../utils/storeUpload');
+const { sealUpload, startThumbnail, discardUpload, discardUncommittedUploads } = require('../utils/storeUpload');
 const { logAudit } = require('../utils/audit');
 const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
 const { streamFilesAsZip } = require('../utils/zipFiles');
@@ -154,7 +154,7 @@ async function stripIfEnabled(absPath, mimeType, fallbackSize) {
 }
 
 // ── File upload (API key — ShareX) ─────────────────────────────────────────
-router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), async (req, res) => {
+router.post('/upload', uploadLimiter, requireApiKey, discardUncommittedUploads, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
   const quota = await checkQuota(req.apiUser, req.file.size);
@@ -168,6 +168,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
   const mimeType = normalizeMime(req.file.mimetype);
   const size = await stripIfEnabled(req.file.path, mimeType, req.file.size);
   const sealed = await sealUpload(req.file.path);
+  req.file.sealed = sealed;
 
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
@@ -177,6 +178,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
     size,
     uploader: req.apiUser._id,
   });
+  req.file.committed = true;
 
   startThumbnail(sealed, mimeType, file.shortId);
 
@@ -196,7 +198,7 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
 });
 
 // ── Web upload (session auth) ───────────────────────────────────────────────
-router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 500), async (req, res) => {
+router.post('/web-upload', uploadLimiter, requireLogin, discardUncommittedUploads, upload.array('files', 500), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No files provided' });
   }
@@ -219,6 +221,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
     const mimeType = normalizeMime(f.mimetype);
     const size = await stripIfEnabled(f.path, mimeType, f.size);
     const sealed = await sealUpload(f.path);
+    f.sealed = sealed;
     const doc = await File.createUnique({
       originalName: sanitizeFilename(f.originalname),
       storedName,
@@ -227,6 +230,7 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
       size,
       uploader: req.session.user.id,
     });
+    f.committed = true;
     startThumbnail(sealed, mimeType, doc.shortId);
     created.push(doc.toObject());
     await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
@@ -1250,6 +1254,13 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid file path' });
   }
 
+  // A failure from here on must not leave the assembled file (or its plaintext copy) behind.
+  let sealed;
+  let committed = false;
+  res.on('finish', () => {
+    if (res.statusCode >= 400 && !committed) discardUpload(finalPath, sealed);
+  });
+
   // Stream-assemble chunks into the final file
   await new Promise((resolve, reject) => {
     const writeStream = fs.createWriteStream(finalPath);
@@ -1279,7 +1290,7 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   // meta.json may predate init-time normalization (upload started before deploy).
   const mimeType = normalizeMime(meta.mimeType);
   const size = await stripIfEnabled(finalPath, mimeType, realSize);
-  const sealed = await sealUpload(finalPath);
+  sealed = await sealUpload(finalPath);
   const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
@@ -1288,6 +1299,7 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
     size,
     uploader: meta.userId,
   });
+  committed = true;
 
   startThumbnail(sealed, mimeType, doc.shortId);
   await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });

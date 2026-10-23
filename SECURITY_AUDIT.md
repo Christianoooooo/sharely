@@ -26,7 +26,7 @@
 | Funde im ursprünglichen Audit | 22 (2 kritisch, 4 hoch, 8 mittel, 1 DSGVO-mittel, 5 niedrig, 2 Info) |
 | Vollständig behoben | 19 |
 | Behoben mit verbleibendem Restrisiko | 3 (H2, H4, D3) |
-| Zusätzliche Funde beim Beheben | 4 (alle behoben) |
+| Zusätzliche Funde beim Beheben | 5 (alle behoben) |
 | Neu eingeführter und wieder behobener Fehler | 1 (E2E-Timeout nach Session-Rotation) |
 | Betriebsvorfall durch einen Fix | 1 (502 nach Port-Bindung an Loopback, behoben über Konfiguration und Doku) |
 
@@ -172,6 +172,7 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
 | Updater: Eine kompromittierte App konnte über einen Symlink im `777`-Control-Verzeichnis root-Schreibzugriffe umlenken (mit Docker-Socket entspricht das root auf dem Host) | Hoch (nur mit aktivem Updater) | Behoben in PR #195 |
 | Suffix-Ranges (`bytes=-N`) lieferten immer 416 | Bug | Behoben in PR #195 |
 | E2E-Test teilte die Admin-Session mit einem Nutzer-Login, ab PR #191 Timeout der Suite | CI | Behoben in PR #195 |
+| Upload-Dateien blieben bei einem Serverfehler nach dem Speichern (z. B. Datenbank nicht erreichbar) ohne Datenbank-Eintrag auf der Platte liegen, bei aktiver Verschlüsselung samt Klartext-Kopie. Bei der Live-Prüfung fanden sich 56 solche Dateien im Klartext (55 abgelehnte ShareX-Uploads von vor dem H4-Fix, 1 Web-Upload), die gelöscht wurden | Niedrig (DSGVO) | Behoben: alle Upload-Wege löschen Dateien ohne Eintrag bei Fehlern |
 
 ---
 
@@ -188,7 +189,7 @@ Am 23.10.2026 nach dem Deploy von `af044e8` durch den Betreiber durchgeführt (C
 | Client-IPs im Audit-Log | Echte öffentliche IPs, `TRUST_PROXY=1` passt zum Tunnel |
 | Session-Cookie `connect.sid` | `HttpOnly`, `Secure`, `SameSite=Strict` |
 | Standard-Quota (H4) | Vorher unbegrenzt bei offener Registrierung (48 Nutzerkonten, zusammen rund 3,2 GB). Jetzt 1 GB Standard, Einzelkontingente für Admin und Vielnutzer; kein Konto über dem Limit |
-| Verschlüsselung (D3) | Vor der Migration Backup von Uploads (`gzip -t` geprüft) und Datenbank. Schlüssel nach dem Laden in der App bestätigt. Migration mit 0 Fehlern; die Zusammenfassungszeile des Skripts wurde nicht festgehalten. Stichproben bestanden: altes Bild, Video mit Spulen, PDF, Thumbnails, ZIP-Download (enthält entschlüsselte Dateien) |
+| Verschlüsselung (D3) | Vor der Migration Backup von Uploads (`gzip -t` geprüft) und Datenbank. Schlüssel nach dem Laden in der App bestätigt. Migration mit 0 Fehlern; die Zusammenfassungszeile des Skripts wurde nicht festgehalten. Stichproben bestanden: altes Bild, Video mit Spulen, PDF, Thumbnails, ZIP-Download (enthält entschlüsselte Dateien). Nachprüfung: 16.152 von 16.152 Datei-Einträgen verschlüsselt; auf der Platte beginnen nach Entfernen von 56 verwaisten Dateien alle Uploads und Thumbnails mit der Kennung `SHLYENC1` (Avatare bewusst ausgenommen) |
 | WebSocket über den Tunnel | `101 Switching Protocols` mit `Origin: https://sharely.christian.pizza`, Origin-Prüfung lässt die eigene Seite durch |
 
 ---
