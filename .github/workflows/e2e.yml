@@ -7,7 +7,7 @@ on:
 
 jobs:
   unit:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
 
     steps:
@@ -21,7 +21,7 @@ jobs:
         run: npm test
 
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     services:
