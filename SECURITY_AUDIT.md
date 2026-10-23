@@ -1,6 +1,6 @@
 # Sicherheitsaudit sharely – Stand nach Behebung
 
-**Stand:** 23.10.2026, `main` @ `85f355f` (Merge von PR #195), CI auf `main` grün (Unit + E2E).
+**Stand:** 23.10.2026, `main` @ `af044e8` (Merge von PR #199), CI auf `main` grün (Unit + E2E). Live-Prüfung auf der eigenen Instanz abgeschlossen (siehe unten).
 **Ursprüngliches Audit:** 22.10.2026, `main` @ `d9ae6b5`.
 
 **Methode der Nachprüfung:**
@@ -14,7 +14,7 @@
   - XSS-Nachstellung und Header-Verhalten in Chromium 1194.
 
 **Nicht prüfbar:**
-- Die Live-Instanz `sharely.christian.pizza` war aus der Audit-Umgebung nicht erreichbar. Alle Aussagen beziehen sich auf den Code in `main`, nicht auf das, was dort tatsächlich läuft.
+- Die Live-Instanz `sharely.christian.pizza` war aus der Audit-Umgebung nicht erreichbar. Die Live-Prüfung hat der Betreiber nach Anleitung selbst durchgeführt (Abschnitt „Live-Prüfung“).
 - Die Upload-Routen und das Migrationsskript wurden nicht gegen eine echte MongoDB ausgeführt, nur über die E2E-Tests in CI (Upload ohne Verschlüsselung).
 
 ---
@@ -121,7 +121,7 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
 
 ### NIEDRIG
 
-#### N1 – Ghostscript/ffmpeg im App-Container — **behoben** (PR #195, `1789be6`; eigener Container)
+#### N1 – Ghostscript/ffmpeg im App-Container — **behoben** (PR #195, `1789be6`; PR #199, `00055f1`)
 - Beide laufen jetzt mit leerer Umgebung (nur `PATH`).
 - Mit Docker Compose laufen sie im eigenen Container `thumbnailer`: ohne Netzwerk, ohne Secrets, als `nobody`, mit schreibgeschütztem Dateisystem und ohne Zugriff auf `uploads/`. Die App reicht Dateien über das Volume `thumbjobs` weiter und übernimmt Ergebnisse nur als reguläre Datei bis 2 MB (keine Symlinks oder FIFOs).
 - **Nachweis:** Isolation im Container geprüft (kein Netz, keine Secrets, kein Schreibzugriff auf `in/` und das Queue-Verzeichnis); Symlink-Ergebnis wird abgelehnt.
@@ -173,18 +173,29 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
 
 ---
 
+## Live-Prüfung auf `sharely.christian.pizza`
+
+Am 23.10.2026 nach dem Deploy von `af044e8` durch den Betreiber durchgeführt (Cloudflare Tunnel, `cloudflared` im Container, Hetzner-Firewall davor).
+
+| Prüfung | Ergebnis |
+|---|---|
+| Thumbnail-Container | Läuft als `nobody`, Heartbeat aktuell, keine Warnung im App-Log. `migrate:thumbnails` erzeugte 9 PDF- und 1 Video-Thumbnail über den Container, danach `failed=0` |
+| HSTS | Cloudflare überschrieb den Header der App mit `max-age=0` (HSTS faktisch abgeschaltet). In Cloudflare auf `max-age=31536000` ohne Preload und ohne Subdomains umgestellt |
+| HSTS der App (direkt am Origin mit `X-Forwarded-Proto: https`) | `max-age=31536000; includeSubDomains`, HTTPS-Erkennung hinter dem Proxy funktioniert |
+| `Referrer-Policy`, `X-Content-Type-Options` | `same-origin`, `nosniff` |
+| Client-IPs im Audit-Log | Echte öffentliche IPs, `TRUST_PROXY=1` passt zum Tunnel |
+| Session-Cookie `connect.sid` | `HttpOnly`, `Secure`, `SameSite=Strict` |
+| WebSocket über den Tunnel | `101 Switching Protocols` mit `Origin: https://sharely.christian.pizza`, Origin-Prüfung lässt die eigene Seite durch |
+
+---
+
 ## Offene Punkte
 
 1. **Alte 8-stellige Datei-IDs** sind weiterhin erratbar und nur durch das Rate-Limit geschützt. Eine Neuvergabe würde bestehende Links brechen und ist eine Betreiberentscheidung.
-2. **Thumbnail-Container anlegen:** Nach dem Update einmalig `docker compose up -d --build` (mit Updater zusätzlich `docker compose --profile updater up -d --build updater`).
-3. **Prüfungen auf der eigenen Instanz nach dem Update:**
-   - Audit-Log zeigt echte Client-IPs (sonst `TRUST_PROXY` anpassen).
-   - WebSocket funktioniert über den Proxy (Galerie lädt, keine 403 auf `/ws`).
-   - Response-Header enthalten HSTS, `Referrer-Policy` und `Set-Cookie … Secure`.
-4. **Verschlüsselung aktivieren** (optional): Schlüssel erzeugen und getrennt sichern, `uploads`-Volume sichern, dann `migrate:encrypt` ausführen.
-5. **Standard-Quota setzen**, falls die Registrierung offen ist (Restrisiko H4).
-6. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
-7. **Übersetzungen:** Der Abschnitt „Automatische Updates“ fehlt in den sieben Übersetzungen unter `docs/` (bestand schon vor dem Audit). Der neue Hinweis zu den Updater-Rechten steht nur auf Deutsch.
+2. **Verschlüsselung aktivieren** (optional): Schlüssel erzeugen und getrennt sichern, `uploads`-Volume sichern, dann `migrate:encrypt` ausführen.
+3. **Standard-Quota setzen**, falls die Registrierung offen ist (Restrisiko H4).
+4. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
+5. **Übersetzungen:** Der Abschnitt „Automatische Updates“ fehlt in den sieben Übersetzungen unter `docs/` (bestand schon vor dem Audit). Der neue Hinweis zu den Updater-Rechten steht nur auf Deutsch.
 
 ---
 
@@ -199,3 +210,4 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
 | #193 | `e6a2237`, `cbf3a33` | M8, M1, M2, D2 |
 | #194 | `bbac3e3` | Doku Cloudflare Tunnel / Proxy im Container |
 | #195 | `7b8aea6`, `1789be6`, `f31ae8a`, `7ea07d5`, `0bc991e`, `1fe1802`, `8e8915b` | N2, N1, D3, N5, H1 (`/raw`), H2 (Rate-Limit), N3, N4, D4, Zusatzfunde, Doku, E2E-Fix |
+| #199 | `00055f1` | N1: ffmpeg/Ghostscript im eigenen Container |
