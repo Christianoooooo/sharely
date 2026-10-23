@@ -1,5 +1,5 @@
 process.env.LDAP_URL = 'ldap://ldap.example.com';
-const { searchFilter } = require('./ldap');
+const { searchFilter, normalizeDn } = require('./ldap');
 
 const cases = [
   { username: 'alice',           expect: '(uid=alice)' },
@@ -26,6 +26,18 @@ const multi = searchFilter('bob');
 const multiOk = multi === '(&(objectClass=person)(sAMAccountName=bob))';
 console.log(`[${multiOk ? 'PASS' : 'FAIL'}] custom template → ${multi}`);
 if (multiOk) passed++; else failed++;
+
+// Filter.escape passes array elements through unescaped, so non-strings must be refused.
+for (const bad of [['a)(uid=*', 'b'], { a: 1 }, 42]) {
+  let threw = false;
+  try { searchFilter(bad); } catch (e) { threw = e instanceof TypeError; }
+  console.log(`[${threw ? 'PASS' : 'FAIL'}] non-string ${JSON.stringify(bad)} is rejected`);
+  if (threw) passed++; else failed++;
+}
+
+const dnOk = normalizeDn(' UID=Bob,OU=People,DC=Example,DC=Com ') === 'uid=bob,ou=people,dc=example,dc=com';
+console.log(`[${dnOk ? 'PASS' : 'FAIL'}] DN is normalized for comparison`);
+if (dnOk) passed++; else failed++;
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

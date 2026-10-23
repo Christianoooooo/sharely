@@ -11,6 +11,7 @@ const { deleteThumbnail, thumbPath } = require('./utils/generateThumbnail');
 const { UPLOAD_DIR, resolveUploadPath, escapeRegex } = require('./utils/uploadPath');
 const { validateEmail } = require('./utils/validateEmail');
 const mailer = require('./utils/mailer');
+const ldap = require('./utils/ldap');
 const { deleteUserData } = require('./utils/deleteUserData');
 
 const clients = new Set();
@@ -385,6 +386,7 @@ async function handleAction(client, { id, action, payload = {} }) {
       if (newPassword.length < 12) return err('New password must be at least 12 characters');
       const user = await User.findById(userId);
       if (!user) return err('Not found', 404);
+      if (user.authProvider === 'ldap') return err('Password is managed by the directory');
       const valid = await user.comparePassword(currentPassword);
       if (!valid) return err('Current password is incorrect', 401);
       user.password = newPassword;
@@ -409,6 +411,13 @@ async function handleAction(client, { id, action, payload = {} }) {
       if (!valid) return err('Password is incorrect', 401);
       const conflict = await User.findOne({ username: trimmed, _id: { $ne: user._id } });
       if (conflict) return err('Username already taken', 409);
+      // Directory names stay reserved for their LDAP owners, who would otherwise be locked out.
+      try {
+        if (await ldap.isDirectoryUsername(trimmed)) return err('Username already taken', 409);
+      } catch (e) {
+        console.error('LDAP username check failed:', e.message);
+        return err('Directory unavailable, please try again later', 503);
+      }
       const oldUsername = user.username;
       user.username = trimmed;
       await user.save();

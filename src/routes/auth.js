@@ -79,12 +79,18 @@ async function finishLogin(req, res, user) {
 // quotas, roles and sessions have something to hang off. The local password is a
 // random placeholder the user never learns, which keeps them on the directory.
 async function provisionLdapUser(username, identity) {
-  if (username.length < 3 || username.length > 32) return null;
+  if (username.length < 3 || username.length > 32 || !/^[a-zA-Z0-9_-]+$/.test(username)) return null;
+  // The first account must be the admin created by the token-protected install setup.
+  if (await User.countDocuments() === 0) return null;
+  // Directories usually match case-insensitively; a name differing only in case from an
+  // existing account would be a second account or a look-alike of someone else's.
+  if (await User.exists({ username }).collation({ locale: 'en', strength: 2 })) return null;
   const userData = {
     username,
     password: crypto.randomBytes(32).toString('hex'),
     role: 'user',
     authProvider: 'ldap',
+    ldapDn: identity.dn,
   };
   const email = (identity.email || '').toLowerCase().trim();
   // Adopt the directory address only if no other account holds it, so the unique
@@ -106,7 +112,8 @@ async function provisionLdapUser(username, identity) {
 // POST /api/auth/login
 router.post('/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) {
+  // Non-strings would reach the LDAP filter unescaped and the user query as operators.
+  if (typeof username !== 'string' || typeof password !== 'string' || !username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
   const user = await User.findOne({ username });
@@ -135,9 +142,11 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     if (identity) {
-      const isNew = !user;
-      const ldapUser = user || await provisionLdapUser(username, identity);
-      if (!ldapUser) return res.status(401).json({ error: 'Invalid credentials' });
+      // The directory DN, not the typed username, decides which account this is.
+      let ldapUser = user && user.ldapDn === identity.dn ? user : await User.findOne({ ldapDn: identity.dn });
+      const isNew = !ldapUser;
+      if (isNew) ldapUser = await provisionLdapUser(username, identity);
+      if (!ldapUser || !ldapUser.isActive) return res.status(401).json({ error: 'Invalid credentials' });
       if (isNew) await logAudit(req, 'register', { provider: 'ldap' });
       return finishLogin(req, res, ldapUser);
     }
@@ -167,6 +176,15 @@ router.post('/register', authLimiter, async (req, res) => {
   }
   if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
     return res.status(400).json({ error: 'Username may only contain letters, numbers, dashes and underscores' });
+  }
+  // Directory names stay reserved for their LDAP owners, who would otherwise be locked out.
+  try {
+    if (await ldap.isDirectoryUsername(username)) {
+      return res.status(409).json({ error: 'Username already taken' });
+    }
+  } catch (err) {
+    console.error('LDAP username check failed:', err.message);
+    return res.status(503).json({ error: 'Directory unavailable, please try again later' });
   }
   if (password.length < 12) {
     return res.status(400).json({ error: 'Password must be at least 12 characters' });

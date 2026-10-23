@@ -110,7 +110,7 @@ Copy `.env.example` to `.env` and adjust the values:
 | `SMTP_USER` | — | SMTP authentication username |
 | `SMTP_PASS` | — | SMTP authentication password |
 | `SMTP_FROM` | _(SMTP_USER)_ | From address shown in outgoing emails |
-| `LDAP_URL` | — | LDAP server URL (`ldap://` or `ldaps://`); leave blank to disable LDAP login |
+| `LDAP_URL` | — | LDAP server URL (`ldaps://` recommended; `ldap://` sends passwords unencrypted); leave blank to disable LDAP login |
 | `LDAP_BIND_DN` | — | DN of the service account used to search for users; blank for an anonymous bind |
 | `LDAP_BIND_PASSWORD` | — | Password for `LDAP_BIND_DN` |
 | `LDAP_SEARCH_BASE` | — | Base DN under which users are searched, e.g. `ou=people,dc=example,dc=com` |
@@ -146,8 +146,10 @@ If `SMTP_HOST` is left blank, all email-dependent features are hidden from the U
 When `LDAP_URL` is set, users can log in with their directory credentials. Authentication uses **search + bind**: the app binds with `LDAP_BIND_DN` (or anonymously), searches `LDAP_SEARCH_BASE` using `LDAP_SEARCH_FILTER`, and then re-binds as the found entry with the supplied password.
 
 - **Local-first** — an existing local account always authenticates against its local password; the directory is only consulted for LDAP accounts and usernames with no local account.
-- **Auto-provisioning** — on the first successful LDAP login a local user record is created (role `user`) so folders, quotas and sessions work as usual. The email from `LDAP_ATTR_EMAIL` is adopted when available, and no MX check is performed on it.
-- LDAP accounts have no usable local password, so the local "change password", "change email" and "forgot password" flows do not apply to them. Promote an LDAP user to admin from the admin panel like any other account.
+- **Auto-provisioning** — on the first successful LDAP login a local user record is created (role `user`) so folders, quotas and sessions work as usual. The account is tied to the directory entry's DN, not to the typed name. The login name must follow the usual username rules (3–32 characters, letters, digits, `-`, `_`) and must not differ only in case from an existing account. Nothing is provisioned before the installation is complete. The email from `LDAP_ATTR_EMAIL` is adopted when available, and no MX check is performed on it.
+- LDAP accounts have no usable local password: "change password" and "forgot password" do not apply to them, and other actions that ask for the password (change username or email, delete account) take the directory password. Promote an LDAP user to admin from the admin panel like any other account.
+- Usernames that exist in the directory cannot be taken by self-registration or renaming.
+- Removing or disabling a user in the directory blocks new logins only. Existing sessions and the API key keep working until you also deactivate the account in the admin panel.
 
 If `LDAP_URL` is left blank, login behaves exactly as before.
 
