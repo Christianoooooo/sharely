@@ -104,7 +104,7 @@ services:
         max-file: "3"
 
   mongo:
-    image: mongo:7
+    image: mongo:9
     ports:
       - "127.0.0.1:27017:27017"
     environment:
