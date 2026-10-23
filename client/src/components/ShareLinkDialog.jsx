@@ -145,7 +145,7 @@ function LinkRow({ link, onDelete }) {
               </Badge>
             )}
             {link.expiresAt && (
-              <Badge variant={isExpired ? 'destructive' : 'outline'} className="gap-1">
+              <Badge variant={isExpired ? 'destructive' : 'outline-solid'} className="gap-1">
                 <FontAwesomeIcon icon={faHourglass} className="h-2.5 w-2.5" />
                 {isExpired ? t('shareLink.expired') : fmtDate(link.expiresAt)}
               </Badge>

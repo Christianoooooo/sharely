@@ -24,7 +24,7 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
         day: 'h-9 w-9 text-center text-sm p-0 relative rounded-md focus-within:relative focus-within:z-20',
         day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100'),
         range_end: 'day-range-end',
-        selected: '[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground [&>button]:focus:bg-primary [&>button]:focus:text-primary-foreground',
+        selected: '[&>button]:bg-primary [&>button]:text-primary-foreground hover:[&>button]:bg-primary hover:[&>button]:text-primary-foreground focus:[&>button]:bg-primary focus:[&>button]:text-primary-foreground',
         today: 'bg-accent text-accent-foreground',
         outside: 'day-outside text-muted-foreground opacity-50',
         disabled: 'text-muted-foreground opacity-50',

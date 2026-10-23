@@ -447,7 +447,7 @@ function FileViewInner() {
                 )}
               </>
             ) : (
-              <p className="text-sm whitespace-pre-wrap break-words">{description}</p>
+              <p className="text-sm whitespace-pre-wrap wrap-break-word">{description}</p>
             )}
           </CardContent>
         </Card>
@@ -464,11 +464,11 @@ function FileViewInner() {
             <p className="text-xs text-muted-foreground">{t('fileView.selfDestructHint')}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="text-xs font-medium">{t('fileView.selfDestructExpiry')}</label>
+                <label className="block text-xs font-medium">{t('fileView.selfDestructExpiry')}</label>
                 <DateTimePicker defaultValue={expiresAt} onChange={setExpiresAt} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium">{t('fileView.selfDestructMaxDownloads')}</label>
+                <label className="block text-xs font-medium">{t('fileView.selfDestructMaxDownloads')}</label>
                 <Input
                   type="number"
                   min="1"

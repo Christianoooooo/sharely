@@ -226,7 +226,7 @@ export default function AdminImport() {
                   id="default-user"
                   value={defaultUser}
                   onChange={(e) => setDefaultUser(e.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-ring"
                 >
                   <option value="">{t('adminImport.skipUnmatched')}</option>
                   {preview.localUsers.map((lu) => (

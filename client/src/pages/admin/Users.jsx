@@ -279,7 +279,7 @@ export default function AdminUsers() {
                 minLength={6} required
               />
             </div>
-            <div className="space-y-1.5 w-32">
+            <div className="flex flex-col gap-1.5 w-32">
               <Label>{t('adminUsers.role')}</Label>
               <Select value={newUser.role} onValueChange={(v) => setNewUser((p) => ({ ...p, role: v }))}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
@@ -408,7 +408,7 @@ export default function AdminUsers() {
                   <TableCell>
                     {u.email ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-mono blur-sm hover:blur-none transition-[filter] duration-200 cursor-default select-none">{u.email}</span>
+                        <span className="text-xs font-mono blur-xs hover:blur-none transition-[filter] duration-200 cursor-default select-none">{u.email}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <FontAwesomeIcon
@@ -426,7 +426,7 @@ export default function AdminUsers() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={u.isActive ? 'outline' : 'destructive'} className={u.isActive ? 'border-green-500/50 text-green-400' : ''}>
+                    <Badge variant={u.isActive ? 'outline-solid' : 'destructive'} className={u.isActive ? 'border-green-500/50 text-green-400' : ''}>
                       {u.isActive ? t('adminUsers.statusActive') : t('adminUsers.statusInactive')}
                     </Badge>
                   </TableCell>

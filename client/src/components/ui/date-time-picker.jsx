@@ -30,7 +30,7 @@ function Spinner({ value, max, onChange }) {
         type="text"
         inputMode="numeric"
         maxLength={2}
-        className="w-9 rounded border text-center text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring bg-background py-1"
+        className="w-9 rounded border text-center text-sm font-mono focus:outline-hidden focus:ring-1 focus:ring-ring bg-background py-1"
         value={String(value).padStart(2, '0')}
         onChange={(e) => { const n = parseInt(e.target.value, 10); if (!isNaN(n)) onChange(clamp(n)); }}
         onBlur={(e) => { const n = parseInt(e.target.value, 10); onChange(isNaN(n) ? 0 : clamp(n)); }}

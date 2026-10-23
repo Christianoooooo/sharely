@@ -262,7 +262,7 @@ function CollectionCard({ coll, onDelete, onUpdate }) {
                 </Badge>
               )}
               {coll.expiresAt && (
-                <Badge variant={coll.expired ? 'destructive' : 'outline'} className="gap-1">
+                <Badge variant={coll.expired ? 'destructive' : 'outline-solid'} className="gap-1">
                   <FontAwesomeIcon icon={faHourglass} className="h-2.5 w-2.5" />
                   {coll.expired ? t('shareLink.expired') : fmtDate(coll.expiresAt)}
                 </Badge>

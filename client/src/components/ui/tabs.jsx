@@ -21,7 +21,7 @@ function TabsTrigger({ className, ...props }) {
       className={cn(
         'relative flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors',
         'hover:text-foreground',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
         'data-[state=active]:text-foreground',
         'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full',
@@ -37,7 +37,7 @@ function TabsContent({ className, ...props }) {
   return (
     <TabsPrimitive.Content
       className={cn(
-        'mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'mt-4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,
       )}
       {...props}

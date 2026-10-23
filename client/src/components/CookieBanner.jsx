@@ -28,7 +28,7 @@ export function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-xs shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <FontAwesomeIcon icon={faCloud} className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 sm:mt-0" />
         <p className="text-sm text-muted-foreground flex-1">

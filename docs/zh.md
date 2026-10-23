@@ -142,12 +142,12 @@ ShareX → POST /upload (token im Formular-Body)
 | **API 密钥哈希** | SHA-256（Node Crypto） | — |
 | **限流** | express-rate-limit | 8.x |
 | **XBackBone 导入** | sql.js | 1.x |
-| **前端框架** | React 18 | 18.3.x |
-| **前端路由** | React Router v6 | 6.x |
-| **构建工具** | Vite | 6.x |
-| **样式** | Tailwind CSS + Radix UI | 3.x |
+| **前端框架** | React 19 | 19.x |
+| **前端路由** | React Router v7 | 7.x |
+| **构建工具** | Vite | 8.x |
+| **样式** | Tailwind CSS + Radix UI | 4.x |
 | **UI 组件** | shadcn/ui（Radix primitives） | — |
-| **图标** | FontAwesome | 6.x |
+| **图标** | FontAwesome | 7.x |
 | **i18n** | i18next + react-i18next | — |
 | **语法高亮** | highlight.js | 11.x |
 | **容器** | Docker + Docker Compose | — |
@@ -212,7 +212,7 @@ sharely/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
-│   ├── tailwind.config.js
+│   ├── postcss.config.js
 │   └── src/
 │       ├── main.jsx                # React 入口点
 │       ├── App.jsx                 # 路由配置
