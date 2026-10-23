@@ -36,7 +36,7 @@ function PaginationLink({ className, isActive, disabled, size = "icon", ...props
       aria-disabled={disabled || undefined}
       className={cn(
         buttonVariants({
-          variant: isActive ? "default" : "outline",
+          variant: isActive ? "default" : "outline-solid",
           size,
         }),
         disabled && "pointer-events-none opacity-50",

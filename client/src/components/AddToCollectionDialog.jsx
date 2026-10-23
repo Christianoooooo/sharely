@@ -122,7 +122,7 @@ export function AddToCollectionDialog({ shortId, children }) {
                 </div>
                 <Button
                   size="sm"
-                  variant={isAdded ? 'secondary' : 'outline'}
+                  variant={isAdded ? 'secondary' : 'outline-solid'}
                   onClick={() => !isAdded && addToCollection(coll.shortId)}
                   disabled={isAdding || isAdded}
                   className="gap-1.5 shrink-0"

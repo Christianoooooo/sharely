@@ -86,7 +86,7 @@ function FilePlaceholder({ file, icon }) {
     : null;
 
   return (
-    <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center gap-2 group-hover:brightness-110 transition-all`}>
+    <div className={`w-full h-full bg-linear-to-br ${gradient} flex flex-col items-center justify-center gap-2 group-hover:brightness-110 transition-all`}>
       <FontAwesomeIcon icon={icon} className="h-10 w-10 text-white/70" />
       {ext && (
         <span className="text-[10px] font-bold tracking-widest text-white/50 uppercase">{ext}</span>
@@ -121,7 +121,7 @@ function FileThumbnail({ file, icon }) {
         />
         {file.displayType === 'video' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <FontAwesomeIcon icon={icon} className="h-8 w-8 text-white drop-shadow" />
+            <FontAwesomeIcon icon={icon} className="h-8 w-8 text-white drop-shadow-sm" />
           </div>
         )}
       </div>
@@ -583,7 +583,7 @@ export default function Gallery() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant={selectMode ? 'secondary' : 'outline'} onClick={toggleSelectMode} className="gap-1.5">
+          <Button variant={selectMode ? 'secondary' : 'outline-solid'} onClick={toggleSelectMode} className="gap-1.5">
             <FontAwesomeIcon icon={faCheckSquare} className="h-3.5 w-3.5" />
             {selectMode ? t('gallery.cancelSelect') : t('gallery.selectMode')}
           </Button>
@@ -640,7 +640,7 @@ export default function Gallery() {
           {allTags.map((t_) => (
             <Badge
               key={t_}
-              variant={tag === t_ ? 'default' : 'outline'}
+              variant={tag === t_ ? 'default' : 'outline-solid'}
               className="cursor-pointer"
               onClick={() => setSearchParams({ q, type, tag: tag === t_ ? '' : t_, page: 1 })}
             >

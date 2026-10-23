@@ -142,12 +142,12 @@ ShareX → POST /upload (token im Formular-Body)
 | **Hashing chiavi API** | SHA-256 (Node Crypto) | — |
 | **Rate limiting** | express-rate-limit | 8.x |
 | **Importazione XBackBone** | sql.js | 1.x |
-| **Framework frontend** | React 18 | 18.3.x |
-| **Routing (frontend)** | React Router v6 | 6.x |
-| **Strumento di build** | Vite | 6.x |
-| **Stile** | Tailwind CSS + Radix UI | 3.x |
+| **Framework frontend** | React 19 | 19.x |
+| **Routing (frontend)** | React Router v7 | 7.x |
+| **Strumento di build** | Vite | 8.x |
+| **Stile** | Tailwind CSS + Radix UI | 4.x |
 | **Componenti UI** | shadcn/ui (Radix primitives) | — |
-| **Icone** | FontAwesome | 6.x |
+| **Icone** | FontAwesome | 7.x |
 | **i18n** | i18next + react-i18next | — |
 | **Evidenziazione sintassi** | highlight.js | 11.x |
 | **Container** | Docker + Docker Compose | — |
@@ -212,7 +212,7 @@ sharely/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
-│   ├── tailwind.config.js
+│   ├── postcss.config.js
 │   └── src/
 │       ├── main.jsx                # Punto di ingresso React
 │       ├── App.jsx                 # Configurazione del router

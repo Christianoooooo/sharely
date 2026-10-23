@@ -171,7 +171,7 @@ export default function AdminAuditLog() {
 
         <div className="flex flex-wrap gap-1">
           <Button
-            variant={!action ? 'secondary' : 'outline'}
+            variant={!action ? 'secondary' : 'outline-solid'}
             size="sm"
             onClick={() => setAction('')}
           >
@@ -180,7 +180,7 @@ export default function AdminAuditLog() {
           {ALL_ACTIONS.map((a) => (
             <Button
               key={a}
-              variant={action === a ? 'secondary' : 'outline'}
+              variant={action === a ? 'secondary' : 'outline-solid'}
               size="sm"
               onClick={() => setAction(a)}
             >

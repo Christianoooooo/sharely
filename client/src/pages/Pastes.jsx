@@ -274,7 +274,7 @@ function PasteCard({ paste, onChanged }) {
                 </Badge>
               )}
               {paste.expiresAt && (
-                <Badge variant={paste.expired ? 'destructive' : 'outline'} className="gap-1">
+                <Badge variant={paste.expired ? 'destructive' : 'outline-solid'} className="gap-1">
                   <FontAwesomeIcon icon={faHourglass} className="h-2.5 w-2.5" />
                   {paste.expired ? t('shareLink.expired') : fmtDate(paste.expiresAt)}
                 </Badge>

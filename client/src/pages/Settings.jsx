@@ -518,7 +518,7 @@ export default function Settings() {
               <CardDescription>{t('settings.tagManagementDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2 min-h-[2rem]">
+              <div className="flex flex-wrap gap-2 min-h-8">
                 {predefinedTags.length === 0 && (
                   <p className="text-xs text-muted-foreground">{t('settings.noTags')}</p>
                 )}
