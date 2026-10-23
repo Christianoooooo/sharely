@@ -1,6 +1,6 @@
 # Sharely — 技术文档
 
-> **版本：** 1.0.0 · **许可证：** MIT · **Node.js：** ≥ 18
+> **版本：** 1.0.0 · **许可证：** MIT · **Node.js：** ≥ 20
 
 ---
 
@@ -102,8 +102,11 @@ Sharely 是一个**自托管文件共享平台**，提供简洁的 Web 界面、
 ```
 Browser → POST /api/web-upload (multipart/form-data)
        → multer: Datei in uploads/{folderName}/
+       → normalizeMime(): MIME-Typ auf genau einen "typ/subtyp" reduzieren
+       → stripIfEnabled(): Bild-Metadaten entfernen (falls aktiviert)
+       → sealUpload(): mit ENCRYPTION_KEY verschlüsseln (sonst unverändert)
        → File.createUnique() → MongoDB
-       → generateThumbnail() (async, non-blocking)
+       → startThumbnail() (async, non-blocking; danach Klartext-Kopie löschen)
        → logAudit()
        → broadcast('file:uploaded') via WebSocket
        ← JSON: { files: [...] }
@@ -114,9 +117,10 @@ Browser → POST /api/web-upload (multipart/form-data)
 ```
 ShareX → POST /upload (token im Formular-Body)
        → multer: Datei temporär in uploads/
-       → requireApiKey: Token-Lookup → User
+       → requireApiKey: Token-Lookup → User (bei Fehler wird die Datei sofort gelöscht)
        → fs.renameSync → uploads/{folderName}/
-       → File.create() → MongoDB
+       → normalizeMime() · sealUpload() · File.createUnique() → MongoDB
+       → startThumbnail()
        ← JSON: { url, delete_url }
 ```
 
@@ -126,13 +130,14 @@ ShareX → POST /upload (token im Formular-Body)
 
 | 层级 | 技术 | 版本 |
 |---|---|---|
-| **运行时** | Node.js | ≥ 18 |
+| **运行时** | Node.js | ≥ 20 |
 | **后端框架** | Express.js | 4.x |
 | **数据库** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **会话管理** | express-session + connect-mongo | — |
 | **实时通信** | WebSocket (`ws`) | 8.x |
-| **文件上传** | Multer | 1.x |
-| **邮件** | Nodemailer | 8.x |
+| **文件上传** | Multer | 2.x |
+| **文件加密** | AES-256-GCM、HKDF-SHA256（Node Crypto） | — |
+| **邮件** | Nodemailer | 10.x |
 | **密码哈希** | bcryptjs | 2.x（12 轮） |
 | **API 密钥哈希** | SHA-256（Node Crypto） | — |
 | **限流** | express-rate-limit | 8.x |
@@ -164,32 +169,43 @@ sharely/
 │   ├── config/
 │   │   └── db.js                   # MongoDB 连接（Mongoose）
 │   ├── middleware/
-│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey
+│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey / establishSession
+│   │   ├── lookupLimiter.js        # 失败的 ID 查询共用的限流
 │   │   └── upload.js               # Multer 配置，黑名单
 │   ├── models/
 │   │   ├── AuditLog.js             # 审计事件（TTL 90 天）
 │   │   ├── Collection.js           # 文件集合
 │   │   ├── File.js                 # 文件元数据
+│   │   ├── Paste.js                # 文本粘贴
 │   │   ├── ShareLink.js            # 文件专属分享链接
 │   │   ├── SiteSettings.js         # 单例：运营者设置
 │   │   └── User.js                 # 用户账户 + API 密钥
 │   ├── routes/
 │   │   ├── api.js                  # 主 API（上传、相册、管理等）
 │   │   ├── auth.js                 # 登录 / 注册 / 密码重置
+│   │   ├── docs.js                 # 公开文档页面（/docs）
 │   │   ├── files.js                # 文件服务、OG 嵌入、Range 请求
 │   │   ├── import.js               # XBackBone 迁移
-│   │   ├── install.js              # 初始安装端点
+│   │   ├── install.js              # 初始安装端点（安装令牌）
+│   │   ├── pastes.js               # 粘贴 API
 │   │   └── shares.js               # 分享链接文件服务
 │   ├── jobs/
-│   │   └── retentionCleanup.js     # 每日删除过期文件
+│   │   └── retentionCleanup.js     # 每日删除过期文件和上传残留
 │   ├── migrations/
 │   │   ├── migrateApiKeyHashes.js  # 一次性：明文 → SHA-256 哈希
 │   │   └── migrateUserFolders.js   # 一次性：将文件移入用户文件夹
 │   ├── utils/
+│   │   ├── asyncRouter.js          # 将 async 错误交给错误处理器的 Express 路由器
 │   │   ├── audit.js                # logAudit() 辅助函数
+│   │   ├── deleteUserData.js       # 完整删除某账户的所有数据
+│   │   ├── fileCrypto.js           # 存储文件的加密（AES-256-GCM）
 │   │   ├── generateThumbnail.js    # ffmpeg / ghostscript 集成
 │   │   ├── mailer.js               # Nodemailer 封装 + i18n 邮件模板
-│   │   └── sanitizeFilename.js     # 文件名净化
+│   │   ├── mime.js                 # MIME 规范化，内联提供的白名单
+│   │   ├── sanitizeFilename.js     # 文件名净化
+│   │   ├── setupToken.js           # 首次安装的安装令牌
+│   │   ├── storeUpload.js          # 加密上传文件，从明文副本生成缩略图
+│   │   └── uploadPath.js           # 带路径遍历防护的路径解析
 │   └── ws.js                       # WebSocket 服务器 + 动作调度器
 │
 ├── client/                         # React 前端
@@ -256,7 +272,8 @@ sharely/
 │   ├── setup-db.js
 │   ├── mongo-init.js               # MongoDB 初始化脚本
 │   ├── migrate-uploads-to-user-folders.js
-│   └── generate-missing-thumbnails.js
+│   ├── generate-missing-thumbnails.js
+│   └── encrypt-existing-files.js   # 事后加密已有文件
 │
 ├── e2e/                            # Playwright 测试
 │   ├── admin.spec.js
@@ -316,7 +333,7 @@ sharely/
 | `SMTP_PASS` | — | SMTP 密码 |
 | `SMTP_FROM` | _（SMTP_USER）_ | 外发邮件的发件人地址 |
 | `UPLOAD_DIR` | `./uploads` | 上传目录的绝对路径 |
-| `NODE_ENV` | — | `production` 启用安全 Cookie |
+| `NODE_ENV` | — | 可选。安全 Cookie 不依赖于它：只要请求通过 HTTPS 到达（代理提供的 `X-Forwarded-Proto`），就会自动设置 |
 
 ---
 
@@ -336,6 +353,7 @@ sharely/
   avatarExt:                   String | null（.jpg/.png/.gif/.webp）
   embedMode:                   'embed' | 'raw'
   isActive:                    Boolean
+  sessionVersion:              Number（修改/重置密码时递增，使其他会话失效）
   email:                       String（小写，唯一，sparse）
   emailVerified:               Boolean
   emailVerificationToken:      String | null（明文的 SHA-256 哈希）
@@ -357,17 +375,21 @@ sharely/
 
 ```
 {
-  shortId:      String（24 个随机十六进制字符，唯一）
-  deleteToken:  String（32 个十六进制字符，唯一）
-  originalName: String（已净化）
-  storedName:   String（相对路径："folderName/8hex.ext"）
-  mimeType:     String
-  encrypted:    Boolean
-  size:         Number（字节）
-  uploader:     ObjectId → User
-  views:        Number
-  tags:         [String]（最多 20 × 50 个字符）
-  createdAt:    Date
+  shortId:       String（24 个随机十六进制字符，唯一）
+  deleteToken:   String（32 个十六进制字符，唯一；select: false，从不出现在 API 响应中）
+  originalName:  String（已净化）
+  storedName:    String（相对路径："folderName/8hex.ext"）
+  mimeType:      String（规范化为恰好一个 "type/subtype"）
+  encrypted:     Boolean（文件以 src/utils/fileCrypto.js 的格式存储）
+  size:          Number（字节，明文大小）
+  uploader:      ObjectId → User
+  views:         Number
+  expiresAt:     Date | null（按日期自毁）
+  maxDownloads:  Number | null（N 次下载后自毁）
+  downloadCount: Number
+  tags:          [String]（最多 20 × 50 个字符）
+  description:   String（最大 1000）
+  createdAt:     Date
 }
 ```
 
@@ -455,19 +477,30 @@ shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char f
 
 ---
 
+### 安装（`/api/install`）
+
+| 方法 | 路径 | 认证 | 描述 |
+|---|---|---|---|
+| `GET` | `/status` | — | `{ installed: Boolean }`（是否已存在用户） |
+| `POST` | `/setup` | 安装令牌 | 创建管理员账户和运营者设置；仅在尚无用户时可用 |
+
+安装令牌会在启动时写入日志（`[install] Not installed yet. Setup token: …`），或通过 `INSTALL_TOKEN` 指定。请求体中没有匹配的 `setupToken` 时，`/setup` 返回 `403`。
+
+---
+
 ### 认证（`/api/auth`）
 
 | 方法 | 路径 | 认证 | 描述 |
 |---|---|---|---|
 | `GET` | `/me` | 会话 | 当前登录用户 |
-| `POST` | `/login` | — | 登录（限流：10 次/15 分钟） |
+| `POST` | `/login` | — | 登录（限流：10 次/15 分钟；分配新的会话 ID） |
 | `POST` | `/register` | — | 注册（限流；第一个管理员只能通过安装向导创建） |
 | `POST` | `/logout` | — | 退出登录 |
 | `GET` | `/smtp-enabled` | — | 检查 SMTP 是否已配置 |
 | `GET` | `/verify-email?token=` | — | 验证邮箱地址 |
 | `GET` | `/verify-reset-token?token=` | — | 验证重置令牌 |
 | `POST` | `/forgot-password` | — | 发送密码重置邮件（限流：5 次/小时） |
-| `POST` | `/reset-password` | — | 设置新密码 |
+| `POST` | `/reset-password` | — | 设置新密码（终止所有现有会话） |
 
 **登录请求：**
 ```json
@@ -514,10 +547,12 @@ POST /api/auth/login
 
 #### 分块上传流程
 
-1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`
+1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`  
+   配额检查基于 `totalSize` 加上该用户所有未完成分块上传所声明的大小
 2. `POST /api/chunk/:uploadId`（Body：`chunkIndex=N`，文件：`chunk`）→ `{ received: N }`  
-   并行上传 3–5 个分块
-3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`
+   并行上传 3–5 个分块；接收的字节数一旦超过 `totalSize` 即返回 `413`
+3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`  
+   合并后的文件大小不恰好等于 `totalSize` 时返回 `400`
 
 ---
 
@@ -526,7 +561,7 @@ POST /api/auth/login
 | 方法 | 路径 | 认证 | 描述 |
 |---|---|---|---|
 | `GET` | `/api/gallery` | 会话 | 自己的文件（管理员：所有文件），分页（24 个/页），筛选：`q`、`type`、`tag`、`page` |
-| `GET` | `/api/file/:shortId` | — | 文件元数据（递增访问计数） |
+| `GET` | `/api/file/:shortId` | — | 文件元数据，不含 `deleteToken`（递增访问计数） |
 | `PATCH` | `/api/file/:shortId` | 会话 | 更新标签/名称 |
 | `DELETE` | `/api/file/:shortId` | 会话 | 删除文件 |
 | `DELETE` | `/api/delete/:shortId` | API 密钥 | 删除文件（API 密钥认证） |
@@ -562,6 +597,8 @@ POST /api/auth/login
 | `DELETE` | `/api/user/avatar` | 会话 | 删除头像 |
 | `GET` | `/api/user/avatar/:userId` | — | 提供头像服务 |
 
+修改用户名、密码、邮箱、重新发送验证邮件和删除账户，每个用户在 15 分钟内限 10 次尝试（防止利用被盗会话猜测密码以及邮件轰炸）。修改密码会终止该用户的所有其他会话；当前会话保持登录。
+
 ---
 
 ### 分享链接
@@ -571,8 +608,8 @@ POST /api/auth/login
 | `GET` | `/api/file/:shortId/share-links` | 会话（所有者/管理员） | 文件的所有分享链接 |
 | `POST` | `/api/file/:shortId/share-links` | 会话（所有者/管理员） | 创建分享链接 |
 | `DELETE` | `/api/share-links/:token` | 会话（所有者/创建者/管理员） | 删除分享链接 |
-| `GET` | `/api/share-links/:token` | — | 分享链接元数据（公开） |
-| `POST` | `/api/share-links/:token/verify` | — | 验证分享链接密码 |
+| `GET` | `/api/share-links/:token` | — | 分享链接元数据（公开；不含文件的 `shortId`，以免通过 `/f/` 绕过密码、过期时间和下载限制） |
+| `POST` | `/api/share-links/:token/verify` | — | 验证分享链接密码（每个 IP 15 分钟内最多 10 次失败尝试） |
 
 **创建分享链接：**
 ```json
@@ -598,7 +635,7 @@ POST /api/file/a1b2c3d4/share-links
 | `DELETE` | `/api/collections/:id` | 会话（所有者/管理员） | 删除集合 |
 | `POST` | `/api/collections/:id/files` | 会话（所有者/管理员） | 向集合添加文件 |
 | `DELETE` | `/api/collections/:id/files/:fileShortId` | 会话（所有者/管理员） | 从集合中移除文件 |
-| `POST` | `/api/collections/:id/verify` | — | 验证集合密码 |
+| `POST` | `/api/collections/:id/verify` | — | 验证集合密码（每个 IP 15 分钟内最多 10 次失败尝试） |
 
 ---
 
@@ -610,10 +647,10 @@ POST /api/file/a1b2c3d4/share-links
 | `GET` | `/api/admin/users` | 管理员 | 所有用户（含文件数量） |
 | `POST` | `/api/admin/users` | 管理员 | 创建用户 |
 | `PATCH` | `/api/admin/users/:id/toggle` | 管理员 | 启用/禁用用户 |
-| `PATCH` | `/api/admin/users/:id/role` | 管理员 | 修改用户角色 |
-| `DELETE` | `/api/admin/users/:id` | 管理员 | 删除用户 |
+| `PATCH` | `/api/admin/users/:id/role` | 管理员 | 修改用户角色（立即生效，包括已打开的会话） |
+| `DELETE` | `/api/admin/users/:id` | 管理员 | 删除用户及其所有数据 |
 | `POST` | `/api/admin/users/:id/regen-key` | 管理员 | 重新生成 API 密钥 |
-| `PATCH` | `/api/admin/users/:id/password` | 管理员 | 设置密码 |
+| `PATCH` | `/api/admin/users/:id/password` | 管理员 | 设置密码（终止该用户的所有会话） |
 | `PATCH` | `/api/admin/users/:id/folder` | 管理员 | 修改文件夹名称（移动文件） |
 | `GET` | `/api/admin/files` | 管理员 | 所有文件，分页（30 个/页） |
 | `GET` | `/api/admin/site-settings` | 管理员 | 读取运营者设置 |
@@ -644,6 +681,13 @@ GET /api/site-settings
 ## 8. WebSocket API
 
 **连接：** `wss://example.com/ws`（仅限已登录用户，需要会话 Cookie）
+
+### 安全防护
+
+- **Origin 检查：** 如果 `Origin` 请求头与 `Host` 不一致，握手将以 `403` 拒绝（与 HTTP API 的 `requireSameOrigin` 规则相同）。代理必须转发原始 `Host`。
+- **持续权限检查：** 每条消息都会重新检查会话、启用状态、角色和 `sessionVersion`，此外每 30 秒对所有连接重新检查一次。退出登录、禁用、删除、修改密码或降级后，连接将被关闭或失去管理员权限及管理员广播。
+- **心跳：** 每 30 秒发送一次 Ping；未回应 Pong 的连接将被断开。
+- **限制：** 每条消息最大 64 KiB（更大的消息会以代码 `1009` 关闭连接），每个连接可连续发送最多 30 条消息，之后每秒 5 条（否则以 `status: 429` 响应），每个客户端 IP 最多 20 个并发连接。涉及密码验证或发送邮件的操作，每个用户 15 分钟内限 10 次。
 
 ### 协议
 
@@ -727,23 +771,39 @@ GET /api/site-settings
 
 ### `/f/:shortId/raw` — 直接访问
 
-以 HTTP 响应的形式提供文件，支持 Range 请求（206 Partial Content）。图片/视频/音频：`Content-Disposition: inline`，其他：`attachment`。
+以 HTTP 响应的形式提供文件，支持 Range 请求（206 Partial Content，也支持 `bytes=-500` 这样的后缀范围）。加密文件会实时解密。
+
+哪些文件直接在浏览器中显示，由基于规范化 MIME 类型的白名单（`src/utils/mime.js`）决定：
+
+| 情况 | `Content-Type` | `Content-Disposition` | 附加 |
+|---|---|---|---|
+| 图片（PNG、JPEG、GIF、WebP、AVIF、BMP、ICO）、常见视频/音频格式、PDF | 真实类型 | `inline` | — |
+| 文本和代码（按 `displayType`） | `text/plain; charset=utf-8` | `inline` | `CSP: sandbox` |
+| HTML、SVG、XML 及其他所有类型 | `application/octet-stream` | `attachment` | `CSP: sandbox` |
+
+这样，上传的文件既不能作为页面在应用的 Origin 中渲染，也不能作为脚本被引用。
+
+如果文件设置了下载限制（`maxDownloads`），`/raw` 只计算完整的获取（无 `Range` 或从字节 0 开始），且每个访客会话只计一次：同一访客的预览和随后的下载合计只消耗一次下载。所有者和管理员的访问从不计数。达到限制后，该路由返回 `410`。
 
 ### `/f/:shortId/download` — 强制下载
 
-与 `/raw` 相同，但始终使用 `Content-Disposition: attachment`。
+与 `/raw` 相同，但始终使用 `Content-Disposition: attachment` 和 `application/octet-stream`。每个新访客都会计入 `maxDownloads`。
 
 ### `/f/:shortId/thumb` — 缩略图
 
-返回 JPEG 缩略图（适用于视频和 PDF）。`Cache-Control: public, max-age=86400`。
+返回 JPEG 缩略图（适用于视频和 PDF），启用加密时会解密。`Cache-Control: public, max-age=86400`。ID 必须由 `[A-Za-z0-9_-]` 组成（防止通过 `%2F` 进行路径遍历）。
 
 ### `/f/:shortId/delete/:token` — ShareX 删除
 
-通过唯一删除令牌无需会话即可删除文件。
+通过唯一删除令牌无需会话即可删除文件。该令牌仅在上传时返回，不会出现在任何其他 API 响应中。
 
 ### `/s/:token` — 分享链接文件服务（`src/routes/shares.js`）
 
 验证密码（通过会话标志）、过期日期和下载限制，然后提供文件。
+
+### 防止 ID 枚举
+
+所有通过 ID 或令牌进行的公开访问（`/f/*`、`/s/*`、`/api/file/:shortId`、`/api/share-links/:token`、`/api/collections/:id`、粘贴）共用一个限流：每个 IP 15 分钟内最多 100 次失败访问（404/410/401 …）。成功的访问不计数。旧的 8 字符文件 ID 仍然有效，但更短，因此比新 ID 更容易被猜到。
 
 ---
 
@@ -752,8 +812,10 @@ GET /api/site-settings
 ### 会话认证
 
 - 带 MongoDB 存储的 Express 会话（`connect-mongo`）
-- 会话 Cookie：`httpOnly: true`、`sameSite: 'strict'`，生产环境下 `secure: true`
+- 会话 Cookie：`httpOnly: true`、`sameSite: 'strict'`、`secure: 'auto'`（请求通过 HTTPS 到达时设置；在代理后面通过 `X-Forwarded-Proto` 和 `TRUST_PROXY` 判断）
 - 会话时长：通过 `SiteSettings.sessionDurationDays` 配置（默认：7 天），实时缓存 60 秒
+- 登录、注册和安装会分配新的会话 ID（`establishSession`，防止会话固定攻击）
+- 每次请求都会从数据库读取用户的角色、启用状态和 `sessionVersion`：已删除或已禁用的账户以及修改密码之前的会话会立即失去登录状态，角色变更立即生效
 
 ### API 密钥认证
 
@@ -767,8 +829,10 @@ GET /api/site-settings
 ```
 requireLogin    → 检查 req.session.user → 未登录返回 401
 requireAdmin    → 类似 requireLogin，额外要求 role === 'admin' → 403
-requireApiKey   → 检查 Authorization 请求头或 req.body.token
+requireApiKey   → 检查 Authorization: Bearer、X-API-Key、?api_key= 或 req.body.token
 ```
+
+所有路由器均通过 `asyncRouter()` 创建：`async` 处理器中的错误会交给集中的错误处理器（`500`），而不会让请求挂起。`uncaughtException` 会终止进程，由 Docker 重新启动（`restart: unless-stopped`）。
 
 ### CSRF 防护
 
@@ -778,26 +842,42 @@ requireApiKey   → 检查 Authorization 请求头或 req.body.token
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com;
+script-src 'self' https://static.cloudflareinsights.com;
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
 media-src 'self' blob:;
 connect-src 'self' https://cloudflareinsights.com;
 frame-ancestors 'self';
+base-uri 'none';
+form-action 'self';
+object-src 'none';
 ```
 
 ### 安全响应头
 
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`（仅限 HTTPS 请求）
 - `X-Frame-Options: SAMEORIGIN`
 - `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: same-origin`（文件、粘贴和分享 URL 不会通过 Referer 泄露给外部网站）
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
 
 ### 限流
 
-| 端点 | 限制 | 时间窗口 |
-|---|---|---|
-| 上传（`/upload`、`/api/upload`、`/api/web-upload`） | 60 次请求 | 15 分钟 |
-| 认证（`/api/auth/login`、`/register` 等） | 10 次请求 | 15 分钟 |
-| 密码重置 | 5 次请求 | 1 小时 |
+| 端点 | 限制 | 时间窗口 | 键 |
+|---|---|---|---|
+| 上传（`/upload`、`/api/upload`、`/api/web-upload`） | 60 次请求 | 15 分钟 | IP |
+| 认证（`/api/auth/login`、`/register` 等） | 10 次请求 | 15 分钟 | IP |
+| 密码重置 | 5 次请求 | 1 小时 | IP |
+| 分享链接、集合、粘贴的密码验证 | 10 次失败尝试 | 15 分钟 | IP |
+| 账户操作（用户名、密码、邮箱、验证邮件、删除） | 10 次请求 | 15 分钟 | 用户 |
+| 失败的 ID/令牌访问（参见第 9 章） | 100 次请求 | 15 分钟 | IP |
+| WebSocket | 参见第 8 章 | — | 连接 / IP / 用户 |
+
+客户端 IP 取决于 `TRUST_PROXY`；因此应用端口必须只能通过反向代理访问（`BIND_ADDRESS`），否则 `X-Forwarded-For` 可被伪造。
+
+### 日志
+
+访问日志（stdout → Docker 日志）包含截断的 IP 地址（IPv4 截断到 `/24`，IPv6 截断到 `/48`）。API 密钥（`api_key=`）、查询参数中的令牌（`token=`）、删除令牌和分享令牌均会被遮蔽。审计日志存储完整 IP，并在 90 天后自动删除。
 
 ### 文件黑名单
 
@@ -809,7 +889,7 @@ frame-ancestors 'self';
 
 ### 路径遍历防护
 
-所有通过 `resolveUploadPath()` 的文件访问都会验证解析路径是否位于 `UPLOAD_DIR` 内。
+所有通过 `resolveUploadPath()` 的文件访问都会验证解析路径是否位于 `UPLOAD_DIR` 内。缩略图 ID 还会额外按 `[A-Za-z0-9_-]` 进行校验。
 
 ---
 
@@ -821,6 +901,9 @@ frame-ancestors 'self';
 - **文件名：** `crypto.randomBytes(4).hex() + 原始扩展名`
 - **限制：** `MAX_FILE_SIZE_MB`（默认：100 MB）
 - **存储位置：** 用户专属文件夹（`user.folderName`）
+- **MIME 类型：** 通过 `normalizeMime()` 规范化为恰好一个 `type/subtype`（参数和逗号分隔的附加类型会被去除，无效值变为 `application/octet-stream`）
+- **加密：** 设置 `ENCRYPTION_KEY` 后，`sealUpload()` 会就地加密文件；明文副本（`<文件>.plain-<hex>`）仅保留到缩略图生成完成
+- **ShareX 端点 `/upload`：** Multer 在 API 密钥检查之前写入文件；如果请求被拒绝，文件会立即被删除
 
 ### 分块上传（>250 MB）
 
@@ -838,7 +921,9 @@ uploads/.chunks/{uploadId}/
 
 **分块大小：** 10–20 MB（向后兼容最多接受 51 MB）  
 **并发数：** 3–5 个分块同时上传  
-**合并方式：** 基于流（不在 RAM 中完全加载）
+**合并方式：** 基于流（不在 RAM 中完全加载）  
+**大小检查：** 接收的字节数不得超过 `totalSize`；最终文件大小必须恰好等于 `totalSize`  
+**清理：** 未完成的上传目录会在 24 小时后由保留期清理任务删除
 
 ### 头像上传
 
@@ -851,7 +936,9 @@ uploads/.chunks/{uploadId}/
 
 ## 12. 缩略图生成
 
-缩略图在上传后异步生成（`.catch(() => {})` — 错误会被静默忽略）。
+缩略图在上传后异步生成（`startThumbnail()` — 错误会被静默忽略）。ffmpeg 和 Ghostscript 在空环境中运行（仅有 `PATH`），因此看不到 `SESSION_SECRET`，也看不到数据库或 SMTP 凭据。这对真正的代码执行只能提供有限保护，因为这些进程与应用以同一用户身份运行。
+
+设置 `ENCRYPTION_KEY` 后，缩略图会从明文副本生成，随后加密，并删除该副本。如果生成失败，可能写了一半的缩略图会被移除。
 
 ### 视频缩略图（ffmpeg）
 
@@ -881,6 +968,8 @@ npm run migrate:thumbnails
 # 或在容器中：
 docker exec -it <container> npm run migrate:thumbnails
 ```
+
+对于加密文件，该脚本会将源文件短暂解密到临时文件中，并加密生成的缩略图。
 
 ---
 
@@ -999,10 +1088,10 @@ docker exec -it <container> npm run migrate:thumbnails
 ### 用户管理（`/admin/users`）
 
 - 所有用户及其文件数量和存储使用量
-- 创建用户、启用/禁用、修改角色
-- 重置密码、重新生成 API 密钥
+- 创建用户、启用/禁用、修改角色（禁用和降级立即生效，包括已打开的会话和 WebSocket 连接）
+- 重置密码（使该用户在所有地方退出登录）、重新生成 API 密钥
 - 修改文件夹名称（物理文件在服务器上移动）
-- 删除用户（所有文件将被删除）
+- 删除用户（删除所有数据，与自行删除相同，参见第 17 章）
 
 ### 文件管理（`/admin/files`）
 
@@ -1039,7 +1128,7 @@ docker exec -it <container> npm run migrate:thumbnails
 | 隐私政策（可配置） | 第 13/14 条 – 透明度 |
 | 服务条款页面（可配置） | 第 13/14 条 – 透明度 |
 | 数据导出（含 URL 的 JSON） | 第 20 条 – 数据可携带性 |
-| 账户自删除（文件+数据） | 第 17 条 – 删除权 |
+| 账户删除（文件、粘贴、集合、分享链接、头像） | 第 17 条 – 删除权 |
 | 审计日志（通过 MongoDB TTL 保留 90 天） | 第 5(2) 条 – 问责制 |
 | 审计日志 CSV 导出 | 第 5(2) 条 – 问责制 |
 | 可配置的文件保留期 | 第 5(1)(e) 条 – 存储限制 |
@@ -1047,16 +1136,22 @@ docker exec -it <container> npm run migrate:thumbnails
 | 密码以 bcrypt（12 轮）形式存储 | 第 32 条 – 安全性 |
 | Cloudflare Analytics 的 Cookie 同意 | 第 13 条 – 透明度 |
 | 账户删除时匿名化 | 第 17 条 – 删除权 |
+| 可选的存储文件加密（`ENCRYPTION_KEY`） | 第 32 条 – 安全性 |
+| 访问日志中截断的 IP 地址和遮蔽的令牌 | 第 5(1)(c) 条 – 数据最小化 |
 
 ### GDPR 删除流程
 
-删除账户时（`user:delete-account` / `DELETE /api/user/account`）：
+删除账户时（`user:delete-account` / `DELETE /api/user/account`）以及由管理员删除时（`admin:users:delete` / `DELETE /api/admin/users/:id`），执行相同的流程（`src/utils/deleteUserData.js`）：
 1. 用户的所有文件从磁盘删除
 2. 缩略图被删除
-3. 头像被删除
-4. 审计日志条目被匿名化（`username: '[deleted]'`、`ip: null`、`userId: null`）
-5. 用户文档被删除
-6. 会话被销毁
+3. 用户创建的分享链接以及指向其文件的分享链接被删除
+4. 用户的粘贴和集合被删除；其文件也会从其他用户的集合中移除
+5. 头像被删除
+6. 审计日志条目被匿名化（`username: '[deleted]'`、`ip: null`、`userId: null`）
+7. 用户文档被删除
+8. 自行删除时：会话被销毁；已打开的会话和 WebSocket 连接会在下一次请求时失去登录状态
+
+删除操作本身的审计条目作为证明保留，并在 90 天后自动删除。
 
 ---
 
@@ -1065,8 +1160,9 @@ docker exec -it <container> npm run migrate:thumbnails
 ### 保留期清理（`src/jobs/retentionCleanup.js`）
 
 - **执行时机：** 启动时以及之后每天执行（`setInterval(runRetentionCleanup, 24h)`）
-- **操作：** 若 `SiteSettings.fileRetentionDays > 0`，则删除超过该天数的文件
+- **操作：** 若 `SiteSettings.fileRetentionDays > 0`，则删除超过该天数的文件；此外还会删除超过 `expiresAt` 或达到 `maxDownloads` 的自毁文件
 - 删除内容：磁盘上的文件、缩略图、MongoDB 文档
+- 清理：超过 24 小时的未完成分块上传，以及超过 1 小时的加密上传遗留明文副本（`*.plain-*`）
 - 向管理员广播 `stats:invalidate`
 
 ### MongoDB TTL 索引（自动）
@@ -1092,12 +1188,14 @@ docker compose up -d
 ```
 
 **服务：**
-- `app` — Node.js 应用（端口 3000）
+- `app` — Node.js 应用（端口 3000，默认仅发布在 `127.0.0.1` 上，参见 `BIND_ADDRESS`）
 - `mongo` — MongoDB 7（端口 127.0.0.1:27017，外部不可访问）
+- `updater` — 可选的自更新程序（仅在使用 `updater` profile 时启动）
 
 **数据卷：**
 - `uploads` — 持久文件存储
 - `mongo_data` — MongoDB 数据
+- `control` — 应用与更新程序之间的数据交换
 
 **健康检查：** 应用检查 `/` 是否返回 HTTP 200，MongoDB 检查 `db.adminCommand('ping')`。
 
@@ -1161,7 +1259,7 @@ server {
 
 ### 前提条件
 
-- Node.js ≥ 18
+- Node.js ≥ 20
 - MongoDB（本地或通过 Docker）
 - 可选：ffmpeg、ghostscript（用于缩略图）
 
@@ -1223,7 +1321,14 @@ node scripts/generate-missing-thumbnails.js
 npm run migrate:user-folders
 # 或：
 node scripts/migrate-uploads-to-user-folders.js
+
+# 加密已有文件和缩略图（需要 ENCRYPTION_KEY，请先备份）
+npm run migrate:encrypt
+# 或在容器中：
+docker compose exec app npm run migrate:encrypt
 ```
+
+`migrate:encrypt` 会将每个文件加密写入 `<storedName>.enc`，然后切换数据记录，最后才删除明文。中断的运行可以安全地重新执行。
 
 ### 数据库初始化（Docker）
 
@@ -1256,9 +1361,17 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-**Playwright 配置：** `playwright.config.js`  
-**全局初始化：** `e2e/global-setup.js`（创建测试用户、管理员等）  
+**Playwright 配置：** `playwright.config.js`（使用 `INSTALL_TOKEN` 启动服务器，默认 `e2e-install-token`）  
+**全局初始化：** `e2e/global-setup.js`（使用该令牌执行安装，创建测试用户、管理员等）  
 **辅助函数：** `e2e/helpers.js`（共享辅助函数）
+
+### 单元测试
+
+```bash
+npm test
+```
+
+无需数据库即可运行：`src/utils/validateEmail.test.js`、`src/utils/stripMetadata.test.js` 和 `src/utils/fileCrypto.test.js`（加密：往返、字节范围、篡改检测）。
 
 ---
 

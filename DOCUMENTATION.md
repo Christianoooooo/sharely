@@ -1,6 +1,6 @@
 # Sharely — Technische Dokumentation
 
-> **Version:** 1.0.0 · **Lizenz:** MIT · **Node.js:** ≥ 18
+> **Version:** 1.0.0 · **Lizenz:** MIT · **Node.js:** ≥ 20
 
 ---
 

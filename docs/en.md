@@ -1,6 +1,6 @@
 # Sharely — Technical Documentation
 
-> **Version:** 1.0.0 · **License:** MIT · **Node.js:** ≥ 18
+> **Version:** 1.0.0 · **License:** MIT · **Node.js:** ≥ 20
 
 ---
 
@@ -102,8 +102,11 @@ Sharely is a **self-hosted file sharing platform** with a clean web interface, S
 ```
 Browser → POST /api/web-upload (multipart/form-data)
        → multer: Datei in uploads/{folderName}/
+       → normalizeMime(): reduce MIME type to exactly one "type/subtype"
+       → stripIfEnabled(): strip image metadata (if enabled)
+       → sealUpload(): encrypt with ENCRYPTION_KEY (otherwise unchanged)
        → File.createUnique() → MongoDB
-       → generateThumbnail() (async, non-blocking)
+       → startThumbnail() (async, non-blocking; then delete plaintext copy)
        → logAudit()
        → broadcast('file:uploaded') via WebSocket
        ← JSON: { files: [...] }
@@ -114,9 +117,10 @@ Browser → POST /api/web-upload (multipart/form-data)
 ```
 ShareX → POST /upload (token im Formular-Body)
        → multer: Datei temporär in uploads/
-       → requireApiKey: Token-Lookup → User
+       → requireApiKey: Token-Lookup → User (on failure the file is deleted immediately)
        → fs.renameSync → uploads/{folderName}/
-       → File.create() → MongoDB
+       → normalizeMime() · sealUpload() · File.createUnique() → MongoDB
+       → startThumbnail()
        ← JSON: { url, delete_url }
 ```
 
@@ -126,13 +130,14 @@ ShareX → POST /upload (token im Formular-Body)
 
 | Layer | Technology | Version |
 |---|---|---|
-| **Runtime** | Node.js | ≥ 18 |
+| **Runtime** | Node.js | ≥ 20 |
 | **Backend Framework** | Express.js | 4.x |
 | **Database** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **Sessions** | express-session + connect-mongo | — |
 | **Real-Time** | WebSocket (`ws`) | 8.x |
-| **File Upload** | Multer | 1.x |
-| **Email** | Nodemailer | 8.x |
+| **File Upload** | Multer | 2.x |
+| **File Encryption** | AES-256-GCM, HKDF-SHA256 (Node Crypto) | — |
+| **Email** | Nodemailer | 10.x |
 | **Password Hashing** | bcryptjs | 2.x (12 Rounds) |
 | **API Key Hashing** | SHA-256 (Node Crypto) | — |
 | **Rate Limiting** | express-rate-limit | 8.x |
@@ -164,32 +169,43 @@ sharely/
 │   ├── config/
 │   │   └── db.js                   # MongoDB connection (Mongoose)
 │   ├── middleware/
-│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey
+│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey / establishSession
+│   │   ├── lookupLimiter.js        # Shared rate limit for failed ID lookups
 │   │   └── upload.js               # Multer configuration, blocklist
 │   ├── models/
 │   │   ├── AuditLog.js             # Audit events (TTL 90 days)
 │   │   ├── Collection.js           # File collections
 │   │   ├── File.js                 # File metadata
+│   │   ├── Paste.js                # Text pastes
 │   │   ├── ShareLink.js            # Per-file share links
 │   │   ├── SiteSettings.js         # Singleton: operator settings
 │   │   └── User.js                 # User accounts + API keys
 │   ├── routes/
 │   │   ├── api.js                  # Main API (upload, gallery, admin, ...)
 │   │   ├── auth.js                 # Login / Register / Password reset
+│   │   ├── docs.js                 # Public documentation page (/docs)
 │   │   ├── files.js                # File serving, OG embeds, range requests
 │   │   ├── import.js               # XBackBone migration
-│   │   ├── install.js              # Initial installation endpoint
+│   │   ├── install.js              # Initial installation endpoint (setup token)
+│   │   ├── pastes.js               # Paste API
 │   │   └── shares.js               # Share link file serving
 │   ├── jobs/
-│   │   └── retentionCleanup.js     # Daily deletion of expired files
+│   │   └── retentionCleanup.js     # Daily deletion of expired files and upload leftovers
 │   ├── migrations/
 │   │   ├── migrateApiKeyHashes.js  # One-time: plaintexts → SHA-256 hashes
 │   │   └── migrateUserFolders.js   # One-time: move files into user folders
 │   ├── utils/
+│   │   ├── asyncRouter.js          # Express router that passes async errors to the error handler
 │   │   ├── audit.js                # logAudit() helper function
+│   │   ├── deleteUserData.js       # Complete deletion of all data of an account
+│   │   ├── fileCrypto.js           # Encryption of stored files (AES-256-GCM)
 │   │   ├── generateThumbnail.js    # ffmpeg / ghostscript integration
 │   │   ├── mailer.js               # Nodemailer wrapper + i18n email templates
-│   │   └── sanitizeFilename.js     # Sanitize filename
+│   │   ├── mime.js                 # MIME normalization, whitelist for inline serving
+│   │   ├── sanitizeFilename.js     # Sanitize filename
+│   │   ├── setupToken.js           # Setup token for the initial installation
+│   │   ├── storeUpload.js          # Encrypt upload, thumbnail from plaintext copy
+│   │   └── uploadPath.js           # Path resolution with path traversal protection
 │   └── ws.js                       # WebSocket server + action dispatcher
 │
 ├── client/                         # React frontend
@@ -256,7 +272,8 @@ sharely/
 │   ├── setup-db.js
 │   ├── mongo-init.js               # MongoDB initialization script
 │   ├── migrate-uploads-to-user-folders.js
-│   └── generate-missing-thumbnails.js
+│   ├── generate-missing-thumbnails.js
+│   └── encrypt-existing-files.js   # Encrypt existing files retroactively
 │
 ├── e2e/                            # Playwright tests
 │   ├── admin.spec.js
@@ -316,7 +333,7 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
 | `SMTP_PASS` | — | SMTP password |
 | `SMTP_FROM` | _(SMTP_USER)_ | Sender address in outgoing emails |
 | `UPLOAD_DIR` | `./uploads` | Absolute path to upload directory |
-| `NODE_ENV` | — | `production` enables secure cookies |
+| `NODE_ENV` | — | Optional. Secure cookies do not depend on it: they are set automatically as soon as the request arrives via HTTPS (`X-Forwarded-Proto` from the proxy) |
 
 ---
 
@@ -336,6 +353,7 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
   avatarExt:                   String | null (.jpg/.png/.gif/.webp)
   embedMode:                   'embed' | 'raw'
   isActive:                    Boolean
+  sessionVersion:              Number (incremented on password change/reset, invalidates other sessions)
   email:                       String (lowercase, unique, sparse)
   emailVerified:               Boolean
   emailVerificationToken:      String | null (SHA-256 hash of plaintext)
@@ -357,17 +375,21 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
 
 ```
 {
-  shortId:      String (24 hex characters, random, unique)
-  deleteToken:  String (32 hex characters, unique)
-  originalName: String (sanitized)
-  storedName:   String (relative path: "folderName/8hex.ext")
-  mimeType:     String
-  encrypted:    Boolean
-  size:         Number (bytes)
-  uploader:     ObjectId → User
-  views:        Number
-  tags:         [String] (max 20 × 50 characters)
-  createdAt:    Date
+  shortId:       String (24 hex characters, random, unique)
+  deleteToken:   String (32 hex characters, unique; select: false, never in API responses)
+  originalName:  String (sanitized)
+  storedName:    String (relative path: "folderName/8hex.ext")
+  mimeType:      String (normalized to exactly one "type/subtype")
+  encrypted:     Boolean (file is stored in the format of src/utils/fileCrypto.js)
+  size:          Number (bytes, plaintext size)
+  uploader:      ObjectId → User
+  views:         Number
+  expiresAt:     Date | null (self-destruct after date)
+  maxDownloads:  Number | null (self-destruct after N downloads)
+  downloadCount: Number
+  tags:          [String] (max 20 × 50 characters)
+  description:   String (max 1000)
+  createdAt:     Date
 }
 ```
 
@@ -455,19 +477,30 @@ All JSON endpoints return `Content-Type: application/json`. Errors: `{ "error": 
 
 ---
 
+### Installation (`/api/install`)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/status` | — | `{ installed: Boolean }` (whether users already exist) |
+| `POST` | `/setup` | Setup token | Create admin account and operator settings; only while no user exists |
+
+The setup token is printed to the log on startup (`[install] Not installed yet. Setup token: …`) or set via `INSTALL_TOKEN`. Without a matching `setupToken` in the body, `/setup` responds with `403`.
+
+---
+
 ### Authentication (`/api/auth`)
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/me` | Session | Currently logged-in user |
-| `POST` | `/login` | — | Log in (rate-limited: 10/15min) |
+| `POST` | `/login` | — | Log in (rate-limited: 10/15min; issues a new session ID) |
 | `POST` | `/register` | — | Register (rate-limited; the first admin is created only via setup) |
 | `POST` | `/logout` | — | Log out |
 | `GET` | `/smtp-enabled` | — | Check whether SMTP is configured |
 | `GET` | `/verify-email?token=` | — | Verify email address |
 | `GET` | `/verify-reset-token?token=` | — | Validate reset token |
 | `POST` | `/forgot-password` | — | Send password reset email (rate-limited: 5/hr) |
-| `POST` | `/reset-password` | — | Set new password |
+| `POST` | `/reset-password` | — | Set new password (ends all existing sessions) |
 
 **Login Request:**
 ```json
@@ -514,10 +547,12 @@ POST /api/auth/login
 
 #### Chunked Upload Flow
 
-1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`
+1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`  
+   Quota check against `totalSize` plus the announced sizes of all of the user's open chunked uploads
 2. `POST /api/chunk/:uploadId` (Body: `chunkIndex=N`, File: `chunk`) → `{ received: N }`  
-   Parallel with 3–5 concurrent chunks
-3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`
+   Parallel with 3–5 concurrent chunks; `413` as soon as the received bytes exceed `totalSize`
+3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`  
+   `400` if the assembled file is not exactly `totalSize` bytes
 
 ---
 
@@ -526,7 +561,7 @@ POST /api/auth/login
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/api/gallery` | Session | Own files (admin: all), paginated (24/page), filters: `q`, `type`, `tag`, `page` |
-| `GET` | `/api/file/:shortId` | — | File metadata (increments view counter) |
+| `GET` | `/api/file/:shortId` | — | File metadata without `deleteToken` (increments view counter) |
 | `PATCH` | `/api/file/:shortId` | Session | Update tags/name |
 | `DELETE` | `/api/file/:shortId` | Session | Delete file |
 | `DELETE` | `/api/delete/:shortId` | API Key | Delete file (API key auth) |
@@ -562,6 +597,8 @@ POST /api/auth/login
 | `DELETE` | `/api/user/avatar` | Session | Delete avatar |
 | `GET` | `/api/user/avatar/:userId` | — | Serve avatar |
 
+Username, password, email, verification email and account deletion are limited to 10 attempts per user in 15 minutes (against password guessing with a stolen session and mail spam). A password change ends all other sessions of the user; the current one stays logged in.
+
 ---
 
 ### Share Links
@@ -571,8 +608,8 @@ POST /api/auth/login
 | `GET` | `/api/file/:shortId/share-links` | Session (Owner/Admin) | All share links for a file |
 | `POST` | `/api/file/:shortId/share-links` | Session (Owner/Admin) | Create share link |
 | `DELETE` | `/api/share-links/:token` | Session (Owner/Creator/Admin) | Delete share link |
-| `GET` | `/api/share-links/:token` | — | Share link metadata (public) |
-| `POST` | `/api/share-links/:token/verify` | — | Verify share link password |
+| `GET` | `/api/share-links/:token` | — | Share link metadata (public; without the file's `shortId`, so password, expiry and limit cannot be bypassed via `/f/`) |
+| `POST` | `/api/share-links/:token/verify` | — | Verify share link password (max. 10 failed attempts per IP in 15 minutes) |
 
 **Create Share Link:**
 ```json
@@ -598,7 +635,7 @@ POST /api/file/a1b2c3d4/share-links
 | `DELETE` | `/api/collections/:id` | Session (Owner/Admin) | Delete collection |
 | `POST` | `/api/collections/:id/files` | Session (Owner/Admin) | Add file to collection |
 | `DELETE` | `/api/collections/:id/files/:fileShortId` | Session (Owner/Admin) | Remove file from collection |
-| `POST` | `/api/collections/:id/verify` | — | Verify collection password |
+| `POST` | `/api/collections/:id/verify` | — | Verify collection password (max. 10 failed attempts per IP in 15 minutes) |
 
 ---
 
@@ -610,10 +647,10 @@ POST /api/file/a1b2c3d4/share-links
 | `GET` | `/api/admin/users` | Admin | All users (including file counts) |
 | `POST` | `/api/admin/users` | Admin | Create user |
 | `PATCH` | `/api/admin/users/:id/toggle` | Admin | Activate/deactivate user |
-| `PATCH` | `/api/admin/users/:id/role` | Admin | Change user role |
-| `DELETE` | `/api/admin/users/:id` | Admin | Delete user |
+| `PATCH` | `/api/admin/users/:id/role` | Admin | Change user role (takes effect immediately, including open sessions) |
+| `DELETE` | `/api/admin/users/:id` | Admin | Delete user and all of their data |
 | `POST` | `/api/admin/users/:id/regen-key` | Admin | Regenerate API key |
-| `PATCH` | `/api/admin/users/:id/password` | Admin | Set password |
+| `PATCH` | `/api/admin/users/:id/password` | Admin | Set password (ends all of the user's sessions) |
 | `PATCH` | `/api/admin/users/:id/folder` | Admin | Change folder name (moves files) |
 | `GET` | `/api/admin/files` | Admin | All files, paginated (30/page) |
 | `GET` | `/api/admin/site-settings` | Admin | Read operator settings |
@@ -644,6 +681,13 @@ GET /api/site-settings
 ## 8. WebSocket API
 
 **Connection:** `wss://example.com/ws` (logged-in users only, session cookie required)
+
+### Hardening
+
+- **Origin check:** The handshake is rejected with `403` if the `Origin` header does not match `Host` (same rule as `requireSameOrigin` for the HTTP API). The proxy must pass on the original `Host`.
+- **Ongoing permission checks:** Session, active status, role and `sessionVersion` are re-checked on every message and additionally every 30 seconds for all connections. After logout, deactivation, deletion, password change or demotion, the connection is closed or loses admin rights and admin broadcasts.
+- **Heartbeat:** Ping every 30 seconds; connections without a pong are dropped.
+- **Limits:** at most 64 KiB per message (larger ones close the connection with code `1009`), up to 30 messages in a burst and then 5 per second per connection (otherwise response with `status: 429`), at most 20 concurrent connections per client IP. Actions that check the password or send emails are limited to 10 per user in 15 minutes.
 
 ### Protocol
 
@@ -727,23 +771,39 @@ GET /api/site-settings
 
 ### `/f/:shortId/raw` — Direct Access
 
-Serves the file as an HTTP response with range request support (206 Partial Content). Images/videos/audio: `Content-Disposition: inline`, others: `attachment`.
+Serves the file as an HTTP response with range request support (206 Partial Content, including suffix ranges like `bytes=-500`). Encrypted files are decrypted on the fly.
+
+Which files are displayed directly in the browser is decided by a whitelist (`src/utils/mime.js`) based on the normalized MIME type:
+
+| Case | `Content-Type` | `Content-Disposition` | Additionally |
+|---|---|---|---|
+| Images (PNG, JPEG, GIF, WebP, AVIF, BMP, ICO), common video/audio formats, PDF | actual type | `inline` | — |
+| Text and code (by `displayType`) | `text/plain; charset=utf-8` | `inline` | `CSP: sandbox` |
+| HTML, SVG, XML and everything else | `application/octet-stream` | `attachment` | `CSP: sandbox` |
+
+This way an uploaded file can neither be rendered as a page in the app origin nor embedded as a script.
+
+If the file has a download limit (`maxDownloads`), `/raw` only counts complete fetches (without `Range` or starting at byte 0), and only once per visitor session: a preview followed by a download by the same visitor together use up one download. Fetches by the owner and admins never count. Once the limit is reached, the route responds with `410`.
 
 ### `/f/:shortId/download` — Force Download
 
-Like `/raw`, but always `Content-Disposition: attachment`.
+Like `/raw`, but always `Content-Disposition: attachment` and `application/octet-stream`. Every new visitor counts against `maxDownloads`.
 
 ### `/f/:shortId/thumb` — Thumbnail
 
-Returns JPEG thumbnail (for videos and PDFs). `Cache-Control: public, max-age=86400`.
+Returns JPEG thumbnail (for videos and PDFs), decrypted if encryption is enabled. `Cache-Control: public, max-age=86400`. The ID must consist of `[A-Za-z0-9_-]` (protection against path traversal via `%2F`).
 
 ### `/f/:shortId/delete/:token` — ShareX Deletion
 
-Deletes file without session via unique delete token.
+Deletes file without session via unique delete token. The token is only returned on upload and does not appear in any other API response.
 
 ### `/s/:token` — Share Link File Serving (`src/routes/shares.js`)
 
 Checks password (via session flag), expiry date and download limit, then serves the file.
+
+### Protection against ID enumeration
+
+All public fetches by ID or token (`/f/*`, `/s/*`, `/api/file/:shortId`, `/api/share-links/:token`, `/api/collections/:id`, pastes) share one rate limit: at most 100 failed fetches (404/410/401 …) per IP in 15 minutes. Successful fetches do not count. Older 8-character file IDs remain valid, but are shorter and therefore easier to guess than new ones.
 
 ---
 
@@ -752,8 +812,10 @@ Checks password (via session flag), expiry date and download limit, then serves 
 ### Session Authentication
 
 - Express session with MongoDB store (`connect-mongo`)
-- Session cookie: `httpOnly: true`, `sameSite: 'strict'`, `secure: true` in production
+- Session cookie: `httpOnly: true`, `sameSite: 'strict'`, `secure: 'auto'` (set as soon as the request arrives via HTTPS; behind a proxy via `X-Forwarded-Proto` and `TRUST_PROXY`)
 - Session duration: configurable via `SiteSettings.sessionDurationDays` (default: 7 days), live-cached for 60 seconds
+- Login, registration and installation issue a new session ID (`establishSession`, protection against session fixation)
+- On every request, the user's role, active status and `sessionVersion` are read from the database: deleted or deactivated accounts and sessions from before a password change lose their login immediately, role changes take effect immediately
 
 ### API Key Authentication
 
@@ -767,8 +829,10 @@ Checks password (via session flag), expiry date and download limit, then serves 
 ```
 requireLogin    → checks req.session.user → 401 if not logged in
 requireAdmin    → like requireLogin, additionally role === 'admin' → 403
-requireApiKey   → checks Authorization header or req.body.token
+requireApiKey   → checks Authorization: Bearer, X-API-Key, ?api_key= or req.body.token
 ```
+
+All routers are created via `asyncRouter()`: errors in `async` handlers reach the central error handler (`500`) instead of leaving the request hanging. An `uncaughtException` terminates the process, Docker restarts it (`restart: unless-stopped`).
 
 ### CSRF Protection
 
@@ -778,26 +842,42 @@ requireApiKey   → checks Authorization header or req.body.token
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com;
+script-src 'self' https://static.cloudflareinsights.com;
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
 media-src 'self' blob:;
 connect-src 'self' https://cloudflareinsights.com;
 frame-ancestors 'self';
+base-uri 'none';
+form-action 'self';
+object-src 'none';
 ```
 
 ### Security Headers
 
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` (only on HTTPS requests)
 - `X-Frame-Options: SAMEORIGIN`
 - `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: same-origin` (file, paste and share URLs are not leaked to third-party sites via Referer)
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
 
 ### Rate Limiting
 
-| Endpoint | Limit | Window |
-|---|---|---|
-| Upload (`/upload`, `/api/upload`, `/api/web-upload`) | 60 requests | 15 minutes |
-| Auth (`/api/auth/login`, `/register`, etc.) | 10 requests | 15 minutes |
-| Password reset | 5 requests | 1 hour |
+| Endpoint | Limit | Window | Key |
+|---|---|---|---|
+| Upload (`/upload`, `/api/upload`, `/api/web-upload`) | 60 requests | 15 minutes | IP |
+| Auth (`/api/auth/login`, `/register`, etc.) | 10 requests | 15 minutes | IP |
+| Password reset | 5 requests | 1 hour | IP |
+| Password checks for share links, collections, pastes | 10 failed attempts | 15 minutes | IP |
+| Account actions (name, password, email, verification email, deletion) | 10 requests | 15 minutes | User |
+| Failed ID/token fetches (see chapter 9) | 100 requests | 15 minutes | IP |
+| WebSocket | see chapter 8 | — | Connection / IP / user |
+
+The client IP depends on `TRUST_PROXY`; the app port must therefore only be reachable through the reverse proxy (`BIND_ADDRESS`), otherwise `X-Forwarded-For` can be spoofed.
+
+### Logging
+
+The access log (stdout → Docker log) contains truncated IP addresses (IPv4 to `/24`, IPv6 to `/48`). API keys (`api_key=`), tokens in query parameters (`token=`), delete tokens and share tokens are redacted. The audit log stores the full IP and is deleted automatically after 90 days.
 
 ### File Blocklist
 
@@ -809,7 +889,7 @@ The following MIME types and extensions are rejected on upload:
 
 ### Path Traversal Protection
 
-All file accesses via `resolveUploadPath()` verify that the resolved path lies within `UPLOAD_DIR`.
+All file accesses via `resolveUploadPath()` verify that the resolved path lies within `UPLOAD_DIR`. Thumbnail IDs are additionally checked against `[A-Za-z0-9_-]`.
 
 ---
 
@@ -821,6 +901,9 @@ All file accesses via `resolveUploadPath()` verify that the resolved path lies w
 - **Filename:** `crypto.randomBytes(4).hex() + original-extension`
 - **Limit:** `MAX_FILE_SIZE_MB` (default: 100 MB)
 - **Location:** User-specific folder (`user.folderName`)
+- **MIME type:** reduced to exactly one `type/subtype` by `normalizeMime()` (parameters and comma-separated extra types are dropped, invalid values become `application/octet-stream`)
+- **Encryption:** with `ENCRYPTION_KEY`, `sealUpload()` encrypts the file in place; a plaintext copy (`<file>.plain-<hex>`) only remains until the thumbnail has been generated
+- **ShareX endpoint `/upload`:** Multer writes the file before the API key check; if the request is rejected, it is deleted again immediately
 
 ### Chunked Upload (>250 MB)
 
@@ -838,7 +921,9 @@ uploads/.chunks/{uploadId}/
 
 **Chunk size:** 10–20 MB (max 51 MB accepted for backward compatibility)  
 **Parallelism:** 3–5 concurrent chunk uploads  
-**Assembly:** Stream-based (no full loading into RAM)
+**Assembly:** Stream-based (no full loading into RAM)  
+**Size check:** received bytes must not exceed `totalSize`; the finished file must be exactly `totalSize` bytes  
+**Cleanup:** unfinished upload directories are deleted by the retention job after 24 hours
 
 ### Avatar Upload
 
@@ -851,7 +936,9 @@ uploads/.chunks/{uploadId}/
 
 ## 12. Thumbnail Generation
 
-Thumbnails are generated asynchronously after upload (`.catch(() => {})` — errors are silently ignored).
+Thumbnails are generated asynchronously after upload (`startThumbnail()` — errors are silently ignored). ffmpeg and Ghostscript run with an empty environment (only `PATH`), so they see neither `SESSION_SECRET` nor database or SMTP credentials. This offers only limited protection against actual code execution, since the processes run as the same user as the app.
+
+If `ENCRYPTION_KEY` is set, the thumbnail is generated from the plaintext copy, then encrypted, and the copy is deleted. If generation fails, any partially written thumbnail is removed.
 
 ### Video Thumbnails (ffmpeg)
 
@@ -881,6 +968,8 @@ npm run migrate:thumbnails
 # or in container:
 docker exec -it <container> npm run migrate:thumbnails
 ```
+
+For encrypted files, the script briefly decrypts the source into a temporary file and encrypts the generated thumbnail.
 
 ---
 
@@ -999,10 +1088,10 @@ The admin dashboard (`/admin/*`) is accessible only to users with `role: 'admin'
 ### User Management (`/admin/users`)
 
 - All users with file count and storage usage
-- Create users, activate/deactivate, change role
-- Reset password, regenerate API key
+- Create users, activate/deactivate, change role (deactivation and demotion take effect immediately, including open sessions and WebSocket connections)
+- Reset password (logs the user out everywhere), regenerate API key
 - Change folder name (physical files are moved on the server)
-- Delete user (all files are deleted)
+- Delete user (all data as with self-deletion, see chapter 17)
 
 ### File Management (`/admin/files`)
 
@@ -1039,7 +1128,7 @@ The admin dashboard (`/admin/*`) is accessible only to users with `role: 'admin'
 | Privacy policy (configurable) | Art. 13/14 – Transparency |
 | Terms of service page (configurable) | Art. 13/14 – Transparency |
 | Data export (JSON with URLs) | Art. 20 – Data portability |
-| Account self-deletion (files + data) | Art. 17 – Right to erasure |
+| Account deletion (files, pastes, collections, share links, avatar) | Art. 17 – Right to erasure |
 | Audit log (90-day TTL via MongoDB) | Art. 5(2) – Accountability |
 | Audit log CSV export | Art. 5(2) – Accountability |
 | Configurable file retention | Art. 5(1)(e) – Storage limitation |
@@ -1047,16 +1136,22 @@ The admin dashboard (`/admin/*`) is accessible only to users with `role: 'admin'
 | Passwords as bcrypt (12 rounds) | Art. 32 – Security |
 | Cookie consent for Cloudflare Analytics | Art. 13 – Transparency |
 | Anonymization on account deletion | Art. 17 – Right to erasure |
+| Optional encryption of stored files (`ENCRYPTION_KEY`) | Art. 32 – Security |
+| Truncated IP addresses and redacted tokens in the access log | Art. 5(1)(c) – Data minimization |
 
 ### GDPR Deletion Flow
 
-On account deletion (`user:delete-account` / `DELETE /api/user/account`):
+On account deletion (`user:delete-account` / `DELETE /api/user/account`) and on deletion by an admin (`admin:users:delete` / `DELETE /api/admin/users/:id`), the same flow runs (`src/utils/deleteUserData.js`):
 1. All user files are deleted from disk
 2. Thumbnails are deleted
-3. Avatar is deleted
-4. Audit log entries are anonymized (`username: '[deleted]'`, `ip: null`, `userId: null`)
-5. User document is deleted
-6. Session is destroyed
+3. Share links created by the user and those pointing to the user's files are deleted
+4. The user's pastes and collections are deleted; the user's files are also removed from other users' collections
+5. Avatar is deleted
+6. Audit log entries are anonymized (`username: '[deleted]'`, `ip: null`, `userId: null`)
+7. User document is deleted
+8. On self-deletion: the session is destroyed; open sessions and WebSocket connections lose their login on the next request
+
+The audit entry of the deletion itself remains as proof and is deleted automatically after 90 days.
 
 ---
 
@@ -1065,8 +1160,9 @@ On account deletion (`user:delete-account` / `DELETE /api/user/account`):
 ### Retention Cleanup (`src/jobs/retentionCleanup.js`)
 
 - **Execution:** On startup and then daily (`setInterval(runRetentionCleanup, 24h)`)
-- **Action:** If `SiteSettings.fileRetentionDays > 0`, files older than this value are deleted
+- **Action:** If `SiteSettings.fileRetentionDays > 0`, files older than this value are deleted; also self-destructing files after `expiresAt` or once `maxDownloads` is reached
 - Deletes: file on disk, thumbnail, MongoDB document
+- Cleans up: unfinished chunked uploads older than 24 hours and leftover plaintext copies of encrypted uploads (`*.plain-*`) older than 1 hour
 - Broadcasts `stats:invalidate` to admins
 
 ### MongoDB TTL Indexes (automatic)
@@ -1092,12 +1188,14 @@ docker compose up -d
 ```
 
 **Services:**
-- `app` — Node.js app (port 3000)
+- `app` — Node.js app (port 3000, published only on `127.0.0.1` by default, see `BIND_ADDRESS`)
 - `mongo` — MongoDB 7 (port 127.0.0.1:27017, not externally accessible)
+- `updater` — optional self-updater (only with profile `updater`)
 
 **Volumes:**
 - `uploads` — persistent file storage
 - `mongo_data` — MongoDB data
+- `control` — exchange between app and updater
 
 **Health checks:** App checks HTTP 200 on `/`, MongoDB checks `db.adminCommand('ping')`.
 
@@ -1161,7 +1259,7 @@ On first start without users, sharely prints a setup token to the log (`docker c
 
 ### Prerequisites
 
-- Node.js ≥ 18
+- Node.js ≥ 20
 - MongoDB (local or via Docker)
 - Optional: ffmpeg, ghostscript (for thumbnails)
 
@@ -1223,7 +1321,14 @@ node scripts/generate-missing-thumbnails.js
 npm run migrate:user-folders
 # or:
 node scripts/migrate-uploads-to-user-folders.js
+
+# Encrypt existing files and thumbnails (requires ENCRYPTION_KEY, back up first)
+npm run migrate:encrypt
+# or in container:
+docker compose exec app npm run migrate:encrypt
 ```
+
+`migrate:encrypt` writes each file encrypted to `<storedName>.enc`, then switches the record over and only then deletes the plaintext. An interrupted run can be safely repeated.
 
 ### Database Initialization (Docker)
 
@@ -1256,9 +1361,17 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-**Playwright configuration:** `playwright.config.js`  
-**Global setup:** `e2e/global-setup.js` (creates test users, admin, etc.)  
+**Playwright configuration:** `playwright.config.js` (starts the server with `INSTALL_TOKEN`, default `e2e-install-token`)  
+**Global setup:** `e2e/global-setup.js` (runs the installation with this token, creates test users, admin, etc.)  
 **Helpers:** `e2e/helpers.js` (shared helper functions)
+
+### Unit Tests
+
+```bash
+npm test
+```
+
+Runs without a database: `src/utils/validateEmail.test.js`, `src/utils/stripMetadata.test.js` and `src/utils/fileCrypto.test.js` (encryption: roundtrip, byte ranges, tamper detection).
 
 ---
 
