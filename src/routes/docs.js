@@ -126,6 +126,7 @@ function mdToHtml(md) {
   let inCode = false, codeLang = '', codeLines = [];
   let inTable = false, tHeadDone = false;
   let inList = false;
+  const slugCount = {};
 
   const flushList  = () => { if (inList)  { out.push('</ul>'); inList = false; } };
   const flushTable = () => {
@@ -161,7 +162,10 @@ function mdToHtml(md) {
     if (hm) {
       flushList(); flushTable();
       const lvl = hm[1].length;
-      const id  = hm[2].toLowerCase().replace(/[^\w\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-');
+      // GitHub's slug rules (Unicode letters, "-1" suffix for repeats), so the docs' own
+      // "#…" links work here as on GitHub, including Japanese and Chinese headings.
+      let id = hm[2].trim().toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu,'').replace(/ /g,'-');
+      if (id in slugCount) id = `${id}-${++slugCount[id]}`; else slugCount[id] = 0;
       out.push(`<h${lvl} id="${id}">${inline(hm[2])}</h${lvl}>`);
       continue;
     }
