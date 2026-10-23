@@ -1,6 +1,6 @@
 # Sharely — Documentation Technique
 
-> **Version :** 1.0.0 · **Licence :** MIT · **Node.js :** ≥ 20
+> **Version :** 1.0.0 · **Licence :** MIT · **Node.js :** ≥ 22
 
 ---
 
@@ -130,7 +130,7 @@ ShareX → POST /upload (token im Formular-Body)
 
 | Couche | Technologie | Version |
 |---|---|---|
-| **Runtime** | Node.js | ≥ 20 |
+| **Runtime** | Node.js | ≥ 22 |
 | **Framework backend** | Express.js | 4.x |
 | **Base de données** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **Sessions** | express-session + connect-mongo | — |
@@ -1281,7 +1281,7 @@ Au premier démarrage sans utilisateur, sharely écrit un jeton d'installation d
 
 ### Prérequis
 
-- Node.js ≥ 20
+- Node.js ≥ 22
 - MongoDB (local ou via Docker)
 - Optionnel : ffmpeg, ghostscript (pour les miniatures)
 

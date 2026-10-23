@@ -68,7 +68,7 @@ The app is now running at `http://localhost:3000`. The setup page asks for a set
 
 ### Local Development
 
-**Requirements:** Node.js 20+, MongoDB
+**Requirements:** Node.js 22+ (24 recommended), MongoDB
 
 ```bash
 # Backend

@@ -1,6 +1,6 @@
 # Sharely — 技术文档
 
-> **版本：** 1.0.0 · **许可证：** MIT · **Node.js：** ≥ 20
+> **版本：** 1.0.0 · **许可证：** MIT · **Node.js：** ≥ 22
 
 ---
 
@@ -130,7 +130,7 @@ ShareX → POST /upload (token im Formular-Body)
 
 | 层级 | 技术 | 版本 |
 |---|---|---|
-| **运行时** | Node.js | ≥ 20 |
+| **运行时** | Node.js | ≥ 22 |
 | **后端框架** | Express.js | 4.x |
 | **数据库** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **会话管理** | express-session + connect-mongo | — |
@@ -1281,7 +1281,7 @@ server {
 
 ### 前提条件
 
-- Node.js ≥ 20
+- Node.js ≥ 22
 - MongoDB（本地或通过 Docker）
 - 可选：ffmpeg、ghostscript（用于缩略图）
 
