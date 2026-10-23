@@ -199,13 +199,16 @@ sharely/
 │   │   ├── audit.js                # logAudit()-Hilfsfunktion
 │   │   ├── deleteUserData.js       # Vollständige Löschung aller Daten eines Kontos
 │   │   ├── fileCrypto.js           # Verschlüsselung gespeicherter Dateien (AES-256-GCM)
-│   │   ├── generateThumbnail.js    # ffmpeg / ghostscript Integration
+│   │   ├── generateThumbnail.js    # Thumbnail erzeugen (lokal oder über thumbnailer-Container)
+│   │   ├── thumbnailQueue.js       # Datei-Warteschlange zum thumbnailer-Container
+│   │   ├── thumbnailTools.js       # ffmpeg / ghostscript Aufrufe
 │   │   ├── mailer.js               # Nodemailer-Wrapper + i18n-E-Mail-Templates
 │   │   ├── mime.js                 # MIME-Normalisierung, Whitelist für Inline-Auslieferung
 │   │   ├── sanitizeFilename.js     # Dateiname bereinigen
 │   │   ├── setupToken.js           # Setup-Token der Erstinstallation
 │   │   ├── storeUpload.js          # Upload verschlüsseln, Thumbnail aus Klartext-Kopie
 │   │   └── uploadPath.js           # Pfadauflösung mit Path-Traversal-Schutz
+│   ├── thumbnailWorker.js          # Einstieg des thumbnailer-Containers
 │   └── ws.js                       # WebSocket-Server + Action-Dispatcher
 │
 ├── client/                         # React-Frontend
@@ -349,13 +352,13 @@ Das Admin-Panel (**Admin → Website-Einstellungen → Version & Updates**) zeig
 - `release` (Standard) — die installierte Version wird mit dem neuesten **GitHub-Release-Tag** verglichen. Passend, wenn pro Version ein Release erstellt wird.
 - `branch` — der installierte **Commit** wird mit der Spitze von `UPDATE_BRANCH` verglichen. Ein Update ist verfügbar, sobald neue Commits auf dem Branch liegen — ohne dass ein Release nötig ist. Installierte Version/Commit meldet der Updater-Container, daher braucht dieser Modus den laufenden Updater.
 
-Optional lässt sich ein Update per Knopfdruck einspielen. Dies übernimmt ein eigener `updater`-Container — die **einzige** Komponente mit Zugriff auf den Docker-Socket. Die Web-App berührt den Socket nie: sie legt nur eine Anforderungsdatei in ein gemeinsames Volume, der Updater führt dann `git pull` + `docker compose build app` + `docker compose up -d app` aus.
+Optional lässt sich ein Update per Knopfdruck einspielen. Dies übernimmt ein eigener `updater`-Container — die **einzige** Komponente mit Zugriff auf den Docker-Socket. Die Web-App berührt den Socket nie: sie legt nur eine Anforderungsdatei in ein gemeinsames Volume, der Updater führt dann `git pull` + `docker compose build app thumbnailer` + `docker compose up -d app thumbnailer` aus.
 
 > ⚠️ **Sicherheitshinweis:** Der Updater mountet den Docker-Socket, was Root-Rechten auf dem Host entspricht. Nur aktivieren, wenn dieser Kompromiss bewusst akzeptiert wird. Bei einer kompromittierten Web-App kann höchstens ein Rebuild aus dem konfigurierten Branch ausgelöst werden — keine beliebigen Host-Befehle. Dafür gehört das gemeinsame Control-Verzeichnis `root` und hat das Sticky-Bit (`1777`): Die App darf nur `update.request` anlegen und `update.state` schreiben, aber keine Dateien des Updaters ersetzen oder durch Symlinks austauschen.
 
 Voraussetzungen: Deployment aus einem **Git-Checkout**, `UPDATE_ENABLED=true` in der `.env`, unveränderter `COMPOSE_PROJECT_NAME`, und Start inklusive Updater via `docker compose --profile updater up -d --build`. Der Updater liegt hinter dem Compose-Profil `updater` — ein normales `docker compose up` startet den privilegierten Container also nie. Beim Einspielen wird der App-Container neu gebaut und ist kurz nicht erreichbar; die Seite zeigt den Fortschritt und verbindet sich automatisch neu. Mit `UPDATE_ENABLED=false` (und ohne Profil) bleibt das Panel reine Benachrichtigung.
 
-Der Updater baut per `--no-deps` ausschließlich den App-Container neu — die Datenbank wird nie mit-recreated. Er aktualisiert jedoch **sich selbst nicht**: Nach Änderungen unter `updater/` ist einmalig `docker compose --profile updater up -d --build updater` nötig.
+Der Updater baut per `--no-deps` ausschließlich den App- und den Thumbnail-Container neu — die Datenbank wird nie mit-recreated. Er aktualisiert jedoch **sich selbst nicht**: Nach Änderungen unter `updater/` ist einmalig `docker compose --profile updater up -d --build updater` nötig.
 
 ---
 
@@ -958,7 +961,9 @@ uploads/.chunks/{uploadId}/
 
 ## 12. Thumbnail-Generierung
 
-Thumbnails werden asynchron nach dem Upload generiert (`startThumbnail()` — Fehler werden ignoriert). ffmpeg und Ghostscript laufen mit einer leeren Umgebung (nur `PATH`), sehen also weder `SESSION_SECRET` noch Datenbank- oder SMTP-Zugangsdaten. Gegen eine echte Codeausführung schützt das nur begrenzt, da die Prozesse unter demselben Nutzer wie die App laufen.
+Thumbnails werden asynchron nach dem Upload generiert (`startThumbnail()` — Fehler werden ignoriert). Mit Docker Compose laufen ffmpeg und Ghostscript nicht im App-Container, sondern im eigenen Container `thumbnailer`: ohne Netzwerk, ohne Secrets, als Nutzer `nobody`, mit schreibgeschütztem Dateisystem und ohne Zugriff auf `uploads/`. Die App kopiert jede Quelldatei in das gemeinsame Volume `thumbjobs` (`in/`), der Worker (`src/thumbnailWorker.js`) legt das Ergebnis in `out/` ab, und die App übernimmt es nur als reguläre Datei bis 2 MB (keine Symlinks). Läuft der Container nicht, werden Thumbnails übersprungen und die App loggt einmalig eine Warnung. Ohne `THUMBNAIL_WORKER_DIR` (lokale Entwicklung) laufen die Tools direkt in der App, mit leerer Umgebung (nur `PATH`).
+
+> **Upgrade von älteren Versionen:** einmalig `docker compose up -d --build` ausführen, damit der Container `thumbnailer` angelegt wird. Mit Updater diesen ebenfalls einmal neu bauen (`docker compose --profile updater up -d --build updater`), ältere Updater erneuern nur den App-Container.
 
 Ist `ENCRYPTION_KEY` gesetzt, wird das Thumbnail aus der Klartext-Kopie erzeugt, danach verschlüsselt und die Kopie gelöscht. Scheitert die Erzeugung, wird ein eventuell halb geschriebenes Thumbnail entfernt.
 

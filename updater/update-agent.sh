@@ -9,6 +9,7 @@ CONTROL_DIR="${CONTROL_DIR:-/control}"
 PROJECT_DIR="${PROJECT_DIR:-/project}"
 BRANCH="${UPDATE_BRANCH:-main}"
 APP_SERVICE="${APP_SERVICE:-app}"
+THUMB_SERVICE="${THUMB_SERVICE:-thumbnailer}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
 
 REQUEST_FILE="$CONTROL_DIR/update.request"
@@ -63,10 +64,10 @@ while true; do
       # The checkout is bind-mounted and owned by the host user, not root.
       git config --global --add safe.directory "$PROJECT_DIR"
       git pull --ff-only origin "$BRANCH"
-      docker compose build "$APP_SERVICE"
-      # --no-deps so only the app is recreated; the database (a dependency) must
-      # not be bounced on every update.
-      docker compose up -d --no-deps "$APP_SERVICE"
+      docker compose build "$APP_SERVICE" "$THUMB_SERVICE"
+      # --no-deps so only the app and its thumbnailer are recreated; the database
+      # (a dependency) must not be bounced on every update.
+      docker compose up -d --no-deps "$APP_SERVICE" "$THUMB_SERVICE"
     ) >> "$LOG_FILE" 2>&1
     rc=$?
 

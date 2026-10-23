@@ -143,7 +143,7 @@ The admin panel (**Admin → Site Settings → Version & Updates**) always shows
 - `release` (default) — the installed version is compared against the latest **GitHub release tag**. Use this if you cut a release for each version.
 - `branch` — the installed **commit** is compared against the tip of `UPDATE_BRANCH`. An update is available whenever there are new commits on the branch, so you don't need to create a release. The installed version/commit is reported by the updater container, so this channel needs the updater running.
 
-Optionally, admins can apply updates with one click. This is handled by a dedicated `updater` container — the **only** component with Docker socket access. The web app never touches the socket: it just drops a request file into a shared volume, and the updater runs `git pull` + `docker compose build app` + `docker compose up -d app`.
+Optionally, admins can apply updates with one click. This is handled by a dedicated `updater` container — the **only** component with Docker socket access. The web app never touches the socket: it just drops a request file into a shared volume, and the updater runs `git pull` + `docker compose build app thumbnailer` + `docker compose up -d app thumbnailer`.
 
 > ⚠️ **Security note:** the updater mounts the Docker socket, which is equivalent to root on the host. Enable self-update only if you accept that trade-off. If the web app is compromised, the worst it can trigger is a rebuild from your configured branch — it cannot run arbitrary host commands.
 
@@ -159,7 +159,7 @@ docker compose --profile updater up -d --build
 
 When you click **Install update**, the app container is rebuilt and restarted; it is briefly unavailable. The page reports progress and reconnects automatically. Leave `UPDATE_ENABLED=false` (and omit the profile) to keep the panel notification-only.
 
-> **Updating the updater itself:** the updater only rebuilds the `app` container, never itself. After changing anything under `updater/`, rebuild it once manually:
+> **Updating the updater itself:** the updater only rebuilds the `app` and `thumbnailer` containers, never itself. After changing anything under `updater/`, rebuild it once manually:
 > `docker compose --profile updater up -d --build updater`
 
 ## API Usage
@@ -357,7 +357,11 @@ Video and PDF files get a JPEG thumbnail automatically on upload. Thumbnails are
 
 ![Thumbnail Cards](docs/assets/thumbnails.png)
 
-The Docker image includes `ffmpeg` (video) and `ghostscript` (PDF), so no extra setup is needed there. For local development, install the tools manually:
+The Docker image includes `ffmpeg` (video) and `ghostscript` (PDF), so no extra setup is needed there. With Docker Compose they run in a separate `thumbnailer` container without network, secrets or access to stored uploads, so a malicious video or PDF that exploits one of these tools cannot reach the app's data. If that container is not running, thumbnails are skipped.
+
+> **Upgrading from an older version:** run `docker compose up -d --build` once so the `thumbnailer` container is created. If you use the updater, also rebuild it once (`docker compose --profile updater up -d --build updater`); older updaters only recreate the `app` container.
+
+For local development, install the tools manually:
 
 ```bash
 # Debian / Ubuntu
