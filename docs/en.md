@@ -334,6 +334,28 @@ All variables are loaded from `.env` (via `dotenv`). The file `.env.example` con
 | `SMTP_FROM` | _(SMTP_USER)_ | Sender address in outgoing emails |
 | `UPLOAD_DIR` | `./uploads` | Absolute path to upload directory |
 | `NODE_ENV` | — | Optional. Secure cookies do not depend on it: they are set automatically as soon as the request arrives via HTTPS (`X-Forwarded-Proto` from the proxy) |
+| `UPDATE_ENABLED` | `false` | Enables one-click self-update in the admin panel |
+| `UPDATE_CHANNEL` | `release` | Update detection: `release` (latest GitHub release tag) or `branch` (new commits on `UPDATE_BRANCH`) |
+| `UPDATE_BRANCH` | `main` | Branch the updater pulls — and compares against in `branch` mode |
+| `UPDATE_REPO` | `Christianoooooo/sharely` | GitHub repo checked for new releases |
+| `COMPOSE_PROJECT_NAME` | `sharely` | Compose project name; must be identical for host and updater |
+
+### Automatic Updates
+
+The admin panel (**Admin → Site Settings → Version & Updates**) always shows the installed version and whether an update is available.
+
+**What "update available" is based on** is controlled by `UPDATE_CHANNEL`:
+
+- `release` (default) — the installed version is compared against the latest **GitHub release tag**. Suitable if a release is created for each version.
+- `branch` — the installed **commit** is compared against the tip of `UPDATE_BRANCH`. An update is available as soon as there are new commits on the branch — no release needed. The installed version/commit is reported by the updater container, so this mode requires the updater to be running.
+
+Optionally, an update can be applied with one click. This is handled by a dedicated `updater` container — the **only** component with access to the Docker socket. The web app never touches the socket: it only places a request file in a shared volume, and the updater then runs `git pull` + `docker compose build app thumbnailer` + `docker compose up -d app thumbnailer`.
+
+> ⚠️ **Security note:** The updater mounts the Docker socket, which is equivalent to root on the host. Only enable it if you consciously accept this trade-off. A compromised web app can at most trigger a rebuild from the configured branch — no arbitrary host commands. To ensure this, the shared control directory is owned by `root` and has the sticky bit (`1777`): the app may only create `update.request` and write `update.state`, but cannot replace the updater's files or swap them for symlinks.
+
+Requirements: deployment from a **git checkout**, `UPDATE_ENABLED=true` in `.env`, an unchanged `COMPOSE_PROJECT_NAME`, and starting the stack including the updater via `docker compose --profile updater up -d --build`. The updater sits behind the Compose profile `updater` — a plain `docker compose up` therefore never starts the privileged container. While an update is applied, the app container is rebuilt and briefly unavailable; the page shows the progress and reconnects automatically. With `UPDATE_ENABLED=false` (and without the profile) the panel stays notification-only.
+
+The updater uses `--no-deps` to rebuild only the app and thumbnail containers — the database is never recreated along with them. It does **not update itself**, however: after changes under `updater/`, run `docker compose --profile updater up -d --build updater` once.
 
 ---
 

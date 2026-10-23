@@ -334,6 +334,28 @@ sharely/
 | `SMTP_FROM` | _（SMTP_USER）_ | 外发邮件的发件人地址 |
 | `UPLOAD_DIR` | `./uploads` | 上传目录的绝对路径 |
 | `NODE_ENV` | — | 可选。安全 Cookie 不依赖于它：只要请求通过 HTTPS 到达（代理提供的 `X-Forwarded-Proto`），就会自动设置 |
+| `UPDATE_ENABLED` | `false` | 在管理面板中启用一键自更新 |
+| `UPDATE_CHANNEL` | `release` | 更新检测方式：`release`（最新的 GitHub release 标签）或 `branch`（`UPDATE_BRANCH` 上的新提交） |
+| `UPDATE_BRANCH` | `main` | 更新程序拉取的分支，在 `branch` 模式下也用作比较基准 |
+| `UPDATE_REPO` | `Christianoooooo/sharely` | 用于检查新 release 的 GitHub 仓库 |
+| `COMPOSE_PROJECT_NAME` | `sharely` | Compose 项目名称；主机与更新程序必须一致 |
+
+### 自动更新
+
+管理面板（**管理员 → 站点设置 → 版本与更新**）始终显示已安装的版本以及是否有可用更新。
+
+**“有可用更新”的判断依据**由 `UPDATE_CHANNEL` 控制：
+
+- `release`（默认）— 将已安装版本与最新的 **GitHub release 标签**进行比较。适用于每个版本都创建 release 的情况。
+- `branch` — 将已安装的**提交**与 `UPDATE_BRANCH` 的最新提交进行比较。只要分支上有新提交即视为有可用更新，无需创建 release。已安装的版本/提交由更新程序容器上报，因此此模式需要更新程序处于运行状态。
+
+也可以选择一键安装更新。这由独立的 `updater` 容器负责——它是**唯一**能访问 Docker socket 的组件。Web 应用从不接触 socket：它只在共享卷中放置一个请求文件，随后由更新程序执行 `git pull` + `docker compose build app thumbnailer` + `docker compose up -d app thumbnailer`。
+
+> ⚠️ **安全提示：** 更新程序挂载了 Docker socket，相当于拥有主机的 root 权限。仅在明确接受这一权衡时才启用。即使 Web 应用被攻破，最多也只能触发从所配置分支的重新构建——无法执行任意主机命令。为此，共享的控制目录归 `root` 所有并设置了粘滞位（`1777`）：应用只能创建 `update.request` 并写入 `update.state`，但不能替换更新程序的文件，也不能将其换成符号链接。
+
+前提条件：从 **Git 检出**部署、在 `.env` 中设置 `UPDATE_ENABLED=true`、`COMPOSE_PROJECT_NAME` 保持不变，并通过 `docker compose --profile updater up -d --build` 启动包括更新程序在内的服务。更新程序位于 Compose profile `updater` 之后——因此普通的 `docker compose up` 永远不会启动这个特权容器。安装更新时，应用容器会被重新构建并短暂不可用；页面会显示进度并自动重新连接。在 `UPDATE_ENABLED=false`（且不使用该 profile）时，面板仅作通知之用。
+
+更新程序通过 `--no-deps` 仅重新构建应用容器和缩略图容器——数据库永远不会随之重建。但它**不会更新自身**：修改 `updater/` 下的内容后，需要手动执行一次 `docker compose --profile updater up -d --build updater`。
 
 ---
 
