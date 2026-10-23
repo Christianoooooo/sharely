@@ -12,8 +12,12 @@ WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci --omit=dev
+# The npm bundled with the base image lags behind and ships vulnerable dependencies;
+# it stays in the image for `npm run migrate:*`.
+RUN npm install -g npm@12 && npm cache clean --force
 
-RUN apk add --no-cache ffmpeg ghostscript
+# Picks up Alpine security fixes released after the base image was built.
+RUN apk upgrade --no-cache && apk add --no-cache ffmpeg ghostscript
 
 COPY app.js ./
 COPY src/ ./src/
