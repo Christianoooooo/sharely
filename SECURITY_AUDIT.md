@@ -1,6 +1,6 @@
 # Sicherheitsaudit sharely – Stand nach Behebung
 
-**Stand:** 23.10.2026, `main` @ `af044e8` (Merge von PR #199), CI auf `main` grün (Unit + E2E). Live-Prüfung auf der eigenen Instanz abgeschlossen (siehe unten).
+**Stand:** 23.10.2026, `main` @ `f1622bb` (Merge von PR #202), CI auf `main` grün (Unit + E2E). Live-Prüfung auf der eigenen Instanz abgeschlossen (siehe unten).
 **Ursprüngliches Audit:** 22.10.2026, `main` @ `d9ae6b5`.
 
 **Methode der Nachprüfung:**
@@ -79,7 +79,8 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
   - Abgelehnte Requests an den ShareX-Endpunkt `/upload` löschen die bereits geschriebene Datei sofort.
   - Chunk-Upload: Offene Uploads zählen gegen die Quota. Teile über der angekündigten Größe werden abgelehnt (413). Die Endgröße muss exakt stimmen (400).
   - Der Retention-Job räumt verwaiste Chunks nach 24 Stunden ab.
-- **Restrisiko:** Nutzer ohne Quota (Standard `0` = unbegrenzt) können weiterhin beliebig viel speichern. Bei offener Registrierung sollte eine Standard-Quota gesetzt werden.
+- **Betrieb:** Auf `sharely.christian.pizza` gilt seit dem 23.10.2026 eine Standard-Quota von 1 GB pro Nutzer; einzelne Konten haben ein eigenes Kontingent. Kein bestehendes Konto lag darüber.
+- **Restrisiko:** Bei offener Registrierung lässt sich die Quota über mehrere Konten umgehen. Die Registrierung zu schließen (`ALLOW_REGISTRATION=false`) beseitigt das vollständig.
 
 ### MITTEL
 
@@ -185,6 +186,7 @@ Am 23.10.2026 nach dem Deploy von `af044e8` durch den Betreiber durchgeführt (C
 | `Referrer-Policy`, `X-Content-Type-Options` | `same-origin`, `nosniff` |
 | Client-IPs im Audit-Log | Echte öffentliche IPs, `TRUST_PROXY=1` passt zum Tunnel |
 | Session-Cookie `connect.sid` | `HttpOnly`, `Secure`, `SameSite=Strict` |
+| Standard-Quota (H4) | Vorher unbegrenzt bei offener Registrierung (48 Nutzerkonten, zusammen rund 3,2 GB). Jetzt 1 GB Standard, Einzelkontingente für Admin und Vielnutzer; kein Konto über dem Limit |
 | WebSocket über den Tunnel | `101 Switching Protocols` mit `Origin: https://sharely.christian.pizza`, Origin-Prüfung lässt die eigene Seite durch |
 
 ---
@@ -193,8 +195,7 @@ Am 23.10.2026 nach dem Deploy von `af044e8` durch den Betreiber durchgeführt (C
 
 1. **Alte 8-stellige Datei-IDs** sind weiterhin erratbar und nur durch das Rate-Limit geschützt. Eine Neuvergabe würde bestehende Links brechen und ist eine Betreiberentscheidung.
 2. **Verschlüsselung aktivieren** (optional): Schlüssel erzeugen und getrennt sichern, `uploads`-Volume sichern, dann `migrate:encrypt` ausführen.
-3. **Standard-Quota setzen**, falls die Registrierung offen ist (Restrisiko H4).
-4. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
+3. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
 
 ---
 
