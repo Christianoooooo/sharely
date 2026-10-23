@@ -35,6 +35,31 @@ function releasePlain(sealed) {
 }
 
 /**
+ * Deletes an upload whose File record was never created, including its plaintext copy.
+ * @param {string} absPath - Stored upload, plaintext or already encrypted.
+ * @param {{encrypted: boolean, plainPath: string}} [sealed] - sealUpload() result, if it ran.
+ */
+function discardUpload(absPath, sealed) {
+  fs.unlink(absPath, () => {});
+  if (sealed) releasePlain(sealed);
+}
+
+/**
+ * Express middleware, mounted before multer: on an error response, deletes every uploaded
+ * file the handler did not mark with `file.committed = true` (set once its File record exists).
+ * Handlers store the sealUpload() result in `file.sealed` so its plaintext copy goes too.
+ */
+function discardUncommittedUploads(req, res, next) {
+  res.on('finish', () => {
+    if (res.statusCode < 400) return;
+    for (const f of req.files || (req.file ? [req.file] : [])) {
+      if (!f.committed) discardUpload(f.path, f.sealed);
+    }
+  });
+  next();
+}
+
+/**
  * Generates the thumbnail in the background from the plaintext copy, encrypts it
  * like its source, then releases the plaintext copy.
  * @param {{encrypted: boolean, plainPath: string}} sealed - Result of sealUpload().
@@ -56,4 +81,6 @@ function startThumbnail(sealed, mimeType, shortId) {
     .finally(() => releasePlain(sealed));
 }
 
-module.exports = { sealUpload, startThumbnail, releasePlain, PLAIN_COPY_PATTERN };
+module.exports = {
+  sealUpload, startThumbnail, releasePlain, discardUpload, discardUncommittedUploads, PLAIN_COPY_PATTERN,
+};

@@ -34,7 +34,7 @@ const File = require('../models/File');
 const User = require('../models/User');
 const sanitizeFilename = require('../utils/sanitizeFilename');
 const { normalizeMime } = require('../utils/mime');
-const { sealUpload, releasePlain } = require('../utils/storeUpload');
+const { sealUpload, releasePlain, discardUpload } = require('../utils/storeUpload');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
@@ -292,10 +292,11 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
         }
       }
 
+      let sealed;
       try {
         fs.mkdirSync(destDir, { recursive: true });
         fs.copyFileSync(srcPath, destPath);
-        const sealed = await sealUpload(destPath);
+        sealed = await sealUpload(destPath);
 
         const mimeType = normalizeMime(
           media.mimetype ||
@@ -322,6 +323,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
           user: localUser.username,
         });
       } catch (err) {
+        discardUpload(destPath, sealed);
         results.errors++;
         results.details.push({
           file: media.filename,
