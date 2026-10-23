@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const ldap = require('../utils/ldap');
 
 function hashApiKey(plaintext) {
   return crypto.createHash('sha256').update(plaintext).digest('hex');
@@ -24,6 +25,15 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'user'],
     default: 'user',
   },
+  // 'ldap' accounts authenticate against the directory; their local password is a
+  // random placeholder and local password/reset flows are disabled for them.
+  authProvider: {
+    type: String,
+    enum: ['local', 'ldap'],
+    default: 'local',
+  },
+  // Normalized directory DN; the identity of an LDAP account, independent of its username.
+  ldapDn: { type: String, unique: true, sparse: true },
   // Legacy plaintext field – kept only so the startup migration can read and
   // hash it. Cleared immediately after migration; never written again.
   apiKey: { type: String },
@@ -117,7 +127,17 @@ userSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-userSchema.methods.comparePassword = function (candidate) {
+// LDAP accounts confirm actions with their directory password; their local hash is a placeholder.
+userSchema.methods.comparePassword = async function (candidate) {
+  if (typeof candidate !== 'string') return false;
+  if (this.authProvider === 'ldap') {
+    try {
+      return await ldap.verifyPassword(this.ldapDn, candidate);
+    } catch (err) {
+      console.error('LDAP password check failed:', err.message);
+      return false;
+    }
+  }
   return bcrypt.compare(candidate, this.password);
 };
 

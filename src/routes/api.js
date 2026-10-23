@@ -29,6 +29,7 @@ const { validateEmail } = require('../utils/validateEmail');
 const { deleteUserData } = require('../utils/deleteUserData');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
+const ldap = require('../utils/ldap');
 const { getUpdateStatus } = require('../utils/updateCheck');
 const updateApply = require('../utils/updateApply');
 const { broadcast } = require('../ws');
@@ -979,6 +980,13 @@ router.patch('/user/username', requireLogin, accountLimiter, async (req, res) =>
   if (!valid) return res.status(401).json({ error: 'Password is incorrect' });
   const conflict = await User.findOne({ username: trimmed, _id: { $ne: user._id } });
   if (conflict) return res.status(409).json({ error: 'Username already taken' });
+  // Directory names stay reserved for their LDAP owners, who would otherwise be locked out.
+  try {
+    if (await ldap.isDirectoryUsername(trimmed)) return res.status(409).json({ error: 'Username already taken' });
+  } catch (err) {
+    console.error('LDAP username check failed:', err.message);
+    return res.status(503).json({ error: 'Directory unavailable, please try again later' });
+  }
   const oldUsername = user.username;
   user.username = trimmed;
   await user.save();
@@ -999,6 +1007,9 @@ router.patch('/user/password', requireLogin, accountLimiter, async (req, res) =>
   }
   const user = await User.findById(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
+  if (user.authProvider === 'ldap') {
+    return res.status(400).json({ error: 'Password is managed by the directory' });
+  }
   const valid = await user.comparePassword(currentPassword);
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
   user.password = newPassword;
