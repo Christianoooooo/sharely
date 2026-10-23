@@ -132,7 +132,7 @@ ShareX → POST /upload (token im Formular-Body)
 |---|---|---|
 | **Runtime** | Node.js | ≥ 22 |
 | **Backend Framework** | Express.js | 5.x |
-| **Database** | MongoDB + Mongoose | Mongo 7, Mongoose 9.x |
+| **Database** | MongoDB + Mongoose | Mongo 9, Mongoose 9.x |
 | **Sessions** | express-session + connect-mongo | — |
 | **Real-Time** | WebSocket (`ws`) | 8.x |
 | **File Upload** | Multer | 2.x |
@@ -1211,7 +1211,7 @@ docker compose up -d
 
 **Services:**
 - `app` — Node.js app (port 3000, published only on `127.0.0.1` by default, see `BIND_ADDRESS`)
-- `mongo` — MongoDB 7 (port 127.0.0.1:27017, not externally accessible)
+- `mongo` — MongoDB 9 (port 127.0.0.1:27017, not externally accessible)
 - `updater` — optional self-updater (only with profile `updater`)
 
 **Volumes:**

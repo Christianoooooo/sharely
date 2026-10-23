@@ -132,7 +132,7 @@ ShareX → POST /upload (token im Formular-Body)
 |---|---|---|
 | **运行时** | Node.js | ≥ 22 |
 | **后端框架** | Express.js | 5.x |
-| **数据库** | MongoDB + Mongoose | Mongo 7, Mongoose 9.x |
+| **数据库** | MongoDB + Mongoose | Mongo 9, Mongoose 9.x |
 | **会话管理** | express-session + connect-mongo | — |
 | **实时通信** | WebSocket (`ws`) | 8.x |
 | **文件上传** | Multer | 2.x |
@@ -1211,7 +1211,7 @@ docker compose up -d
 
 **服务：**
 - `app` — Node.js 应用（端口 3000，默认仅发布在 `127.0.0.1` 上，参见 `BIND_ADDRESS`）
-- `mongo` — MongoDB 7（端口 127.0.0.1:27017，外部不可访问）
+- `mongo` — MongoDB 9（端口 127.0.0.1:27017，外部不可访问）
 - `updater` — 可选的自更新程序（仅在使用 `updater` profile 时启动）
 
 **数据卷：**
