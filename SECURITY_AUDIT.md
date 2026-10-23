@@ -195,7 +195,6 @@ Am 23.10.2026 nach dem Deploy von `af044e8` durch den Betreiber durchgeführt (C
 2. **Verschlüsselung aktivieren** (optional): Schlüssel erzeugen und getrennt sichern, `uploads`-Volume sichern, dann `migrate:encrypt` ausführen.
 3. **Standard-Quota setzen**, falls die Registrierung offen ist (Restrisiko H4).
 4. **`.env.example`:** um die neuen Variablen ergänzt (`fbb0c53`).
-5. **Übersetzungen:** Der Abschnitt „Automatische Updates“ fehlt in den sieben Übersetzungen unter `docs/` (bestand schon vor dem Audit). Der neue Hinweis zu den Updater-Rechten steht nur auf Deutsch.
 
 ---
 

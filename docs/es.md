@@ -334,6 +334,28 @@ Todas las variables se cargan desde `.env` (mediante `dotenv`). El archivo `.env
 | `SMTP_FROM` | _(SMTP_USER)_ | Dirección de remitente en los correos salientes |
 | `UPLOAD_DIR` | `./uploads` | Ruta absoluta al directorio de carga |
 | `NODE_ENV` | — | Opcional. Las cookies seguras no dependen de ella: se establecen automáticamente en cuanto la solicitud llega por HTTPS (`X-Forwarded-Proto` del proxy) |
+| `UPDATE_ENABLED` | `false` | Activa la autoactualización con un clic en el panel de administración |
+| `UPDATE_CHANNEL` | `release` | Detección de actualizaciones: `release` (última etiqueta de release de GitHub) o `branch` (nuevos commits en `UPDATE_BRANCH`) |
+| `UPDATE_BRANCH` | `main` | Rama que descarga el actualizador — y que se usa como referencia en el modo `branch` |
+| `UPDATE_REPO` | `Christianoooooo/sharely` | Repositorio de GitHub en el que se buscan nuevas releases |
+| `COMPOSE_PROJECT_NAME` | `sharely` | Nombre del proyecto Compose; debe ser idéntico en el host y en el actualizador |
+
+### Actualizaciones automáticas
+
+El panel de administración (**Admin → Configuración del sitio → Versión y actualizaciones**) muestra siempre la versión instalada y si hay una actualización disponible.
+
+**En qué se basa «actualización disponible»** lo controla `UPDATE_CHANNEL`:
+
+- `release` (predeterminado) — la versión instalada se compara con la última **etiqueta de release de GitHub**. Adecuado si se crea una release por cada versión.
+- `branch` — el **commit** instalado se compara con la punta de `UPDATE_BRANCH`. Hay una actualización disponible en cuanto hay commits nuevos en la rama, sin necesidad de una release. La versión/commit instalado lo informa el contenedor del actualizador, por lo que este modo requiere que el actualizador esté en ejecución.
+
+Opcionalmente, una actualización se puede instalar con un clic. De ello se encarga un contenedor propio `updater` — el **único** componente con acceso al socket de Docker. La aplicación web nunca toca el socket: solo deja un archivo de solicitud en un volumen compartido y el actualizador ejecuta entonces `git pull` + `docker compose build app thumbnailer` + `docker compose up -d app thumbnailer`.
+
+> ⚠️ **Nota de seguridad:** El actualizador monta el socket de Docker, lo que equivale a permisos de root en el host. Actívalo solo si aceptas conscientemente este compromiso. Una aplicación web comprometida puede, como mucho, provocar una reconstrucción desde la rama configurada — no comandos arbitrarios en el host. Para ello, el directorio de control compartido pertenece a `root` y tiene el sticky bit (`1777`): la aplicación solo puede crear `update.request` y escribir `update.state`, pero no puede sustituir archivos del actualizador ni cambiarlos por enlaces simbólicos.
+
+Requisitos: despliegue desde un **checkout de Git**, `UPDATE_ENABLED=true` en el `.env`, `COMPOSE_PROJECT_NAME` sin cambios e inicio incluyendo el actualizador mediante `docker compose --profile updater up -d --build`. El actualizador está detrás del perfil de Compose `updater`, así que un `docker compose up` normal nunca inicia el contenedor privilegiado. Al instalar una actualización, el contenedor de la aplicación se reconstruye y deja de estar disponible brevemente; la página muestra el progreso y se reconecta automáticamente. Con `UPDATE_ENABLED=false` (y sin el perfil) el panel solo notifica.
+
+El actualizador reconstruye con `--no-deps` únicamente los contenedores de la aplicación y de miniaturas — la base de datos nunca se recrea con ellos. Sin embargo, **no se actualiza a sí mismo**: tras cambios en `updater/` es necesario ejecutar una vez `docker compose --profile updater up -d --build updater`.
 
 ---
 
