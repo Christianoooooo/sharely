@@ -8,6 +8,7 @@ const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
 const { validateEmail } = require('../utils/validateEmail');
 const mailer = require('../utils/mailer');
+const ldap = require('../utils/ldap');
 const { broadcast } = require('../ws');
 const { establishSession } = require('../middleware/auth');
 
@@ -58,22 +59,7 @@ router.get('/me', async (req, res) => {
   });
 });
 
-// POST /api/auth/login
-router.post('/login', authLimiter, async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password required' });
-  }
-  const user = await User.findOne({ username });
-  if (!user || !user.isActive) {
-    // Spend comparable time hashing so a missing/inactive user is indistinguishable.
-    await bcrypt.compare(password, DUMMY_HASH);
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  const valid = await user.comparePassword(password);
-  if (!valid) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
+async function finishLogin(req, res, user) {
   await establishSession(req, user);
   await logAudit(req, 'login');
   res.json({
@@ -87,6 +73,81 @@ router.post('/login', authLimiter, async (req, res) => {
       language: user.language || 'en',
     },
   });
+}
+
+// Creates a local record the first time a user authenticates via LDAP, so folders,
+// quotas, roles and sessions have something to hang off. The local password is a
+// random placeholder the user never learns, which keeps them on the directory.
+async function provisionLdapUser(username, identity) {
+  if (username.length < 3 || username.length > 32) return null;
+  const userData = {
+    username,
+    password: crypto.randomBytes(32).toString('hex'),
+    role: 'user',
+    authProvider: 'ldap',
+  };
+  const email = (identity.email || '').toLowerCase().trim();
+  // Adopt the directory address only if no other account holds it, so the unique
+  // email index cannot block the login.
+  if (email && email.includes('@') && !(await User.findOne({ email }))) {
+    userData.email = email;
+    userData.emailVerified = true;
+  }
+  try {
+    const user = await User.create(userData);
+    broadcast('stats:invalidate', {}, (c) => c.isAdmin);
+    return user;
+  } catch (err) {
+    console.error('Failed to provision LDAP user:', err.message);
+    return null;
+  }
+}
+
+// POST /api/auth/login
+router.post('/login', authLimiter, async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+  const user = await User.findOne({ username });
+
+  // Local accounts authenticate only against their local password; the directory
+  // never governs a username that already belongs to a local account.
+  if (user && user.isActive && user.authProvider !== 'ldap') {
+    if (await user.comparePassword(password)) {
+      return finishLogin(req, res, user);
+    }
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  // Existing LDAP accounts, and usernames with no local account, fall through to
+  // the directory when it is configured.
+  if (ldap.isConfigured() && (!user || user.authProvider === 'ldap')) {
+    // A deactivated account stays locked out even if the directory would accept it.
+    if (user && !user.isActive) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    let identity;
+    try {
+      identity = await ldap.authenticate(username, password);
+    } catch (err) {
+      console.error('LDAP authentication error:', err.message);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (identity) {
+      const isNew = !user;
+      const ldapUser = user || await provisionLdapUser(username, identity);
+      if (!ldapUser) return res.status(401).json({ error: 'Invalid credentials' });
+      if (isNew) await logAudit(req, 'register', { provider: 'ldap' });
+      return finishLogin(req, res, ldapUser);
+    }
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  // No local match and no applicable directory: spend comparable time hashing so a
+  // missing/inactive user is indistinguishable from a wrong password.
+  await bcrypt.compare(password, DUMMY_HASH);
+  return res.status(401).json({ error: 'Invalid credentials' });
 });
 
 // POST /api/auth/register
@@ -221,7 +282,9 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   }
   try {
     const user = await User.findOne({ username: username.trim() });
-    if (user && user.isActive && user.email && user.emailVerified) {
+    // LDAP accounts have no usable local password, so a reset must never issue one
+    // for them — it would let them bypass the directory.
+    if (user && user.isActive && user.authProvider !== 'ldap' && user.email && user.emailVerified) {
       const plaintext = crypto.randomBytes(32).toString('hex');
       const hash = crypto.createHash('sha256').update(plaintext).digest('hex');
       user.passwordResetToken = hash;

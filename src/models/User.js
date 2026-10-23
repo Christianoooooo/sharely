@@ -24,6 +24,13 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'user'],
     default: 'user',
   },
+  // 'ldap' accounts authenticate against the directory; their local password is a
+  // random placeholder and local password/reset flows are disabled for them.
+  authProvider: {
+    type: String,
+    enum: ['local', 'ldap'],
+    default: 'local',
+  },
   // Legacy plaintext field – kept only so the startup migration can read and
   // hash it. Cleared immediately after migration; never written again.
   apiKey: { type: String },
