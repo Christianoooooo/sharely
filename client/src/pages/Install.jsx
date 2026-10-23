@@ -125,6 +125,18 @@ function StepAdmin({ data, onChange, onNext, onBack, error }) {
             </div>
           )}
           <div className="grid gap-2">
+            <Label htmlFor="setupToken">{t('install.setupToken')}</Label>
+            <Input
+              id="setupToken"
+              value={data.setupToken}
+              onChange={(e) => onChange('setupToken', e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">{t('install.setupTokenHint')}</p>
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="username">{t('install.username')}</Label>
             <Input
               id="username"
@@ -134,7 +146,6 @@ function StepAdmin({ data, onChange, onNext, onBack, error }) {
               minLength={3}
               maxLength={32}
               autoComplete="username"
-              autoFocus
             />
           </div>
           <div className="grid gap-2">
@@ -358,6 +369,7 @@ export default function Install() {
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
+    setupToken: '',
     username: '',
     password: '',
     confirmPassword: '',
@@ -376,6 +388,10 @@ export default function Install() {
   }
 
   function validateAdmin() {
+    if (!form.setupToken.trim()) {
+      setError(t('install.errorSetupTokenMissing'));
+      return false;
+    }
     if (!form.username || form.username.length < 3) {
       setError(t('install.errorUsernameTooShort'));
       return false;

@@ -1,6 +1,6 @@
 # Sharely — 技術ドキュメント
 
-> **バージョン:** 1.0.0 · **ライセンス:** MIT · **Node.js:** ≥ 18
+> **バージョン:** 1.0.0 · **ライセンス:** MIT · **Node.js:** ≥ 20
 
 ---
 
@@ -102,8 +102,11 @@ Sharelyは、クリーンなWebインターフェース、ShareX連携、APIア�
 ```
 Browser → POST /api/web-upload (multipart/form-data)
        → multer: Datei in uploads/{folderName}/
+       → normalizeMime(): MIMEタイプを1つの「type/subtype」に正規化
+       → stripIfEnabled(): 画像メタデータを削除（有効な場合）
+       → sealUpload(): ENCRYPTION_KEYで暗号化（未設定なら変更なし）
        → File.createUnique() → MongoDB
-       → generateThumbnail() (async, non-blocking)
+       → startThumbnail() (async, non-blocking; その後平文コピーを削除)
        → logAudit()
        → broadcast('file:uploaded') via WebSocket
        ← JSON: { files: [...] }
@@ -114,9 +117,10 @@ Browser → POST /api/web-upload (multipart/form-data)
 ```
 ShareX → POST /upload (token im Formular-Body)
        → multer: Datei temporär in uploads/
-       → requireApiKey: Token-Lookup → User
+       → requireApiKey: Token-Lookup → User (失敗時はファイルを即座に削除)
        → fs.renameSync → uploads/{folderName}/
-       → File.create() → MongoDB
+       → normalizeMime() · sealUpload() · File.createUnique() → MongoDB
+       → startThumbnail()
        ← JSON: { url, delete_url }
 ```
 
@@ -126,13 +130,14 @@ ShareX → POST /upload (token im Formular-Body)
 
 | レイヤー | 技術 | バージョン |
 |---|---|---|
-| **ランタイム** | Node.js | ≥ 18 |
+| **ランタイム** | Node.js | ≥ 20 |
 | **バックエンドフレームワーク** | Express.js | 4.x |
 | **データベース** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **セッション** | express-session + connect-mongo | — |
 | **リアルタイム** | WebSocket (`ws`) | 8.x |
-| **ファイルアップロード** | Multer | 1.x |
-| **メール** | Nodemailer | 8.x |
+| **ファイルアップロード** | Multer | 2.x |
+| **ファイル暗号化** | AES-256-GCM, HKDF-SHA256 (Node Crypto) | — |
+| **メール** | Nodemailer | 10.x |
 | **パスワードハッシュ** | bcryptjs | 2.x (12ラウンド) |
 | **APIキーハッシュ** | SHA-256 (Node Crypto) | — |
 | **レート制限** | express-rate-limit | 8.x |
@@ -164,32 +169,43 @@ sharely/
 │   ├── config/
 │   │   └── db.js                   # MongoDB接続（Mongoose）
 │   ├── middleware/
-│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey
+│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey / establishSession
+│   │   ├── lookupLimiter.js        # 失敗したIDルックアップ用の共通レート制限
 │   │   └── upload.js               # Multer設定、ブロックリスト
 │   ├── models/
 │   │   ├── AuditLog.js             # 監査イベント（TTL 90日）
 │   │   ├── Collection.js           # ファイルコレクション
 │   │   ├── File.js                 # ファイルメタデータ
+│   │   ├── Paste.js                # テキストペースト
 │   │   ├── ShareLink.js            # ファイル別共有リンク
 │   │   ├── SiteSettings.js         # シングルトン：運営者設定
 │   │   └── User.js                 # ユーザーアカウント + APIキー
 │   ├── routes/
 │   │   ├── api.js                  # メインAPI（アップロード、ギャラリー、管理者など）
 │   │   ├── auth.js                 # ログイン / 登録 / パスワードリセット
+│   │   ├── docs.js                 # 公開ドキュメントページ（/docs）
 │   │   ├── files.js                # ファイル配信、OG埋め込み、レンジリクエスト
 │   │   ├── import.js               # XBackBone移行
-│   │   ├── install.js              # 初期インストールエンドポイント
+│   │   ├── install.js              # 初期インストールエンドポイント（セットアップトークン）
+│   │   ├── pastes.js               # ペーストAPI
 │   │   └── shares.js               # 共有リンクファイル配信
 │   ├── jobs/
-│   │   └── retentionCleanup.js     # 期限切れファイルの日次削除
+│   │   └── retentionCleanup.js     # 期限切れファイルとアップロード残骸の日次削除
 │   ├── migrations/
 │   │   ├── migrateApiKeyHashes.js  # 一回限り：平文 → SHA-256ハッシュ
 │   │   └── migrateUserFolders.js   # 一回限り：ユーザーフォルダへのファイル移動
 │   ├── utils/
+│   │   ├── asyncRouter.js          # asyncエラーをエラーハンドラーに渡すExpressルーター
 │   │   ├── audit.js                # logAudit()ヘルパー関数
+│   │   ├── deleteUserData.js       # アカウントの全データの完全削除
+│   │   ├── fileCrypto.js           # 保存ファイルの暗号化（AES-256-GCM）
 │   │   ├── generateThumbnail.js    # ffmpeg / ghostscript統合
 │   │   ├── mailer.js               # Nodemailerラッパー + i18nメールテンプレート
-│   │   └── sanitizeFilename.js     # ファイル名サニタイゼーション
+│   │   ├── mime.js                 # MIME正規化、インライン配信のホワイトリスト
+│   │   ├── sanitizeFilename.js     # ファイル名サニタイゼーション
+│   │   ├── setupToken.js           # 初期インストールのセットアップトークン
+│   │   ├── storeUpload.js          # アップロードの暗号化、平文コピーからのサムネイル生成
+│   │   └── uploadPath.js           # パストラバーサル対策付きのパス解決
 │   └── ws.js                       # WebSocketサーバー + アクションディスパッチャー
 │
 ├── client/                         # Reactフロントエンド
@@ -256,7 +272,8 @@ sharely/
 │   ├── setup-db.js
 │   ├── mongo-init.js               # MongoDB初期化スクリプト
 │   ├── migrate-uploads-to-user-folders.js
-│   └── generate-missing-thumbnails.js
+│   ├── generate-missing-thumbnails.js
+│   └── encrypt-existing-files.js   # 既存ファイルを後から暗号化
 │
 ├── e2e/                            # Playwrightテスト
 │   ├── admin.spec.js
@@ -297,6 +314,8 @@ sharely/
 | `PORT` | `3000` | HTTPサーバーのTCPポート |
 | `BIND_ADDRESS` | `127.0.0.1` | Dockerがポートを公開するホストアドレス。リバースプロキシ利用時はループバックのまま、`0.0.0.0` は外部ファイアウォールがある場合かプロキシなしの場合のみ (「Cloudflare Tunnel / コンテナ内のプロキシ」を参照) |
 | `TRUST_PROXY` | `1` | 信頼するプロキシのホップ数（例: Cloudflare → nginx なら `2`）。構成と一致しないとクライアントIPとレート制限が不正確になる |
+| `ENCRYPTION_KEY` | — | 32バイトの鍵（`openssl rand -base64 32`）。設定すると、新しいアップロードとサムネイルが暗号化して保存されます（「保存データの暗号化」を参照）。**紛失すると暗号化されたファイルは読めなくなります** |
+| `INSTALL_TOKEN` | _（ランダム、ログに出力）_ | 初回セットアップの完了に必要なトークン |
 | `MONGODB_URI` | _（Docker Composeから構築）_ | 完全なMongoDB接続URI |
 | `MONGO_ROOT_PASSWORD` | — | MongoDBルートパスワード |
 | `MONGO_APP_USER` | `appuser` | MongoDBアプリケーションユーザー名 |
@@ -314,7 +333,7 @@ sharely/
 | `SMTP_PASS` | — | SMTPパスワード |
 | `SMTP_FROM` | _（SMTP_USER）_ | 送信メールの差出人アドレス |
 | `UPLOAD_DIR` | `./uploads` | アップロードディレクトリの絶対パス |
-| `NODE_ENV` | — | `production`でセキュアCookieを有効化 |
+| `NODE_ENV` | — | 任意。セキュアCookieはこれに依存しません：リクエストがHTTPSで届いた時点で自動的に設定されます（プロキシからの`X-Forwarded-Proto`） |
 
 ---
 
@@ -334,6 +353,7 @@ sharely/
   avatarExt:                   String | null (.jpg/.png/.gif/.webp)
   embedMode:                   'embed' | 'raw'
   isActive:                    Boolean
+  sessionVersion:              Number (パスワード変更/リセット時に増加し、他のセッションを無効化)
   email:                       String (小文字、ユニーク、sparse)
   emailVerified:               Boolean
   emailVerificationToken:      String | null (平文のSHA-256ハッシュ)
@@ -355,16 +375,21 @@ sharely/
 
 ```
 {
-  shortId:      String (ランダムな16進数24文字、ユニーク)
-  deleteToken:  String (16進数32文字、ユニーク)
-  originalName: String (サニタイズ済み)
-  storedName:   String (相対パス："folderName/8hex.ext")
-  mimeType:     String
-  size:         Number (バイト)
-  uploader:     ObjectId → User
-  views:        Number
-  tags:         [String] (最大20 × 50文字)
-  createdAt:    Date
+  shortId:       String (ランダムな16進数24文字、ユニーク)
+  deleteToken:   String (16進数32文字、ユニーク; select: false、APIレスポンスには含まれない)
+  originalName:  String (サニタイズ済み)
+  storedName:    String (相対パス："folderName/8hex.ext")
+  mimeType:      String (1つの「type/subtype」に正規化)
+  encrypted:     Boolean (ファイルはsrc/utils/fileCrypto.jsの形式で保存)
+  size:          Number (バイト、平文サイズ)
+  uploader:      ObjectId → User
+  views:         Number
+  expiresAt:     Date | null (日時による自己破棄)
+  maxDownloads:  Number | null (N回ダウンロード後に自己破棄)
+  downloadCount: Number
+  tags:          [String] (最大20 × 50文字)
+  description:   String (最大1000)
+  createdAt:     Date
 }
 ```
 
@@ -452,19 +477,30 @@ shortId = randomBytes(12).hex()   // 24 hex chars; older IDs keep their 8-char f
 
 ---
 
+### インストール（`/api/install`）
+
+| メソッド | パス | 認証 | 説明 |
+|---|---|---|---|
+| `GET` | `/status` | — | `{ installed: Boolean }`（既にユーザーが存在するか） |
+| `POST` | `/setup` | セットアップトークン | 管理者アカウントと運営者設定を作成。ユーザーが存在しない間のみ |
+
+セットアップトークンは起動時にログに出力される（`[install] Not installed yet. Setup token: …`）か、`INSTALL_TOKEN`で指定されます。ボディに一致する`setupToken`がない場合、`/setup`は`403`を返します。
+
+---
+
 ### 認証（`/api/auth`）
 
 | メソッド | パス | 認証 | 説明 |
 |---|---|---|---|
 | `GET` | `/me` | セッション | 現在ログイン中のユーザー |
-| `POST` | `/login` | — | ログイン（レート制限：10回/15分） |
-| `POST` | `/register` | — | 登録（レート制限あり、最初のユーザーが管理者になる） |
+| `POST` | `/login` | — | ログイン（レート制限：10回/15分。新しいセッションIDを発行） |
+| `POST` | `/register` | — | 登録（レート制限あり。最初の管理者はセットアップでのみ作成） |
 | `POST` | `/logout` | — | ログアウト |
 | `GET` | `/smtp-enabled` | — | SMTPが設定されているか確認 |
 | `GET` | `/verify-email?token=` | — | メールアドレスを認証 |
 | `GET` | `/verify-reset-token?token=` | — | リセットトークンを検証 |
 | `POST` | `/forgot-password` | — | パスワードリセットメールを送信（レート制限：5回/時間） |
-| `POST` | `/reset-password` | — | 新しいパスワードを設定 |
+| `POST` | `/reset-password` | — | 新しいパスワードを設定（既存の全セッションを終了） |
 
 **ログインリクエスト：**
 ```json
@@ -511,10 +547,12 @@ POST /api/auth/login
 
 #### チャンクアップロードフロー
 
-1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`
+1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`  
+   `totalSize`と、ユーザーの未完了チャンクアップロードすべての申告サイズを合計してクォータを確認
 2. `POST /api/chunk/:uploadId`（ボディ：`chunkIndex=N`、ファイル：`chunk`）→ `{ received: N }`  
-   3〜5チャンクを並列で送信
-3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`
+   3〜5チャンクを並列で送信。受信バイト数が`totalSize`を超えると`413`
+3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`  
+   結合後のファイルサイズが`totalSize`と完全に一致しない場合は`400`
 
 ---
 
@@ -523,7 +561,7 @@ POST /api/auth/login
 | メソッド | パス | 認証 | 説明 |
 |---|---|---|---|
 | `GET` | `/api/gallery` | セッション | 自分のファイル（管理者：全ファイル）、ページネーション（24件/ページ）、フィルター：`q`、`type`、`tag`、`page` |
-| `GET` | `/api/file/:shortId` | — | ファイルメタデータ（閲覧カウンターを増加） |
+| `GET` | `/api/file/:shortId` | — | `deleteToken`を除くファイルメタデータ（閲覧カウンターを増加） |
 | `PATCH` | `/api/file/:shortId` | セッション | タグ/名前の更新 |
 | `DELETE` | `/api/file/:shortId` | セッション | ファイルの削除 |
 | `DELETE` | `/api/delete/:shortId` | APIキー | ファイルの削除（APIキー認証） |
@@ -559,6 +597,8 @@ POST /api/auth/login
 | `DELETE` | `/api/user/avatar` | セッション | アバターを削除 |
 | `GET` | `/api/user/avatar/:userId` | — | アバターを配信 |
 
+ユーザー名、パスワード、メール、確認メール、アカウント削除は、ユーザーごとに15分間で10回までに制限されています（盗まれたセッションによるパスワード推測やメールスパムへの対策）。パスワードを変更すると、そのユーザーの他のすべてのセッションが終了し、現在のセッションはログインしたままになります。
+
 ---
 
 ### 共有リンク
@@ -568,8 +608,8 @@ POST /api/auth/login
 | `GET` | `/api/file/:shortId/share-links` | セッション（オーナー/管理者） | ファイルの全共有リンク |
 | `POST` | `/api/file/:shortId/share-links` | セッション（オーナー/管理者） | 共有リンクを作成 |
 | `DELETE` | `/api/share-links/:token` | セッション（オーナー/作成者/管理者） | 共有リンクを削除 |
-| `GET` | `/api/share-links/:token` | — | 共有リンクのメタデータ（公開） |
-| `POST` | `/api/share-links/:token/verify` | — | 共有リンクのパスワードを確認 |
+| `GET` | `/api/share-links/:token` | — | 共有リンクのメタデータ（公開。パスワード、有効期限、制限を`/f/`経由で回避できないよう、ファイルの`shortId`は含まない） |
+| `POST` | `/api/share-links/:token/verify` | — | 共有リンクのパスワードを確認（IPごとに15分間で最大10回の失敗） |
 
 **共有リンクの作成：**
 ```json
@@ -595,7 +635,7 @@ POST /api/file/a1b2c3d4/share-links
 | `DELETE` | `/api/collections/:id` | セッション（オーナー/管理者） | コレクションを削除 |
 | `POST` | `/api/collections/:id/files` | セッション（オーナー/管理者） | コレクションにファイルを追加 |
 | `DELETE` | `/api/collections/:id/files/:fileShortId` | セッション（オーナー/管理者） | コレクションからファイルを削除 |
-| `POST` | `/api/collections/:id/verify` | — | コレクションのパスワードを確認 |
+| `POST` | `/api/collections/:id/verify` | — | コレクションのパスワードを確認（IPごとに15分間で最大10回の失敗） |
 
 ---
 
@@ -607,10 +647,10 @@ POST /api/file/a1b2c3d4/share-links
 | `GET` | `/api/admin/users` | 管理者 | 全ユーザー（ファイル数を含む） |
 | `POST` | `/api/admin/users` | 管理者 | ユーザーを作成 |
 | `PATCH` | `/api/admin/users/:id/toggle` | 管理者 | ユーザーを有効化/無効化 |
-| `PATCH` | `/api/admin/users/:id/role` | 管理者 | ユーザーロールを変更 |
-| `DELETE` | `/api/admin/users/:id` | 管理者 | ユーザーを削除 |
+| `PATCH` | `/api/admin/users/:id/role` | 管理者 | ユーザーロールを変更（開いているセッションにも即座に反映） |
+| `DELETE` | `/api/admin/users/:id` | 管理者 | ユーザーとその全データを削除 |
 | `POST` | `/api/admin/users/:id/regen-key` | 管理者 | APIキーを再生成 |
-| `PATCH` | `/api/admin/users/:id/password` | 管理者 | パスワードを設定 |
+| `PATCH` | `/api/admin/users/:id/password` | 管理者 | パスワードを設定（ユーザーの全セッションを終了） |
 | `PATCH` | `/api/admin/users/:id/folder` | 管理者 | フォルダ名を変更（ファイルを移動） |
 | `GET` | `/api/admin/files` | 管理者 | 全ファイル、ページネーション（30件/ページ） |
 | `GET` | `/api/admin/site-settings` | 管理者 | 運営者設定を読み取り |
@@ -641,6 +681,13 @@ GET /api/site-settings
 ## 8. WebSocket API
 
 **接続：**`wss://example.com/ws`（ログイン済みユーザーのみ、セッションCookieが必要）
+
+### 保護
+
+- **Originチェック：** `Origin`ヘッダーが`Host`と一致しない場合、ハンドシェイクは`403`で拒否されます（HTTP APIの`requireSameOrigin`と同じルール）。プロキシは元の`Host`を転送する必要があります。
+- **継続的な権限チェック：** セッション、アクティブ状態、ロール、`sessionVersion`はメッセージごと、さらに全接続について30秒ごとに再確認されます。ログアウト、無効化、削除、パスワード変更、降格の後は、接続が閉じられるか、管理者権限と管理者向けブロードキャストを失います。
+- **ハートビート：** 30秒ごとにPing。Pongのない接続は切断されます。
+- **制限：** 1メッセージあたり最大64 KiB（超過すると接続はコード`1009`で閉じられる）、接続ごとに連続30メッセージまで、その後は毎秒5メッセージまで（超過時は`status: 429`で応答）、クライアントIPごとに同時接続最大20。パスワードを確認する、またはメールを送信するアクションは、ユーザーごとに15分間で10回までに制限されています。
 
 ### プロトコル
 
@@ -724,23 +771,39 @@ GET /api/site-settings
 
 ### `/f/:shortId/raw` — 直接アクセス
 
-レンジリクエスト対応（206 Partial Content）でファイルをHTTPレスポンスとして配信。画像/動画/音声：`Content-Disposition: inline`、その他：`attachment`。
+レンジリクエスト対応（206 Partial Content、`bytes=-500`のようなサフィックスレンジも可）でファイルをHTTPレスポンスとして配信。暗号化されたファイルはその場で復号されます。
+
+どのファイルをブラウザで直接表示するかは、正規化されたMIMEタイプに基づくホワイトリスト（`src/utils/mime.js`）で決まります：
+
+| ケース | `Content-Type` | `Content-Disposition` | 追加 |
+|---|---|---|---|
+| 画像（PNG、JPEG、GIF、WebP、AVIF、BMP、ICO）、一般的な動画/音声フォーマット、PDF | 実際のタイプ | `inline` | — |
+| テキストとコード（`displayType`による） | `text/plain; charset=utf-8` | `inline` | `CSP: sandbox` |
+| HTML、SVG、XML、その他すべて | `application/octet-stream` | `attachment` | `CSP: sandbox` |
+
+これにより、アップロードされたファイルがアプリのオリジンでページとしてレンダリングされたり、スクリプトとして読み込まれたりすることはありません。
+
+ファイルにダウンロード制限（`maxDownloads`）がある場合、`/raw`は完全な取得（`Range`なし、またはバイト0から）のみを、訪問者セッションごとに1回カウントします：同じ訪問者のプレビューとその後のダウンロードは合わせて1回の消費です。オーナーと管理者の取得はカウントされません。制限に達すると、ルートは`410`を返します。
 
 ### `/f/:shortId/download` — 強制ダウンロード
 
-`/raw`と同様ですが、常に`Content-Disposition: attachment`。
+`/raw`と同様ですが、常に`Content-Disposition: attachment`と`application/octet-stream`。新しい訪問者ごとに`maxDownloads`にカウントされます。
 
 ### `/f/:shortId/thumb` — サムネイル
 
-JPEGサムネイルを返す（動画とPDF用）。`Cache-Control: public, max-age=86400`。
+JPEGサムネイルを返す（動画とPDF用）。暗号化が有効な場合は復号して返す。`Cache-Control: public, max-age=86400`。IDは`[A-Za-z0-9_-]`で構成される必要があります（`%2F`によるパストラバーサル対策）。
 
 ### `/f/:shortId/delete/:token` — ShareX削除
 
-一意の削除トークンを使用して、セッションなしでファイルを削除。
+一意の削除トークンを使用して、セッションなしでファイルを削除。トークンはアップロード時にのみ返され、他のAPIレスポンスには現れません。
 
 ### `/s/:token` — 共有リンクファイル配信（`src/routes/shares.js`）
 
 パスワード（セッションフラグ経由）、有効期限、ダウンロード制限を確認してからファイルを配信。
+
+### IDの総当たり対策
+
+IDまたはトークンによるすべての公開取得（`/f/*`、`/s/*`、`/api/file/:shortId`、`/api/share-links/:token`、`/api/collections/:id`、ペースト）は共通のレート制限を共有します：IPごとに15分間で最大100回の失敗した取得（404/410/401 …）。成功した取得はカウントされません。8文字の古いファイルIDは引き続き有効ですが、新しいものより短く、推測されやすくなっています。
 
 ---
 
@@ -749,8 +812,10 @@ JPEGサムネイルを返す（動画とPDF用）。`Cache-Control: public, max-
 ### セッション認証
 
 - MongoDBストア付きExpressセッション（`connect-mongo`）
-- セッションCookie：`httpOnly: true`、`sameSite: 'strict'`、本番環境では`secure: true`
+- セッションCookie：`httpOnly: true`、`sameSite: 'strict'`、`secure: 'auto'`（リクエストがHTTPSで届いた時点で設定。プロキシの背後では`X-Forwarded-Proto`と`TRUST_PROXY`経由）
 - セッション期間：`SiteSettings.sessionDurationDays`で設定可能（デフォルト：7日）、60秒間ライブキャッシュ
+- ログイン、登録、インストールは新しいセッションIDを発行（`establishSession`、セッション固定攻撃対策）
+- リクエストごとに、ユーザーのロール、アクティブ状態、`sessionVersion`がデータベースから読み込まれます：削除または無効化されたアカウントや、パスワード変更前のセッションは即座にログインを失い、ロール変更は即座に適用されます
 
 ### APIキー認証
 
@@ -764,8 +829,10 @@ JPEGサムネイルを返す（動画とPDF用）。`Cache-Control: public, max-
 ```
 requireLogin    → req.session.userを確認 → 未ログインなら401
 requireAdmin    → requireLoginと同様、さらにrole === 'admin' → 403
-requireApiKey   → Authorizationヘッダーまたはreqbody.tokenを確認
+requireApiKey   → Authorization: Bearer、X-API-Key、?api_key=またはreq.body.tokenを確認
 ```
+
+すべてのルーターは`asyncRouter()`で作成されます：`async`ハンドラー内のエラーはリクエストを放置せず、中央のエラーハンドラー（`500`）に渡されます。`uncaughtException`はプロセスを終了させ、Dockerが再起動します（`restart: unless-stopped`）。
 
 ### CSRF対策
 
@@ -775,26 +842,42 @@ requireApiKey   → Authorizationヘッダーまたはreqbody.tokenを確認
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com;
+script-src 'self' https://static.cloudflareinsights.com;
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
 media-src 'self' blob:;
 connect-src 'self' https://cloudflareinsights.com;
 frame-ancestors 'self';
+base-uri 'none';
+form-action 'self';
+object-src 'none';
 ```
 
 ### セキュリティヘッダー
 
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`（HTTPSリクエストのみ）
 - `X-Frame-Options: SAMEORIGIN`
 - `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: same-origin`（ファイル、ペースト、共有のURLがRefererで外部サイトに渡らない）
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
 
 ### レート制限
 
-| エンドポイント | 制限 | ウィンドウ |
-|---|---|---|
-| アップロード（`/upload`、`/api/upload`、`/api/web-upload`） | 60リクエスト | 15分 |
-| 認証（`/api/auth/login`、`/register`など） | 10リクエスト | 15分 |
-| パスワードリセット | 5リクエスト | 1時間 |
+| エンドポイント | 制限 | ウィンドウ | キー |
+|---|---|---|---|
+| アップロード（`/upload`、`/api/upload`、`/api/web-upload`） | 60リクエスト | 15分 | IP |
+| 認証（`/api/auth/login`、`/register`など） | 10リクエスト | 15分 | IP |
+| パスワードリセット | 5リクエスト | 1時間 | IP |
+| 共有リンク、コレクション、ペーストのパスワード確認 | 10回の失敗 | 15分 | IP |
+| アカウント操作（名前、パスワード、メール、確認メール、削除） | 10リクエスト | 15分 | ユーザー |
+| 失敗したID/トークン取得（第9章参照） | 100リクエスト | 15分 | IP |
+| WebSocket | 第8章参照 | — | 接続 / IP / ユーザー |
+
+クライアントIPは`TRUST_PROXY`に依存します。そのためアプリのポートはリバースプロキシ経由でのみ到達可能にする必要があります（`BIND_ADDRESS`）。そうでなければ`X-Forwarded-For`を偽装できます。
+
+### ロギング
+
+アクセスログ（stdout → Dockerログ）には短縮されたIPアドレス（IPv4は`/24`、IPv6は`/48`）が含まれます。APIキー（`api_key=`）、クエリパラメーター内のトークン（`token=`）、削除トークン、共有トークンは黒塗りされます。監査ログは完全なIPを保存し、90日後に自動削除されます。
 
 ### ファイルブロックリスト
 
@@ -806,7 +889,7 @@ frame-ancestors 'self';
 
 ### パストラバーサル対策
 
-`resolveUploadPath()`経由のすべてのファイルアクセスは、解決されたパスが`UPLOAD_DIR`内にあることを確認します。
+`resolveUploadPath()`経由のすべてのファイルアクセスは、解決されたパスが`UPLOAD_DIR`内にあることを確認します。サムネイルIDはさらに`[A-Za-z0-9_-]`に対して検証されます。
 
 ---
 
@@ -818,6 +901,9 @@ frame-ancestors 'self';
 - **ファイル名：** `crypto.randomBytes(4).hex() + 元の拡張子`
 - **制限：** `MAX_FILE_SIZE_MB`（デフォルト：100MB）
 - **保存場所：** ユーザー固有のフォルダ（`user.folderName`）
+- **MIMEタイプ：** `normalizeMime()`で1つの`type/subtype`に正規化（パラメーターとカンマ区切りの追加タイプは除去され、無効な値は`application/octet-stream`になる）
+- **暗号化：** `ENCRYPTION_KEY`がある場合、`sealUpload()`がファイルをその場で暗号化。平文コピー（`<ファイル>.plain-<hex>`）はサムネイル生成までのみ残る
+- **ShareXエンドポイント`/upload`：** MulterはAPIキー確認の前にファイルを書き込む。リクエストが拒否されると即座に削除される
 
 ### チャンクアップロード（>250MB）
 
@@ -835,7 +921,9 @@ uploads/.chunks/{uploadId}/
 
 **チャンクサイズ：** 10〜20MB（後方互換性のため最大51MBを受け入れ）  
 **並列数：** 3〜5チャンクの同時アップロード  
-**結合：** ストリームベース（RAMへの完全読み込みなし）
+**結合：** ストリームベース（RAMへの完全読み込みなし）  
+**サイズ確認：** 受信バイト数は`totalSize`を超えてはならず、完成したファイルは`totalSize`と完全に一致する必要がある  
+**クリーンアップ：** 未完了のアップロードディレクトリは24時間後に保持ジョブによって削除される
 
 ### アバターアップロード
 
@@ -848,7 +936,9 @@ uploads/.chunks/{uploadId}/
 
 ## 12. サムネイル生成
 
-サムネイルはアップロード後に非同期で生成されます（`.catch(() => {})` — エラーは無視されます）。
+サムネイルはアップロード後に非同期で生成されます（`startThumbnail()` — エラーは無視されます）。ffmpegとGhostscriptは空の環境（`PATH`のみ）で実行されるため、`SESSION_SECRET`やデータベース、SMTPの認証情報は参照できません。ただしプロセスはアプリと同じユーザーで実行されるため、実際のコード実行に対する保護は限定的です。
+
+`ENCRYPTION_KEY`が設定されている場合、サムネイルは平文コピーから生成され、その後暗号化され、コピーは削除されます。生成に失敗した場合、書きかけのサムネイルは削除されます。
 
 ### 動画サムネイル（ffmpeg）
 
@@ -878,6 +968,8 @@ npm run migrate:thumbnails
 # またはコンテナ内：
 docker exec -it <container> npm run migrate:thumbnails
 ```
+
+暗号化されたファイルの場合、スクリプトはソースを一時ファイルに一時的に復号し、生成したサムネイルを暗号化します。
 
 ---
 
@@ -996,10 +1088,10 @@ docker exec -it <container> npm run migrate:thumbnails
 ### ユーザー管理（`/admin/users`）
 
 - ファイル数とストレージ使用量付きの全ユーザー
-- ユーザーの作成、有効化/無効化、ロール変更
-- パスワードリセット、APIキー再生成
+- ユーザーの作成、有効化/無効化、ロール変更（無効化と降格は、開いているセッションやWebSocket接続にも即座に反映）
+- パスワードリセット（ユーザーをすべての場所からログアウト）、APIキー再生成
 - フォルダ名の変更（物理ファイルはサーバー上で移動）
-- ユーザーの削除（全ファイルが削除される）
+- ユーザーの削除（自己削除と同様に全データ、第17章参照）
 
 ### ファイル管理（`/admin/files`）
 
@@ -1036,7 +1128,7 @@ docker exec -it <container> npm run migrate:thumbnails
 | プライバシーポリシー（設定可能） | 第13/14条 – 透明性 |
 | 利用規約ページ（設定可能） | 第13/14条 – 透明性 |
 | データエクスポート（URLを含むJSON） | 第20条 – データポータビリティ |
-| アカウント自己削除（ファイル+データ） | 第17条 – 削除権 |
+| アカウント削除（ファイル、ペースト、コレクション、共有リンク、アバター） | 第17条 – 削除権 |
 | 監査ログ（MongoDB経由90日TTL） | 第5条(2) – 説明責任 |
 | 監査ログCSVエクスポート | 第5条(2) – 説明責任 |
 | 設定可能なファイル保持 | 第5条(1)(e) – 保存制限 |
@@ -1044,16 +1136,22 @@ docker exec -it <container> npm run migrate:thumbnails
 | bcrypt（12ラウンド）としてのパスワード | 第32条 – セキュリティ |
 | Cloudflare Analytics用Cookieの同意 | 第13条 – 透明性 |
 | アカウント削除時の匿名化 | 第17条 – 削除権 |
+| 保存ファイルのオプション暗号化（`ENCRYPTION_KEY`） | 第32条 – セキュリティ |
+| アクセスログでのIPアドレス短縮とトークン黒塗り | 第5条(1)(c) – データ最小化 |
 
 ### GDPR削除フロー
 
-アカウント削除時（`user:delete-account` / `DELETE /api/user/account`）：
+アカウント削除時（`user:delete-account` / `DELETE /api/user/account`）および管理者による削除時（`admin:users:delete` / `DELETE /api/admin/users/:id`）は、同じ処理（`src/utils/deleteUserData.js`）が実行されます：
 1. ユーザーの全ファイルがディスクから削除される
 2. サムネイルが削除される
-3. アバターが削除される
-4. 監査ログエントリが匿名化される（`username: '[deleted]'`、`ip: null`、`userId: null`）
-5. ユーザードキュメントが削除される
-6. セッションが破棄される
+3. ユーザーの共有リンクと、そのファイルへの共有リンクが削除される
+4. ユーザーのペーストとコレクションが削除される。そのファイルは他のユーザーのコレクションからも除去される
+5. アバターが削除される
+6. 監査ログエントリが匿名化される（`username: '[deleted]'`、`ip: null`、`userId: null`）
+7. ユーザードキュメントが削除される
+8. 自己削除の場合：セッションが破棄される。開いているセッションとWebSocket接続は次のリクエストでログインを失う
+
+削除自体の監査エントリは証跡として残り、90日後に自動削除されます。
 
 ---
 
@@ -1062,8 +1160,9 @@ docker exec -it <container> npm run migrate:thumbnails
 ### 保持クリーンアップ（`src/jobs/retentionCleanup.js`）
 
 - **実行タイミング：** 起動時と以降は毎日（`setInterval(runRetentionCleanup, 24h)`）
-- **処理内容：** `SiteSettings.fileRetentionDays > 0`の場合、この値より古いファイルを削除
+- **処理内容：** `SiteSettings.fileRetentionDays > 0`の場合、この値より古いファイルを削除。さらに`expiresAt`経過後または`maxDownloads`到達後の自己破棄ファイルも削除
 - 削除対象：ディスク上のファイル、サムネイル、MongoDBドキュメント
+- クリーンアップ対象：24時間より古い未完了のチャンクアップロード、および1時間より古い暗号化アップロードの残った平文コピー（`*.plain-*`）
 - 管理者に`stats:invalidate`をブロードキャスト
 
 ### MongoDB TTLインデックス（自動）
@@ -1089,12 +1188,14 @@ docker compose up -d
 ```
 
 **サービス：**
-- `app` — Node.jsアプリ（ポート3000）
+- `app` — Node.jsアプリ（ポート3000、デフォルトでは`127.0.0.1`にのみ公開、`BIND_ADDRESS`を参照）
 - `mongo` — MongoDB 7（ポート127.0.0.1:27017、外部からアクセス不可）
+- `updater` — オプションのセルフアップデーター（プロファイル`updater`使用時のみ）
 
 **ボリューム：**
 - `uploads` — 永続的なファイルストレージ
 - `mongo_data` — MongoDBデータ
+- `control` — アプリとアップデーター間のやり取り用
 
 **ヘルスチェック：** アプリは`/`でHTTP 200を確認、MongoDBは`db.adminCommand('ping')`を確認。
 
@@ -1139,9 +1240,18 @@ Dockerはデフォルトでアプリのポートを `127.0.0.1` にのみ公開�
 
 > **アップグレードの注意：** 以前のバージョンはポート3000をすべてのインターフェースに公開していました。プロキシがコンテナで動作している場合は、更新前に `BIND_ADDRESS` を設定するか、上記のとおりネットワークを接続してください。
 
+### 保存データの暗号化
+
+`ENCRYPTION_KEY` を設定すると、sharely は新しいアップロードとそのサムネイルを保存前に AES-256-GCM で暗号化します（マスター鍵から導出したファイルごとの鍵）。配信時にはその場で復号され、Range リクエストや ZIP ダウンロードにも対応します。
+
+- 鍵は `openssl rand -base64 32` で一度だけ生成し、`.env` に設定して**別途バックアップ**してください。鍵がなければ暗号化されたファイルは復元できません。後から鍵を変更・削除することはサポートされていません。
+- 既存のファイルは移行を実行するまで暗号化されません（事前に `uploads` ボリュームをバックアップ）：`docker compose exec app npm run migrate:encrypt`
+- 対象外：ペースト、MongoDB 内のファイル名やその他のメタデータ、アバター、実行中のサーバーのメモリ。アップロードの処理中（チャンクの結合、メタデータ削除、サムネイル生成）は、一時的に暗号化されずにディスク上に存在します。
+- ディスク/ボリューム暗号化に関する管理設定は、プライバシーポリシーでボリューム暗号化を表明するだけで、この機能とは無関係です。
+
 ### 初回起動
 
-最初に登録したユーザーは自動的に`admin`ロールを付与されます（`User.countDocuments() === 0`）。
+ユーザーがいない状態での初回起動時、sharely はセットアップトークンをログ（`docker compose logs app`）に出力します。`INSTALL_TOKEN` が設定されている場合はそれを使用します。インストールページでこのトークンを入力すると管理者アカウントが作成されます。通常の登録で管理者が作成されることはありません。
 
 ---
 
@@ -1149,7 +1259,7 @@ Dockerはデフォルトでアプリのポートを `127.0.0.1` にのみ公開�
 
 ### 前提条件
 
-- Node.js ≥ 18
+- Node.js ≥ 20
 - MongoDB（ローカルまたはDocker経由）
 - オプション：ffmpeg、ghostscript（サムネイル用）
 
@@ -1211,7 +1321,14 @@ node scripts/generate-missing-thumbnails.js
 npm run migrate:user-folders
 # または：
 node scripts/migrate-uploads-to-user-folders.js
+
+# 既存のファイルとサムネイルを暗号化（ENCRYPTION_KEYが必要、事前にバックアップ）
+npm run migrate:encrypt
+# またはコンテナ内：
+docker compose exec app npm run migrate:encrypt
 ```
+
+`migrate:encrypt`は各ファイルを暗号化して`<storedName>.enc`に書き込み、その後レコードを切り替え、最後に平文を削除します。中断された実行は安全に再実行できます。
 
 ### データベース初期化（Docker）
 
@@ -1244,9 +1361,17 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-**Playwright設定：** `playwright.config.js`  
-**グローバルセットアップ：** `e2e/global-setup.js`（テストユーザー、管理者などを作成）  
+**Playwright設定：** `playwright.config.js`（`INSTALL_TOKEN`（デフォルト`e2e-install-token`）でサーバーを起動）  
+**グローバルセットアップ：** `e2e/global-setup.js`（このトークンでインストールを実行し、テストユーザー、管理者などを作成）  
 **ヘルパー：** `e2e/helpers.js`（共有ヘルパー関数）
+
+### ユニットテスト
+
+```bash
+npm test
+```
+
+データベースなしで実行：`src/utils/validateEmail.test.js`、`src/utils/stripMetadata.test.js`、`src/utils/fileCrypto.test.js`（暗号化：ラウンドトリップ、バイト範囲、改ざん検出）。
 
 ---
 

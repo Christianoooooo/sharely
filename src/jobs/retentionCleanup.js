@@ -3,6 +3,7 @@ const fs = require('fs');
 const File = require('../models/File');
 const SiteSettings = require('../models/SiteSettings');
 const { deleteThumbnail } = require('../utils/generateThumbnail');
+const { PLAIN_COPY_PATTERN } = require('../utils/storeUpload');
 const { broadcast } = require('../ws');
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads');
@@ -36,8 +37,34 @@ async function cleanupStaleChunks() {
   if (removed > 0) console.log(`[retention] Removed ${removed} stale chunk upload(s)`);
 }
 
+// Plaintext copies of encrypted uploads normally live only until the thumbnail is
+// done (seconds); any older one was left by a crash and must not stay on disk.
+const PLAIN_COPY_MAX_AGE_MS = 60 * 60 * 1000;
+
+async function cleanupPlainCopies() {
+  const cutoff = Date.now() - PLAIN_COPY_MAX_AGE_MS;
+  const dirs = [UPLOAD_DIR];
+  const top = await fs.promises.readdir(UPLOAD_DIR, { withFileTypes: true }).catch(() => []);
+  for (const entry of top) if (entry.isDirectory()) dirs.push(path.join(UPLOAD_DIR, entry.name));
+  let removed = 0;
+  for (const dir of dirs) {
+    for (const name of await fs.promises.readdir(dir).catch(() => [])) {
+      if (!PLAIN_COPY_PATTERN.test(name)) continue;
+      const p = path.join(dir, name);
+      try {
+        if ((await fs.promises.stat(p)).mtimeMs < cutoff) {
+          await fs.promises.rm(p, { force: true });
+          removed++;
+        }
+      } catch { /* removed concurrently */ }
+    }
+  }
+  if (removed > 0) console.log(`[retention] Removed ${removed} leftover plaintext upload cop(ies)`);
+}
+
 async function runRetentionCleanup() {
   await cleanupStaleChunks();
+  await cleanupPlainCopies();
   try {
     const now = new Date();
     const toDelete = new Map(); // _id (string) -> file doc, de-duplicated across criteria

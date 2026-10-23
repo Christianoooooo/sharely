@@ -32,6 +32,8 @@ module.exports = defineConfig({
       BASE_URL: `http://localhost:${PORT}`,
       UPLOAD_DIR: '/tmp/sharely-e2e-uploads',
       NODE_ENV: 'test',
+      // Must match the token e2e/global-setup.js sends to /api/install/setup.
+      INSTALL_TOKEN: process.env.INSTALL_TOKEN || 'e2e-install-token',
     },
   },
 

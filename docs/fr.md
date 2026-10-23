@@ -1,6 +1,6 @@
 # Sharely — Documentation Technique
 
-> **Version :** 1.0.0 · **Licence :** MIT · **Node.js :** ≥ 18
+> **Version :** 1.0.0 · **Licence :** MIT · **Node.js :** ≥ 20
 
 ---
 
@@ -102,8 +102,11 @@ Sharely est une **plateforme de partage de fichiers auto-hébergée** dotée d'u
 ```
 Browser → POST /api/web-upload (multipart/form-data)
        → multer: Datei in uploads/{folderName}/
+       → normalizeMime() : réduit le type MIME à un seul « type/sous-type »
+       → stripIfEnabled() : supprime les métadonnées des images (si activé)
+       → sealUpload() : chiffre avec ENCRYPTION_KEY (sinon inchangé)
        → File.createUnique() → MongoDB
-       → generateThumbnail() (async, non-blocking)
+       → startThumbnail() (async, non-blocking ; supprime ensuite la copie en clair)
        → logAudit()
        → broadcast('file:uploaded') via WebSocket
        ← JSON: { files: [...] }
@@ -114,9 +117,10 @@ Browser → POST /api/web-upload (multipart/form-data)
 ```
 ShareX → POST /upload (token im Formular-Body)
        → multer: Datei temporär in uploads/
-       → requireApiKey: Token-Lookup → User
+       → requireApiKey: Token-Lookup → User (en cas d'échec, le fichier est supprimé immédiatement)
        → fs.renameSync → uploads/{folderName}/
-       → File.create() → MongoDB
+       → normalizeMime() · sealUpload() · File.createUnique() → MongoDB
+       → startThumbnail()
        ← JSON: { url, delete_url }
 ```
 
@@ -126,13 +130,14 @@ ShareX → POST /upload (token im Formular-Body)
 
 | Couche | Technologie | Version |
 |---|---|---|
-| **Runtime** | Node.js | ≥ 18 |
+| **Runtime** | Node.js | ≥ 20 |
 | **Framework backend** | Express.js | 4.x |
 | **Base de données** | MongoDB + Mongoose | Mongo 7, Mongoose 8.x |
 | **Sessions** | express-session + connect-mongo | — |
 | **Temps réel** | WebSocket (`ws`) | 8.x |
-| **Upload de fichiers** | Multer | 1.x |
-| **E-mail** | Nodemailer | 8.x |
+| **Upload de fichiers** | Multer | 2.x |
+| **Chiffrement des fichiers** | AES-256-GCM, HKDF-SHA256 (Node Crypto) | — |
+| **E-mail** | Nodemailer | 10.x |
 | **Hachage des mots de passe** | bcryptjs | 2.x (12 tours) |
 | **Hachage des clés API** | SHA-256 (Node Crypto) | — |
 | **Limitation de débit** | express-rate-limit | 8.x |
@@ -164,32 +169,43 @@ sharely/
 │   ├── config/
 │   │   └── db.js                   # Connexion MongoDB (Mongoose)
 │   ├── middleware/
-│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey
+│   │   ├── auth.js                 # requireLogin / requireAdmin / requireApiKey / establishSession
+│   │   ├── lookupLimiter.js        # Limite de débit commune pour les recherches d'ID échouées
 │   │   └── upload.js               # Configuration Multer, liste de blocage
 │   ├── models/
 │   │   ├── AuditLog.js             # Événements d'audit (TTL 90 jours)
 │   │   ├── Collection.js           # Collections de fichiers
 │   │   ├── File.js                 # Métadonnées des fichiers
+│   │   ├── Paste.js                # Pastes de texte
 │   │   ├── ShareLink.js            # Liens de partage par fichier
 │   │   ├── SiteSettings.js         # Singleton : paramètres opérateur
 │   │   └── User.js                 # Comptes utilisateurs + clés API
 │   ├── routes/
 │   │   ├── api.js                  # API principale (upload, galerie, admin, ...)
 │   │   ├── auth.js                 # Connexion / Inscription / Réinitialisation du mot de passe
+│   │   ├── docs.js                 # Page de documentation publique (/docs)
 │   │   ├── files.js                # Service des fichiers, embeds OG, requêtes de plage
 │   │   ├── import.js               # Migration XBackBone
-│   │   ├── install.js              # Endpoint d'installation initiale
+│   │   ├── install.js              # Endpoint d'installation initiale (jeton d'installation)
+│   │   ├── pastes.js               # API des pastes
 │   │   └── shares.js               # Service des fichiers via lien de partage
 │   ├── jobs/
-│   │   └── retentionCleanup.js     # Suppression quotidienne des fichiers expirés
+│   │   └── retentionCleanup.js     # Suppression quotidienne des fichiers expirés et des restes d'upload
 │   ├── migrations/
 │   │   ├── migrateApiKeyHashes.js  # Unique : textes en clair → hachages SHA-256
 │   │   └── migrateUserFolders.js   # Unique : déplacement des fichiers dans les dossiers utilisateurs
 │   ├── utils/
+│   │   ├── asyncRouter.js          # Routeur Express qui transmet les erreurs async au gestionnaire d'erreurs
 │   │   ├── audit.js                # Fonction utilitaire logAudit()
+│   │   ├── deleteUserData.js       # Suppression complète de toutes les données d'un compte
+│   │   ├── fileCrypto.js           # Chiffrement des fichiers stockés (AES-256-GCM)
 │   │   ├── generateThumbnail.js    # Intégration ffmpeg / ghostscript
 │   │   ├── mailer.js               # Wrapper Nodemailer + modèles d'e-mail i18n
-│   │   └── sanitizeFilename.js     # Nettoyage du nom de fichier
+│   │   ├── mime.js                 # Normalisation MIME, liste blanche pour la distribution inline
+│   │   ├── sanitizeFilename.js     # Nettoyage du nom de fichier
+│   │   ├── setupToken.js           # Jeton d'installation de l'installation initiale
+│   │   ├── storeUpload.js          # Chiffrement de l'upload, miniature depuis la copie en clair
+│   │   └── uploadPath.js           # Résolution de chemin avec protection contre la traversée de chemin
 │   └── ws.js                       # Serveur WebSocket + dispatcher d'actions
 │
 ├── client/                         # Frontend React
@@ -256,7 +272,8 @@ sharely/
 │   ├── setup-db.js
 │   ├── mongo-init.js               # Script d'initialisation MongoDB
 │   ├── migrate-uploads-to-user-folders.js
-│   └── generate-missing-thumbnails.js
+│   ├── generate-missing-thumbnails.js
+│   └── encrypt-existing-files.js   # Chiffrer a posteriori les fichiers existants
 │
 ├── e2e/                            # Tests Playwright
 │   ├── admin.spec.js
@@ -297,6 +314,8 @@ Toutes les variables sont chargées depuis `.env` (via `dotenv`). Le fichier `.e
 | `PORT` | `3000` | Port TCP du serveur HTTP |
 | `BIND_ADDRESS` | `127.0.0.1` | Adresse de l'hôte sur laquelle Docker publie le port. Derrière un reverse proxy, garder loopback ; `0.0.0.0` uniquement derrière un pare-feu externe ou sans proxy (voir « Cloudflare Tunnel / proxy dans un conteneur ») |
 | `TRUST_PROXY` | `1` | Nombre de sauts de proxy de confiance (ex. `2` pour Cloudflare → nginx) ; doit correspondre à votre configuration, sinon IP clientes et limites de débit sont fausses |
+| `ENCRYPTION_KEY` | — | Clé de 32 octets (`openssl rand -base64 32`). Si elle est définie, les nouveaux fichiers et miniatures sont stockés chiffrés (voir « Chiffrement au repos »). **Sa perte rend les fichiers chiffrés illisibles** |
+| `INSTALL_TOKEN` | _(aléatoire, écrit dans le journal)_ | Jeton requis pour terminer l'installation initiale |
 | `MONGODB_URI` | _(construit depuis Docker Compose)_ | URI de connexion MongoDB complète |
 | `MONGO_ROOT_PASSWORD` | — | Mot de passe root MongoDB |
 | `MONGO_APP_USER` | `appuser` | Nom d'utilisateur applicatif MongoDB |
@@ -314,7 +333,7 @@ Toutes les variables sont chargées depuis `.env` (via `dotenv`). Le fichier `.e
 | `SMTP_PASS` | — | Mot de passe SMTP |
 | `SMTP_FROM` | _(SMTP_USER)_ | Adresse d'expédition dans les e-mails sortants |
 | `UPLOAD_DIR` | `./uploads` | Chemin absolu vers le répertoire d'upload |
-| `NODE_ENV` | — | `production` active les cookies sécurisés |
+| `NODE_ENV` | — | Optionnel. Les cookies sécurisés n'en dépendent pas : ils sont définis automatiquement dès que la requête arrive en HTTPS (`X-Forwarded-Proto` du proxy) |
 
 ---
 
@@ -334,6 +353,7 @@ Toutes les variables sont chargées depuis `.env` (via `dotenv`). Le fichier `.e
   avatarExt:                   String | null (.jpg/.png/.gif/.webp)
   embedMode:                   'embed' | 'raw'
   isActive:                    Boolean
+  sessionVersion:              Number (incrémenté lors d'un changement/d'une réinitialisation du mot de passe, invalide les autres sessions)
   email:                       String (minuscules, unique, sparse)
   emailVerified:               Boolean
   emailVerificationToken:      String | null (hachage SHA-256 du texte en clair)
@@ -355,16 +375,21 @@ Toutes les variables sont chargées depuis `.env` (via `dotenv`). Le fichier `.e
 
 ```
 {
-  shortId:      String (24 caractères hexadécimaux aléatoires, unique)
-  deleteToken:  String (32 caractères hexadécimaux, unique)
-  originalName: String (assaini)
-  storedName:   String (chemin relatif : "folderName/8hex.ext")
-  mimeType:     String
-  size:         Number (octets)
-  uploader:     ObjectId → User
-  views:        Number
-  tags:         [String] (max 20 × 50 caractères)
-  createdAt:    Date
+  shortId:       String (24 caractères hexadécimaux aléatoires, unique)
+  deleteToken:   String (32 caractères hexadécimaux, unique ; select: false, jamais dans les réponses de l'API)
+  originalName:  String (assaini)
+  storedName:    String (chemin relatif : "folderName/8hex.ext")
+  mimeType:      String (normalisé en un seul « type/sous-type »)
+  encrypted:     Boolean (le fichier est au format de src/utils/fileCrypto.js)
+  size:          Number (octets, taille en clair)
+  uploader:      ObjectId → User
+  views:         Number
+  expiresAt:     Date | null (autodestruction à une date donnée)
+  maxDownloads:  Number | null (autodestruction après N téléchargements)
+  downloadCount: Number
+  tags:          [String] (max 20 × 50 caractères)
+  description:   String (max 1000)
+  createdAt:     Date
 }
 ```
 
@@ -452,19 +477,30 @@ Tous les endpoints JSON retournent `Content-Type: application/json`. Erreurs : `
 
 ---
 
+### Installation (`/api/install`)
+
+| Méthode | Chemin | Auth | Description |
+|---|---|---|---|
+| `GET` | `/status` | — | `{ installed: Boolean }` (si des utilisateurs existent déjà) |
+| `POST` | `/setup` | Jeton d'installation | Créer le compte administrateur et les paramètres opérateur ; uniquement tant qu'aucun utilisateur n'existe |
+
+Le jeton d'installation figure dans le journal au démarrage (`[install] Not installed yet. Setup token: …`) ou est défini via `INSTALL_TOKEN`. Sans `setupToken` correspondant dans le corps, `/setup` répond `403`.
+
+---
+
 ### Authentification (`/api/auth`)
 
 | Méthode | Chemin | Auth | Description |
 |---|---|---|---|
 | `GET` | `/me` | Session | Utilisateur connecté |
-| `POST` | `/login` | — | Connexion (limité : 10/15min) |
-| `POST` | `/register` | — | Inscription (limité, premier utilisateur devient admin) |
+| `POST` | `/login` | — | Connexion (limité : 10/15min ; attribue un nouvel ID de session) |
+| `POST` | `/register` | — | Inscription (limité ; le premier admin est créé uniquement via l'installation) |
 | `POST` | `/logout` | — | Déconnexion |
 | `GET` | `/smtp-enabled` | — | Vérifie si SMTP est configuré |
 | `GET` | `/verify-email?token=` | — | Vérifier l'adresse e-mail |
 | `GET` | `/verify-reset-token?token=` | — | Valider le jeton de réinitialisation |
 | `POST` | `/forgot-password` | — | Envoyer l'e-mail de réinitialisation du mot de passe (limité : 5/h) |
-| `POST` | `/reset-password` | — | Définir un nouveau mot de passe |
+| `POST` | `/reset-password` | — | Définir un nouveau mot de passe (met fin à toutes les sessions existantes) |
 
 **Requête de connexion :**
 ```json
@@ -511,10 +547,12 @@ POST /api/auth/login
 
 #### Flux d'upload par morceaux
 
-1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`
+1. `POST /api/chunk/init` → `{ uploadId: "32hex" }`  
+   Vérification du quota par rapport à `totalSize` plus les tailles annoncées de tous les uploads par morceaux en cours de l'utilisateur
 2. `POST /api/chunk/:uploadId` (Corps : `chunkIndex=N`, Fichier : `chunk`) → `{ received: N }`  
-   En parallèle avec 3 à 5 morceaux simultanés
-3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`
+   En parallèle avec 3 à 5 morceaux simultanés ; `413` dès que les octets reçus dépassent `totalSize`
+3. `POST /api/chunk/:uploadId/complete` → `{ files: [fileObject] }`  
+   `400` si le fichier assemblé ne fait pas exactement `totalSize`
 
 ---
 
@@ -523,7 +561,7 @@ POST /api/auth/login
 | Méthode | Chemin | Auth | Description |
 |---|---|---|---|
 | `GET` | `/api/gallery` | Session | Propres fichiers (admin : tous), paginé (24/page), filtres : `q`, `type`, `tag`, `page` |
-| `GET` | `/api/file/:shortId` | — | Métadonnées du fichier (incrémente le compteur de vues) |
+| `GET` | `/api/file/:shortId` | — | Métadonnées du fichier sans `deleteToken` (incrémente le compteur de vues) |
 | `PATCH` | `/api/file/:shortId` | Session | Mettre à jour les tags/le nom |
 | `DELETE` | `/api/file/:shortId` | Session | Supprimer un fichier |
 | `DELETE` | `/api/delete/:shortId` | Clé API | Supprimer un fichier (authentification par clé API) |
@@ -559,6 +597,8 @@ POST /api/auth/login
 | `DELETE` | `/api/user/avatar` | Session | Supprimer l'avatar |
 | `GET` | `/api/user/avatar/:userId` | — | Servir l'avatar |
 
+Le nom d'utilisateur, le mot de passe, l'e-mail, l'e-mail de vérification et la suppression du compte sont limités à 10 tentatives en 15 minutes par utilisateur (contre la devinette de mot de passe avec une session volée et le spam d'e-mails). Un changement de mot de passe met fin à toutes les autres sessions de l'utilisateur ; la session actuelle reste connectée.
+
 ---
 
 ### Liens de partage
@@ -568,8 +608,8 @@ POST /api/auth/login
 | `GET` | `/api/file/:shortId/share-links` | Session (Propriétaire/Admin) | Tous les liens de partage d'un fichier |
 | `POST` | `/api/file/:shortId/share-links` | Session (Propriétaire/Admin) | Créer un lien de partage |
 | `DELETE` | `/api/share-links/:token` | Session (Propriétaire/Créateur/Admin) | Supprimer un lien de partage |
-| `GET` | `/api/share-links/:token` | — | Métadonnées du lien de partage (public) |
-| `POST` | `/api/share-links/:token/verify` | — | Vérifier le mot de passe du lien de partage |
+| `GET` | `/api/share-links/:token` | — | Métadonnées du lien de partage (public ; sans le `shortId` du fichier, afin que mot de passe, expiration et limite ne puissent pas être contournés via `/f/`) |
+| `POST` | `/api/share-links/:token/verify` | — | Vérifier le mot de passe du lien de partage (max. 10 tentatives échouées par IP en 15 minutes) |
 
 **Créer un lien de partage :**
 ```json
@@ -595,7 +635,7 @@ POST /api/file/a1b2c3d4/share-links
 | `DELETE` | `/api/collections/:id` | Session (Propriétaire/Admin) | Supprimer une collection |
 | `POST` | `/api/collections/:id/files` | Session (Propriétaire/Admin) | Ajouter un fichier à la collection |
 | `DELETE` | `/api/collections/:id/files/:fileShortId` | Session (Propriétaire/Admin) | Retirer un fichier de la collection |
-| `POST` | `/api/collections/:id/verify` | — | Vérifier le mot de passe de la collection |
+| `POST` | `/api/collections/:id/verify` | — | Vérifier le mot de passe de la collection (max. 10 tentatives échouées par IP en 15 minutes) |
 
 ---
 
@@ -607,10 +647,10 @@ POST /api/file/a1b2c3d4/share-links
 | `GET` | `/api/admin/users` | Admin | Tous les utilisateurs (avec nombre de fichiers) |
 | `POST` | `/api/admin/users` | Admin | Créer un utilisateur |
 | `PATCH` | `/api/admin/users/:id/toggle` | Admin | Activer/désactiver un utilisateur |
-| `PATCH` | `/api/admin/users/:id/role` | Admin | Changer le rôle d'un utilisateur |
-| `DELETE` | `/api/admin/users/:id` | Admin | Supprimer un utilisateur |
+| `PATCH` | `/api/admin/users/:id/role` | Admin | Changer le rôle d'un utilisateur (effet immédiat, y compris sur les sessions ouvertes) |
+| `DELETE` | `/api/admin/users/:id` | Admin | Supprimer un utilisateur et toutes ses données |
 | `POST` | `/api/admin/users/:id/regen-key` | Admin | Régénérer la clé API |
-| `PATCH` | `/api/admin/users/:id/password` | Admin | Définir un mot de passe |
+| `PATCH` | `/api/admin/users/:id/password` | Admin | Définir un mot de passe (met fin à toutes les sessions de l'utilisateur) |
 | `PATCH` | `/api/admin/users/:id/folder` | Admin | Changer le nom du dossier (déplace les fichiers) |
 | `GET` | `/api/admin/files` | Admin | Tous les fichiers, paginé (30/page) |
 | `GET` | `/api/admin/site-settings` | Admin | Lire les paramètres opérateur |
@@ -641,6 +681,13 @@ GET /api/site-settings
 ## 8. API WebSocket
 
 **Connexion :** `wss://example.com/ws` (utilisateurs connectés uniquement, cookie de session requis)
+
+### Sécurisation
+
+- **Vérification de l'origine :** la poignée de main est refusée avec `403` si l'en-tête `Origin` ne correspond pas à `Host` (même règle que `requireSameOrigin` pour l'API HTTP). Le proxy doit transmettre le `Host` d'origine.
+- **Vérification continue des droits :** la session, le statut actif, le rôle et `sessionVersion` sont revérifiés à chaque message et, en plus, toutes les 30 secondes pour toutes les connexions. Après une déconnexion, une désactivation, une suppression, un changement de mot de passe ou une rétrogradation, la connexion est fermée ou perd ses droits admin et les diffusions admin.
+- **Heartbeat :** ping toutes les 30 secondes ; les connexions sans pong sont coupées.
+- **Limites :** 64 Kio maximum par message (les messages plus grands ferment la connexion avec le code `1009`), jusqu'à 30 messages d'affilée puis 5 par seconde et par connexion (sinon réponse avec `status: 429`), 20 connexions simultanées maximum par IP client. Les actions qui vérifient le mot de passe ou envoient des e-mails sont limitées à 10 en 15 minutes par utilisateur.
 
 ### Protocole
 
@@ -724,23 +771,39 @@ GET /api/site-settings
 
 ### `/f/:shortId/raw` — Accès direct
 
-Sert le fichier comme réponse HTTP avec support des requêtes de plage (206 Partial Content). Images/vidéos/audio : `Content-Disposition: inline`, autres : `attachment`.
+Sert le fichier comme réponse HTTP avec support des requêtes de plage (206 Partial Content, y compris les plages suffixes comme `bytes=-500`). Les fichiers chiffrés sont déchiffrés à la volée.
+
+Une liste blanche (`src/utils/mime.js`) basée sur le type MIME normalisé décide quels fichiers sont affichés directement dans le navigateur :
+
+| Cas | `Content-Type` | `Content-Disposition` | En plus |
+|---|---|---|---|
+| Images (PNG, JPEG, GIF, WebP, AVIF, BMP, ICO), formats vidéo/audio courants, PDF | type réel | `inline` | — |
+| Texte et code (selon `displayType`) | `text/plain; charset=utf-8` | `inline` | `CSP: sandbox` |
+| HTML, SVG, XML et tout le reste | `application/octet-stream` | `attachment` | `CSP: sandbox` |
+
+Ainsi, un fichier uploadé ne peut ni être rendu comme page dans l'origine de l'application, ni être inclus comme script.
+
+Si le fichier a une limite de téléchargement (`maxDownloads`), `/raw` ne compte que les accès complets (sans `Range` ou à partir de l'octet 0), et ce une fois par session de visiteur : l'aperçu puis le téléchargement par le même visiteur consomment ensemble un seul téléchargement. Les accès du propriétaire et des admins ne comptent jamais. Une fois la limite atteinte, la route répond `410`.
 
 ### `/f/:shortId/download` — Téléchargement forcé
 
-Comme `/raw`, mais toujours `Content-Disposition: attachment`.
+Comme `/raw`, mais toujours `Content-Disposition: attachment` et `application/octet-stream`. Chaque nouveau visiteur compte dans `maxDownloads`.
 
 ### `/f/:shortId/thumb` — Miniature
 
-Retourne la miniature JPEG (pour les vidéos et les PDF). `Cache-Control: public, max-age=86400`.
+Retourne la miniature JPEG (pour les vidéos et les PDF), déchiffrée si le chiffrement est activé. `Cache-Control: public, max-age=86400`. L'ID doit être composé de `[A-Za-z0-9_-]` (protection contre la traversée de chemin via `%2F`).
 
 ### `/f/:shortId/delete/:token` — Suppression ShareX
 
-Supprime le fichier sans session via un jeton de suppression unique.
+Supprime le fichier sans session via un jeton de suppression unique. Le jeton n'est renvoyé qu'à l'upload et n'apparaît dans aucune autre réponse de l'API.
 
 ### `/s/:token` — Service de fichiers via lien de partage (`src/routes/shares.js`)
 
 Vérifie le mot de passe (via flag de session), la date d'expiration et la limite de téléchargement, puis sert le fichier.
+
+### Protection contre l'énumération des ID
+
+Tous les accès publics par ID ou jeton (`/f/*`, `/s/*`, `/api/file/:shortId`, `/api/share-links/:token`, `/api/collections/:id`, pastes) partagent une limite de débit : 100 accès échoués maximum (404/410/401 …) par IP en 15 minutes. Les accès réussis ne comptent pas. Les anciens ID de fichier à 8 caractères restent valides, mais sont plus courts et donc plus faciles à deviner que les nouveaux.
 
 ---
 
@@ -749,8 +812,10 @@ Vérifie le mot de passe (via flag de session), la date d'expiration et la limit
 ### Authentification par session
 
 - Session Express avec stockage MongoDB (`connect-mongo`)
-- Cookie de session : `httpOnly: true`, `sameSite: 'strict'`, `secure: true` en production
+- Cookie de session : `httpOnly: true`, `sameSite: 'strict'`, `secure: 'auto'` (défini dès que la requête arrive en HTTPS ; derrière un proxy via `X-Forwarded-Proto` et `TRUST_PROXY`)
 - Durée de session : configurable via `SiteSettings.sessionDurationDays` (par défaut : 7 jours), mis en cache en direct pendant 60 secondes
+- La connexion, l'inscription et l'installation attribuent un nouvel ID de session (`establishSession`, protection contre la fixation de session)
+- À chaque requête, le rôle, le statut actif et la `sessionVersion` de l'utilisateur sont lus depuis la base de données : les comptes supprimés ou désactivés et les sessions antérieures à un changement de mot de passe perdent immédiatement leur connexion, les changements de rôle s'appliquent immédiatement
 
 ### Authentification par clé API
 
@@ -764,8 +829,10 @@ Vérifie le mot de passe (via flag de session), la date d'expiration et la limit
 ```
 requireLogin    → vérifie req.session.user → 401 si non connecté
 requireAdmin    → comme requireLogin, de plus role === 'admin' → 403
-requireApiKey   → vérifie l'en-tête Authorization ou req.body.token
+requireApiKey   → vérifie Authorization: Bearer, X-API-Key, ?api_key= ou req.body.token
 ```
+
+Tous les routeurs sont créés via `asyncRouter()` : les erreurs dans les gestionnaires `async` aboutissent au gestionnaire d'erreurs central (`500`) au lieu de laisser la requête en suspens. Une `uncaughtException` termine le processus, Docker le redémarre (`restart: unless-stopped`).
 
 ### Protection CSRF
 
@@ -775,26 +842,42 @@ requireApiKey   → vérifie l'en-tête Authorization ou req.body.token
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com;
+script-src 'self' https://static.cloudflareinsights.com;
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
 media-src 'self' blob:;
 connect-src 'self' https://cloudflareinsights.com;
 frame-ancestors 'self';
+base-uri 'none';
+form-action 'self';
+object-src 'none';
 ```
 
 ### En-têtes de sécurité
 
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` (uniquement pour les requêtes HTTPS)
 - `X-Frame-Options: SAMEORIGIN`
 - `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: same-origin` (les URL de fichiers, de pastes et de partage ne sont pas transmises aux sites tiers via le Referer)
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
 
 ### Limitation de débit
 
-| Endpoint | Limite | Fenêtre |
-|---|---|---|
-| Upload (`/upload`, `/api/upload`, `/api/web-upload`) | 60 requêtes | 15 minutes |
-| Auth (`/api/auth/login`, `/register`, etc.) | 10 requêtes | 15 minutes |
-| Réinitialisation du mot de passe | 5 requêtes | 1 heure |
+| Endpoint | Limite | Fenêtre | Clé |
+|---|---|---|---|
+| Upload (`/upload`, `/api/upload`, `/api/web-upload`) | 60 requêtes | 15 minutes | IP |
+| Auth (`/api/auth/login`, `/register`, etc.) | 10 requêtes | 15 minutes | IP |
+| Réinitialisation du mot de passe | 5 requêtes | 1 heure | IP |
+| Vérification du mot de passe des liens de partage, collections, pastes | 10 tentatives échouées | 15 minutes | IP |
+| Actions sur le compte (nom, mot de passe, e-mail, e-mail de vérification, suppression) | 10 requêtes | 15 minutes | Utilisateur |
+| Accès par ID/jeton échoués (voir chapitre 9) | 100 requêtes | 15 minutes | IP |
+| WebSocket | voir chapitre 8 | — | Connexion / IP / utilisateur |
+
+L'IP client dépend de `TRUST_PROXY` ; le port de l'application doit donc être accessible uniquement via le reverse proxy (`BIND_ADDRESS`), sinon `X-Forwarded-For` peut être falsifié.
+
+### Journalisation
+
+Le journal d'accès (stdout → journal Docker) contient des adresses IP tronquées (IPv4 en `/24`, IPv6 en `/48`). Les clés API (`api_key=`), les jetons dans les paramètres de requête (`token=`), les jetons de suppression et les jetons de partage sont masqués. Le journal d'audit enregistre l'IP complète et est supprimé automatiquement après 90 jours.
 
 ### Liste de blocage des fichiers
 
@@ -806,7 +889,7 @@ Les types MIME et extensions suivants sont rejetés à l'upload :
 
 ### Protection contre la traversée de chemin
 
-Tous les accès aux fichiers via `resolveUploadPath()` vérifient que le chemin résolu se trouve bien dans `UPLOAD_DIR`.
+Tous les accès aux fichiers via `resolveUploadPath()` vérifient que le chemin résolu se trouve bien dans `UPLOAD_DIR`. Les ID de miniature sont en outre vérifiés par rapport à `[A-Za-z0-9_-]`.
 
 ---
 
@@ -818,6 +901,9 @@ Tous les accès aux fichiers via `resolveUploadPath()` vérifient que le chemin 
 - **Nom de fichier :** `crypto.randomBytes(4).hex() + extension-originale`
 - **Limite :** `MAX_FILE_SIZE_MB` (par défaut : 100 Mo)
 - **Emplacement :** Dossier spécifique à l'utilisateur (`user.folderName`)
+- **Type MIME :** réduit par `normalizeMime()` à un seul `type/sous-type` (les paramètres et les types supplémentaires séparés par des virgules sont supprimés, les valeurs invalides deviennent `application/octet-stream`)
+- **Chiffrement :** avec `ENCRYPTION_KEY`, `sealUpload()` chiffre le fichier sur place ; une copie en clair (`<fichier>.plain-<hex>`) ne subsiste que jusqu'à la génération de la miniature
+- **Endpoint ShareX `/upload` :** Multer écrit le fichier avant la vérification de la clé API ; si la requête est rejetée, il est supprimé immédiatement
 
 ### Upload par morceaux (>250 Mo)
 
@@ -835,7 +921,9 @@ uploads/.chunks/{uploadId}/
 
 **Taille des morceaux :** 10–20 Mo (max 51 Mo accepté pour la compatibilité descendante)  
 **Parallélisme :** 3–5 uploads de morceaux simultanés  
-**Assemblage :** Basé sur les flux (pas de chargement complet en RAM)
+**Assemblage :** Basé sur les flux (pas de chargement complet en RAM)  
+**Vérification de taille :** les octets reçus ne doivent pas dépasser `totalSize` ; le fichier final doit faire exactement `totalSize`  
+**Nettoyage :** les répertoires d'upload non terminés sont supprimés après 24 heures par la tâche de rétention
 
 ### Upload d'avatar
 
@@ -848,7 +936,9 @@ uploads/.chunks/{uploadId}/
 
 ## 12. Génération de miniatures
 
-Les miniatures sont générées de manière asynchrone après l'upload (`.catch(() => {})` — les erreurs sont ignorées silencieusement).
+Les miniatures sont générées de manière asynchrone après l'upload (`startThumbnail()` — les erreurs sont ignorées silencieusement). ffmpeg et Ghostscript s'exécutent avec un environnement vide (seulement `PATH`) et ne voient donc ni `SESSION_SECRET` ni les identifiants de base de données ou SMTP. Cela ne protège que partiellement contre une véritable exécution de code, car les processus tournent sous le même utilisateur que l'application.
+
+Si `ENCRYPTION_KEY` est défini, la miniature est générée à partir de la copie en clair, puis chiffrée, et la copie est supprimée. Si la génération échoue, une éventuelle miniature à moitié écrite est supprimée.
 
 ### Miniatures vidéo (ffmpeg)
 
@@ -878,6 +968,8 @@ npm run migrate:thumbnails
 # ou dans le conteneur :
 docker exec -it <container> npm run migrate:thumbnails
 ```
+
+Pour les fichiers chiffrés, le script déchiffre brièvement la source dans un fichier temporaire et chiffre la miniature générée.
 
 ---
 
@@ -996,10 +1088,10 @@ Le tableau de bord administrateur (`/admin/*`) est accessible uniquement aux uti
 ### Gestion des utilisateurs (`/admin/users`)
 
 - Tous les utilisateurs avec nombre de fichiers et utilisation du stockage
-- Créer des utilisateurs, activer/désactiver, changer de rôle
-- Réinitialiser le mot de passe, régénérer la clé API
+- Créer des utilisateurs, activer/désactiver, changer de rôle (la désactivation et la rétrogradation prennent effet immédiatement, y compris sur les sessions ouvertes et les connexions WebSocket)
+- Réinitialiser le mot de passe (déconnecte l'utilisateur partout), régénérer la clé API
 - Changer le nom du dossier (les fichiers physiques sont déplacés sur le serveur)
-- Supprimer un utilisateur (tous les fichiers sont supprimés)
+- Supprimer un utilisateur (toutes les données comme pour l'auto-suppression, voir chapitre 17)
 
 ### Gestion des fichiers (`/admin/files`)
 
@@ -1036,7 +1128,7 @@ Le tableau de bord administrateur (`/admin/*`) est accessible uniquement aux uti
 | Politique de confidentialité (configurable) | Art. 13/14 – Transparence |
 | Page des conditions d'utilisation (configurable) | Art. 13/14 – Transparence |
 | Export des données (JSON avec URLs) | Art. 20 – Portabilité des données |
-| Suppression du compte (fichiers + données) | Art. 17 – Droit à l'effacement |
+| Suppression du compte (fichiers, pastes, collections, liens de partage, avatar) | Art. 17 – Droit à l'effacement |
 | Journal d'audit (TTL 90 jours via MongoDB) | Art. 5(2) – Responsabilité |
 | Export CSV du journal d'audit | Art. 5(2) – Responsabilité |
 | Rétention des fichiers configurable | Art. 5(1)(e) – Limitation de la conservation |
@@ -1044,16 +1136,22 @@ Le tableau de bord administrateur (`/admin/*`) est accessible uniquement aux uti
 | Mots de passe en bcrypt (12 tours) | Art. 32 – Sécurité |
 | Consentement aux cookies pour Cloudflare Analytics | Art. 13 – Transparence |
 | Anonymisation lors de la suppression du compte | Art. 17 – Droit à l'effacement |
+| Chiffrement optionnel des fichiers stockés (`ENCRYPTION_KEY`) | Art. 32 – Sécurité |
+| Adresses IP tronquées et jetons masqués dans le journal d'accès | Art. 5(1)(c) – Minimisation des données |
 
 ### Flux de suppression RGPD
 
-Lors de la suppression du compte (`user:delete-account` / `DELETE /api/user/account`) :
+Lors de la suppression du compte (`user:delete-account` / `DELETE /api/user/account`) et lors de la suppression par un admin (`admin:users:delete` / `DELETE /api/admin/users/:id`), le même processus s'exécute (`src/utils/deleteUserData.js`) :
 1. Tous les fichiers de l'utilisateur sont supprimés du disque
 2. Les miniatures sont supprimées
-3. L'avatar est supprimé
-4. Les entrées du journal d'audit sont anonymisées (`username: '[deleted]'`, `ip: null`, `userId: null`)
-5. Le document utilisateur est supprimé
-6. La session est détruite
+3. Les liens de partage de l'utilisateur et ceux pointant vers ses fichiers sont supprimés
+4. Les pastes et collections de l'utilisateur sont supprimés ; ses fichiers sont également retirés des collections des autres utilisateurs
+5. L'avatar est supprimé
+6. Les entrées du journal d'audit sont anonymisées (`username: '[deleted]'`, `ip: null`, `userId: null`)
+7. Le document utilisateur est supprimé
+8. En cas d'auto-suppression : la session est détruite ; les sessions ouvertes et les connexions WebSocket perdent leur connexion à la requête suivante
+
+L'entrée d'audit de la suppression elle-même est conservée comme preuve et est supprimée automatiquement après 90 jours.
 
 ---
 
@@ -1062,8 +1160,9 @@ Lors de la suppression du compte (`user:delete-account` / `DELETE /api/user/acco
 ### Nettoyage par rétention (`src/jobs/retentionCleanup.js`)
 
 - **Exécution :** Au démarrage puis quotidiennement (`setInterval(runRetentionCleanup, 24h)`)
-- **Action :** Si `SiteSettings.fileRetentionDays > 0`, les fichiers plus anciens que cette valeur sont supprimés
+- **Action :** Si `SiteSettings.fileRetentionDays > 0`, les fichiers plus anciens que cette valeur sont supprimés ; de même, les fichiers autodestructeurs après `expiresAt` ou une fois `maxDownloads` atteint
 - Supprime : fichier sur disque, miniature, document MongoDB
+- Nettoie : les uploads par morceaux non terminés de plus de 24 heures ainsi que les copies en clair abandonnées d'uploads chiffrés (`*.plain-*`) de plus d'1 heure
 - Diffuse `stats:invalidate` aux admins
 
 ### Index TTL MongoDB (automatiques)
@@ -1089,12 +1188,14 @@ docker compose up -d
 ```
 
 **Services :**
-- `app` — Application Node.js (port 3000)
+- `app` — Application Node.js (port 3000, publié par défaut uniquement sur `127.0.0.1`, voir `BIND_ADDRESS`)
 - `mongo` — MongoDB 7 (port 127.0.0.1:27017, non accessible de l'extérieur)
+- `updater` — auto-updater optionnel (uniquement avec le profil `updater`)
 
 **Volumes :**
 - `uploads` — stockage de fichiers persistant
 - `mongo_data` — données MongoDB
+- `control` — échange entre l'application et l'updater
 
 **Vérifications de santé :** L'application vérifie HTTP 200 sur `/`, MongoDB vérifie `db.adminCommand('ping')`.
 
@@ -1139,9 +1240,18 @@ Le proxy doit transmettre l'en-tête `Host` d'origine (les connexions WebSocket 
 
 > **Note de mise à jour :** Les versions précédentes publiaient le port 3000 sur toutes les interfaces. Si votre proxy tourne dans un conteneur, définissez `BIND_ADDRESS` ou connectez le réseau comme décrit ci-dessus avant la mise à jour.
 
+### Chiffrement au repos
+
+Avec `ENCRYPTION_KEY` défini, sharely chiffre chaque nouvel envoi et sa miniature avec AES-256-GCM avant de les stocker (une clé par fichier, dérivée de la clé principale). Les fichiers sont déchiffrés à la volée lors de leur distribution, y compris pour les requêtes Range et les téléchargements ZIP.
+
+- Générez la clé une fois avec `openssl rand -base64 32`, placez-la dans `.env` et **sauvegardez-la séparément** : sans elle, les fichiers chiffrés sont irrécupérables. Changer ou supprimer la clé ensuite n'est pas pris en charge.
+- Les fichiers existants restent non chiffrés jusqu'à l'exécution de la migration (sauvegardez d'abord le volume `uploads`) : `docker compose exec app npm run migrate:encrypt`
+- Non couvert : pastes, noms de fichiers et autres métadonnées dans MongoDB, avatars et mémoire du serveur en cours d'exécution. Pendant son traitement (assemblage des morceaux, suppression des métadonnées, génération de la miniature), un envoi existe brièvement en clair sur le disque.
+- Le réglage d'administration sur le chiffrement du disque/volume ne fait que déclarer un chiffrement du volume dans la politique de confidentialité et en est indépendant.
+
 ### Premier démarrage
 
-Le premier utilisateur enregistré reçoit automatiquement le rôle `admin` (`User.countDocuments() === 0`).
+Au premier démarrage sans utilisateur, sharely écrit un jeton d'installation dans le journal (`docker compose logs app`), ou utilise `INSTALL_TOKEN` s'il est défini. La page d'installation demande ce jeton et crée le compte administrateur ; l'inscription normale ne crée jamais d'administrateur.
 
 ---
 
@@ -1149,7 +1259,7 @@ Le premier utilisateur enregistré reçoit automatiquement le rôle `admin` (`Us
 
 ### Prérequis
 
-- Node.js ≥ 18
+- Node.js ≥ 20
 - MongoDB (local ou via Docker)
 - Optionnel : ffmpeg, ghostscript (pour les miniatures)
 
@@ -1211,7 +1321,14 @@ node scripts/generate-missing-thumbnails.js
 npm run migrate:user-folders
 # ou :
 node scripts/migrate-uploads-to-user-folders.js
+
+# Chiffrer les fichiers et miniatures existants (ENCRYPTION_KEY requis, sauvegarde préalable)
+npm run migrate:encrypt
+# ou dans le conteneur :
+docker compose exec app npm run migrate:encrypt
 ```
+
+`migrate:encrypt` écrit chaque fichier chiffré dans `<storedName>.enc`, met ensuite à jour l'enregistrement et ne supprime le fichier en clair qu'après. Une exécution interrompue peut être relancée sans risque.
 
 ### Initialisation de la base de données (Docker)
 
@@ -1244,9 +1361,17 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-**Configuration Playwright :** `playwright.config.js`  
-**Configuration globale :** `e2e/global-setup.js` (crée les utilisateurs de test, l'admin, etc.)  
+**Configuration Playwright :** `playwright.config.js` (démarre le serveur avec `INSTALL_TOKEN`, par défaut `e2e-install-token`)  
+**Configuration globale :** `e2e/global-setup.js` (effectue l'installation avec ce jeton, crée les utilisateurs de test, l'admin, etc.)  
 **Utilitaires :** `e2e/helpers.js` (fonctions utilitaires partagées)
+
+### Tests unitaires
+
+```bash
+npm test
+```
+
+S'exécutent sans base de données : `src/utils/validateEmail.test.js`, `src/utils/stripMetadata.test.js` et `src/utils/fileCrypto.test.js` (chiffrement : aller-retour, plages d'octets, détection de manipulation).
 
 ---
 

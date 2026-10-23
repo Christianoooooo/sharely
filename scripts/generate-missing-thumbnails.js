@@ -17,7 +17,9 @@ const path = require('path');
 const fs = require('fs');
 const connectDB = require('../src/config/db');
 const File = require('../src/models/File');
+const crypto = require('crypto');
 const { generateThumbnail, thumbPath } = require('../src/utils/generateThumbnail');
+const fileCrypto = require('../src/utils/fileCrypto');
 
 const UPLOAD_DIR = path.resolve(__dirname, '../uploads');
 
@@ -50,7 +52,25 @@ async function run() {
     }
 
     process.stdout.write(`  [GEN]  ${file.shortId}  ${file.originalName} … `);
-    const ok = await generateThumbnail(filePath, file.mimeType, file.shortId);
+    let ok;
+    if (file.encrypted) {
+      // gs/ffmpeg need a plaintext source; keep it only for the duration of the run.
+      const plain = `${filePath}.plain-${crypto.randomBytes(8).toString('hex')}`;
+      try {
+        await fileCrypto.decryptToFile(filePath, plain);
+        ok = await generateThumbnail(plain, file.mimeType, file.shortId);
+        if (ok) await fileCrypto.encryptInPlace(tp);
+        else fs.rmSync(tp, { force: true });
+      } catch (err) {
+        fs.rmSync(tp, { force: true });
+        ok = false;
+        process.stdout.write(`(${err.message}) `);
+      } finally {
+        fs.rmSync(plain, { force: true });
+      }
+    } else {
+      ok = await generateThumbnail(filePath, file.mimeType, file.shortId);
+    }
     if (ok) {
       console.log('ok');
       generated++;

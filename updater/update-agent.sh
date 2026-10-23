@@ -18,12 +18,22 @@ HEARTBEAT_FILE="$CONTROL_DIR/update.heartbeat"
 VERSION_FILE="$CONTROL_DIR/version"
 COMMIT_FILE="$CONTROL_DIR/commit"
 
-# Files here are written by root (this agent) but must stay writable by the
-# non-root web app, so create everything world-writable (dir 777, files 666).
-umask 000
+# The non-root web app only needs to create update.request and write
+# update.state. A root-owned sticky dir lets it create files but not delete or
+# replace ours; otherwise it could swap e.g. update.log for a symlink and make
+# this root process (which holds the Docker socket) write anywhere on the host.
+umask 022
 mkdir -p "$CONTROL_DIR"
-chmod 777 "$CONTROL_DIR" 2>/dev/null || true
-[ -f "$STATE_FILE" ] || echo idle > "$STATE_FILE"
+chown root:root "$CONTROL_DIR"
+chmod 1777 "$CONTROL_DIR"
+for f in "$STATE_FILE" "$LOG_FILE" "$HEARTBEAT_FILE" "$VERSION_FILE" "$COMMIT_FILE"; do
+  # Drop anything that is not a plain root-owned file, e.g. a planted symlink.
+  if [ -L "$f" ] || { [ -e "$f" ] && [ "$(stat -c %u "$f")" != 0 ]; }; then rm -f "$f"; fi
+  [ -e "$f" ] || : > "$f"
+  chmod 644 "$f"
+done
+[ -s "$STATE_FILE" ] || echo idle > "$STATE_FILE"
+chmod 666 "$STATE_FILE"
 
 # The checkout is bind-mounted and owned by the host user, not root.
 git config --global --add safe.directory "$PROJECT_DIR" 2>/dev/null || true

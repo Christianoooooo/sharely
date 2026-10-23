@@ -1,6 +1,7 @@
 const fs = require('fs');
 const archiver = require('archiver');
 const { resolveUploadPath } = require('./uploadPath');
+const fileCrypto = require('./fileCrypto');
 
 /**
  * Streams the given File documents to the response as a ZIP attachment.
@@ -9,7 +10,7 @@ const { resolveUploadPath } = require('./uploadPath');
  * Store-only: uploads are overwhelmingly pre-compressed media, so deflating
  * would burn CPU for virtually no size gain.
  * @param {import('express').Response} res - Response to stream the archive to.
- * @param {Array<{storedName: string, originalName?: string, shortId: string}>} files - Files to include.
+ * @param {Array<{storedName: string, originalName?: string, shortId: string, encrypted?: boolean}>} files - Files to include.
  * @param {string} zipName - Download filename without the .zip extension.
  * @returns {Promise<void>} Resolves once the archive has been finalized.
  */
@@ -39,7 +40,8 @@ function streamFilesAsZip(res, files, zipName) {
     } else {
       usedNames.set(name, 0);
     }
-    archive.file(fp, { name });
+    if (file.encrypted) archive.append(fileCrypto.createDecryptStream(fp), { name });
+    else archive.file(fp, { name });
   }
 
   return archive.finalize();

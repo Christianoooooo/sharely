@@ -1,9 +1,10 @@
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const User = require('../models/User');
 const SiteSettings = require('../models/SiteSettings');
 const { logAudit } = require('../utils/audit');
 const { establishSession } = require('../middleware/auth');
+const { checkSetupToken } = require('../utils/setupToken');
 
 // GET /api/install/status
 router.get('/status', async (_req, res) => {
@@ -21,6 +22,9 @@ router.post('/setup', async (req, res) => {
     const count = await User.countDocuments();
     if (count > 0) {
       return res.status(403).json({ error: 'Already installed' });
+    }
+    if (!checkSetupToken(req.body.setupToken)) {
+      return res.status(403).json({ error: 'Invalid setup token' });
     }
 
     const {

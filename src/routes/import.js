@@ -22,8 +22,8 @@
  * uploader are skipped if already present.
  */
 
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -34,6 +34,7 @@ const File = require('../models/File');
 const User = require('../models/User');
 const sanitizeFilename = require('../utils/sanitizeFilename');
 const { normalizeMime } = require('../utils/mime');
+const { sealUpload, releasePlain } = require('../utils/storeUpload');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
@@ -294,6 +295,7 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
       try {
         fs.mkdirSync(destDir, { recursive: true });
         fs.copyFileSync(srcPath, destPath);
+        const sealed = await sealUpload(destPath);
 
         const mimeType = normalizeMime(
           media.mimetype ||
@@ -305,11 +307,13 @@ router.post('/xbackbone', requireAdmin, async (req, res, next) => {
           originalName: sanitizeFilename(media.filename),
           storedName: newStoredName,
           mimeType,
+          encrypted: sealed.encrypted,
           size: srcStat.size,
           uploader: localUser._id,
           views: media.download_count || 0,
           createdAt: media.created_at ? new Date(media.created_at) : new Date(),
         });
+        releasePlain(sealed);
 
         results.imported++;
         results.details.push({

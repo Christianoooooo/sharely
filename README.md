@@ -30,9 +30,9 @@ A self-hosted file sharing platform with a clean web interface, ShareX integrati
 - **Admin dashboard** — Stats overview, manage all users and files, audit log with CSV export
 - **Real-time UI** — WebSocket-powered live updates: file view counters, gallery refresh on upload/delete, admin stats and audit log stream in real time
 - **XBackBone migration** — Import your existing XBackBone installation including files and metadata
-- **Short links** — Every file gets an 8-character short ID (e.g. `/f/a1b2c3d4`)
+- **Short links** — Every file gets a random 24-character short ID (e.g. `/f/3f9a…`); older 8-character IDs keep working
 - **Delete tokens** — Each file carries a unique deletion token so ShareX (or any client) can delete files without a session
-- **Security** — Dangerous file types (`.exe`, `.bat`, `.sh`, `.php`, `.ps1`, …) are blocked on upload; rate limiting on uploads and authentication endpoints
+- **Security** — Dangerous file types (`.exe`, `.bat`, `.sh`, `.php`, `.ps1`, …) are blocked on upload; only passive media is shown inline, everything else is sent as a download; optional encryption at rest; token-protected first-run setup; sessions revalidated on every request; rate limiting on uploads, logins, password checks, account actions, ID lookups and WebSocket messages; security headers (CSP, HSTS, Referrer-Policy); access logs without full IPs or tokens
 - **Docker-ready** — Single `docker compose up` gets you running
 - **GDPR-ready** — Privacy policy & Terms of Service pages (configurable), data export (Art. 20), account deletion (Art. 17), audit log with 90-day auto-expiry, configurable file retention, API key hashing, and optional Cloudflare Analytics cookie consent out of the box
 
@@ -64,11 +64,11 @@ Edit `.env` with your settings (see [Configuration](#configuration)), then:
 docker compose up -d
 ```
 
-The app is now running at `http://localhost:3000`. Register the first account — it will automatically be an admin.
+The app is now running at `http://localhost:3000`. The setup page asks for a setup token, which the app prints to its log on first start (`docker compose logs app`); the account you create there is the admin.
 
 ### Local Development
 
-**Requirements:** Node.js 18+, MongoDB
+**Requirements:** Node.js 20+, MongoDB
 
 ```bash
 # Backend
@@ -93,6 +93,8 @@ Copy `.env.example` to `.env` and adjust the values:
 | `PORT` | `3000` | Port the server listens on |
 | `BIND_ADDRESS` | `127.0.0.1` | Host address the Docker port is published on. Keep loopback behind a reverse proxy; `0.0.0.0` only behind an external firewall or without a proxy (see "Cloudflare Tunnel / proxy in a container") |
 | `TRUST_PROXY` | `1` | Number of trusted reverse-proxy hops (e.g. `2` for Cloudflare → nginx); must match your setup or client IPs/rate limits are wrong |
+| `ENCRYPTION_KEY` | — | 32-byte key (`openssl rand -base64 32`). If set, new uploads and thumbnails are stored encrypted (see "Encryption at rest"). **Losing it makes encrypted files unreadable** |
+| `INSTALL_TOKEN` | _(random, printed to the log)_ | Token required to complete the first-run setup |
 | `MONGO_ROOT_PASSWORD` | — | MongoDB root password (required) |
 | `MONGO_APP_USER` | `appuser` | MongoDB application user |
 | `MONGO_APP_PASSWORD` | — | MongoDB application user password (required) |
@@ -231,6 +233,8 @@ To speed up tagging, define a personal list of **predefined tags** under **Setti
 
 The app maintains a persistent WebSocket connection (`/ws`) for all authenticated clients. The protocol uses a request/response pattern plus server-initiated broadcasts.
 
+The handshake is rejected unless `Origin` matches `Host`. Session, role and account state are rechecked on every message and every 30 seconds, so logout, deactivation, password changes and demotion take effect on open connections. Messages are limited to 64 KiB and rate-limited per connection; each IP may hold up to 20 connections.
+
 **Request format** (client → server):
 ```json
 { "id": "unique-request-id", "action": "action:name", "payload": {} }
@@ -338,6 +342,15 @@ The proxy must pass on the original `Host` header (WebSocket connections are rej
 
 > **Upgrade note:** Earlier versions published port 3000 on all interfaces. If your proxy runs in a container, set `BIND_ADDRESS` or attach the network as described above before updating.
 
+## Encryption at rest
+
+With `ENCRYPTION_KEY` set, sharely encrypts every new upload and its thumbnail with AES-256-GCM before storing it (one key per file, derived from the master key). Files are decrypted on the fly when served, including Range requests and ZIP downloads.
+
+- Generate the key once with `openssl rand -base64 32`, put it in `.env` and **back it up separately**: without it, encrypted files cannot be recovered. Changing or removing the key later is not supported.
+- Existing files stay unencrypted until you run the migration (back up the `uploads` volume first): `docker compose exec app npm run migrate:encrypt`
+- Not covered: pastes, file names and other metadata in MongoDB, avatars, and the process memory of the running server. While an upload is processed (chunk assembly, metadata stripping, thumbnail generation) it briefly exists unencrypted on disk.
+- The admin setting for disk/volume encryption only declares volume encryption in the privacy policy and is independent of this.
+
 ## Thumbnails
 
 Video and PDF files get a JPEG thumbnail automatically on upload. Thumbnails are stored in `uploads/.thumbnails/` and served at `/f/<shortId>/thumb`.
@@ -406,11 +419,16 @@ sharely/
 ├── app.js                  # Express entry point
 ├── src/
 │   ├── config/db.js        # MongoDB connection
-│   ├── models/             # Mongoose schemas (User, File, Collection, ShareLink, AuditLog, SiteSettings)
-│   ├── middleware/         # Auth, upload handling, file block list
+│   ├── models/             # Mongoose schemas (User, File, Paste, Collection, ShareLink, AuditLog, SiteSettings)
+│   ├── middleware/         # Auth, upload handling, file block list, lookup rate limit
 │   ├── jobs/
-│   │   └── retentionCleanup.js   # Scheduled file & audit log cleanup
+│   │   └── retentionCleanup.js   # Scheduled file cleanup, stale chunk/plaintext leftovers
 │   ├── utils/
+│   │   ├── fileCrypto.js         # Encryption at rest (AES-256-GCM, Range-capable)
+│   │   ├── storeUpload.js        # Encrypt uploads, thumbnail from plaintext copy
+│   │   ├── mime.js               # MIME normalization and inline whitelist
+│   │   ├── deleteUserData.js     # Complete account erasure
+│   │   ├── setupToken.js         # First-run setup token
 │   │   ├── generateThumbnail.js  # ffmpeg/ghostscript thumbnail generation
 │   │   └── mailer.js             # Nodemailer wrapper with i18n templates
 │   ├── ws.js               # WebSocket server (all WS actions & broadcasts)
@@ -426,7 +444,8 @@ sharely/
 ├── scripts/
 │   ├── setup-db.js
 │   ├── migrate-uploads-to-user-folders.js
-│   └── generate-missing-thumbnails.js
+│   ├── generate-missing-thumbnails.js
+│   └── encrypt-existing-files.js   # encrypt files stored before ENCRYPTION_KEY was set
 ├── uploads/
 │   ├── .thumbnails/        # auto-generated JPEG thumbnails
 │   ├── .chunks/            # temporary chunked-upload segments
@@ -459,13 +478,15 @@ Sharely is designed with privacy in mind. The following features support GDPR co
 | Privacy Policy page (configurable via Admin Panel) | Art. 13/14 – Transparency |
 | Terms of Service page (configurable via Admin Panel) | Art. 13/14 – Transparency |
 | Data export (JSON download of account + file metadata with full URLs) | Art. 20 – Portability |
-| Account self-deletion (removes all files and data) | Art. 17 – Right to erasure |
+| Account deletion by the user or an admin (removes files, pastes, collections, share links and avatar; anonymizes the audit log) | Art. 17 – Right to erasure |
 | Audit log (all access and admin actions, 90-day auto-expiry via MongoDB TTL) | Art. 5(2) – Accountability |
 | Audit log CSV export for regulators | Art. 5(2) – Accountability |
 | Configurable file retention (auto-delete after N days) | Art. 5(1)(e) – Storage limitation |
 | API keys stored as SHA-256 hashes, never in plaintext | Art. 32 – Security |
 | Passwords stored as bcrypt hashes (12 rounds) | Art. 32 – Security |
-| Encryption-at-rest documentation (operator self-declaration) | Art. 32 – Security |
+| Optional encryption of stored files and thumbnails (`ENCRYPTION_KEY`) | Art. 32 – Security |
+| Encryption-at-rest documentation (operator self-declaration of volume encryption) | Art. 32 – Security |
+| Access log with truncated IPs and redacted tokens | Art. 5(1)(c) – Data minimisation |
 | Cookie consent notice for Cloudflare Analytics (optional) | Art. 13 – Transparency |
 
 > **Note for operators:** GDPR compliance is ultimately the operator's responsibility. Before going live, fill in your operator details under **Admin → Site Settings** (name, address, contact email). Consider whether you need a Data Processing Agreement (DPA) with your hosting provider.

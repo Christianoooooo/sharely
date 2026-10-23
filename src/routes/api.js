@@ -1,5 +1,5 @@
-const express = require('express');
-const router = express.Router();
+const { asyncRouter } = require('../utils/asyncRouter');
+const router = asyncRouter();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -16,8 +16,10 @@ const ShareLink = require('../models/ShareLink');
 const Collection = require('../models/Collection');
 const sanitizeFilename = require('../utils/sanitizeFilename');
 const { normalizeMime } = require('../utils/mime');
+const { lookupLimiter } = require('../middleware/lookupLimiter');
 const { resolveUploadPath, escapeRegex } = require('../utils/uploadPath');
-const { generateThumbnail, deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
+const { deleteThumbnail, thumbPath } = require('../utils/generateThumbnail');
+const { sealUpload, startThumbnail } = require('../utils/storeUpload');
 const { logAudit } = require('../utils/audit');
 const { getStorageUsed, resolveQuota, checkQuota } = require('../utils/storageQuota');
 const { streamFilesAsZip } = require('../utils/zipFiles');
@@ -165,16 +167,18 @@ router.post('/upload', uploadLimiter, requireApiKey, upload.single('file'), asyn
   const storedName = path.relative(UPLOAD_DIR, req.file.path);
   const mimeType = normalizeMime(req.file.mimetype);
   const size = await stripIfEnabled(req.file.path, mimeType, req.file.size);
+  const sealed = await sealUpload(req.file.path);
 
   const file = await File.createUnique({
     originalName: sanitizeFilename(req.file.originalname),
     storedName,
     mimeType,
+    encrypted: sealed.encrypted,
     size,
     uploader: req.apiUser._id,
   });
 
-  generateThumbnail(req.file.path, mimeType, file.shortId).catch(() => {});
+  startThumbnail(sealed, mimeType, file.shortId);
 
   await logAudit(req, 'upload', { fileName: file.originalName, fileSize: file.size, shortId: file.shortId });
   const apiUploaderId = String(req.apiUser._id);
@@ -214,14 +218,16 @@ router.post('/web-upload', uploadLimiter, requireLogin, upload.array('files', 50
     const storedName = path.relative(UPLOAD_DIR, f.path);
     const mimeType = normalizeMime(f.mimetype);
     const size = await stripIfEnabled(f.path, mimeType, f.size);
+    const sealed = await sealUpload(f.path);
     const doc = await File.createUnique({
       originalName: sanitizeFilename(f.originalname),
       storedName,
       mimeType,
+      encrypted: sealed.encrypted,
       size,
       uploader: req.session.user.id,
     });
-    generateThumbnail(f.path, mimeType, doc.shortId).catch(() => {});
+    startThumbnail(sealed, mimeType, doc.shortId);
     created.push(doc.toObject());
     await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
     broadcast('file:uploaded', { shortId: doc.shortId, uploaderId }, (c) => c.userId === uploaderId);
@@ -416,7 +422,7 @@ router.get('/tags', requireLogin, async (req, res) => {
 });
 
 // ── File metadata ───────────────────────────────────────────────────────────
-router.get('/file/:shortId', async (req, res) => {
+router.get('/file/:shortId', lookupLimiter, async (req, res) => {
   const file = await File.findOneAndUpdate(
     { shortId: req.params.shortId },
     { $inc: { views: 1 } },
@@ -1273,15 +1279,17 @@ router.post('/chunk/:uploadId/complete', requireLogin, async (req, res) => {
   // meta.json may predate init-time normalization (upload started before deploy).
   const mimeType = normalizeMime(meta.mimeType);
   const size = await stripIfEnabled(finalPath, mimeType, realSize);
+  const sealed = await sealUpload(finalPath);
   const doc = await File.createUnique({
     originalName: sanitizeFilename(meta.filename),
     storedName,
     mimeType,
+    encrypted: sealed.encrypted,
     size,
     uploader: meta.userId,
   });
 
-  generateThumbnail(finalPath, mimeType, doc.shortId).catch(() => {});
+  startThumbnail(sealed, mimeType, doc.shortId);
   await logAudit(req, 'upload', { fileName: doc.originalName, fileSize: doc.size, shortId: doc.shortId });
 
   const chunkUploaderId = String(meta.userId);
@@ -1537,7 +1545,7 @@ router.delete('/share-links/:token', requireLogin, async (req, res) => {
 });
 
 // Get share link metadata — public, used by ShareView page
-router.get('/share-links/:token', async (req, res) => {
+router.get('/share-links/:token', lookupLimiter, async (req, res) => {
   const link = await ShareLink.findOne({ token: req.params.token }).populate('file', 'originalName mimeType size');
   if (!link) return res.status(404).json({ error: 'Share link not found' });
 
@@ -1644,7 +1652,7 @@ router.post('/collections', requireLogin, async (req, res) => {
 });
 
 // Get collection (public — returns files if password verified or not set)
-router.get('/collections/:id', async (req, res) => {
+router.get('/collections/:id', lookupLimiter, async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id })
     .populate('owner', 'username')
     .populate('files', 'shortId originalName mimeType size createdAt expiresAt maxDownloads downloadCount');
@@ -1694,10 +1702,10 @@ router.get('/collections/:id', async (req, res) => {
 });
 
 // Download a whole collection as a ZIP (public — mirrors the view's gating)
-router.get('/collections/:id/zip', async (req, res) => {
+router.get('/collections/:id/zip', lookupLimiter, async (req, res) => {
   const collection = await Collection.findOne({ shortId: req.params.id })
     .populate('owner', '_id')
-    .populate('files', 'shortId originalName storedName expiresAt maxDownloads downloadCount');
+    .populate('files', 'shortId originalName storedName encrypted expiresAt maxDownloads downloadCount');
   if (!collection) return res.status(404).json({ error: 'Collection not found' });
 
   if (collection.expiresAt && collection.expiresAt < new Date()) {

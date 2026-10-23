@@ -171,7 +171,9 @@ test.describe('Bulk action fixes — PR #143', () => {
 
     // Browser context with explicit baseURL so page.goto() resolves relative paths.
     // userCtx.request shares the browser's cookie jar, so API calls are authenticated.
-    const userCtx = await browser.newContext({ baseURL });
+    // Empty storageState: inheriting the admin cookie would make loginAsUser rotate
+    // (and thereby destroy) the shared admin session used by all later tests.
+    const userCtx = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
     const userPage = await userCtx.newPage();
     await loginAsUser(userPage);
 
