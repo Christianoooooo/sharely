@@ -936,7 +936,7 @@ uploads/.chunks/{uploadId}/
 
 ## 12. 缩略图生成
 
-缩略图在上传后异步生成（`startThumbnail()` — 错误会被静默忽略）。ffmpeg 和 Ghostscript 在空环境中运行（仅有 `PATH`），因此看不到 `SESSION_SECRET`，也看不到数据库或 SMTP 凭据。这对真正的代码执行只能提供有限保护，因为这些进程与应用以同一用户身份运行。
+缩略图在上传后异步生成（`startThumbnail()` — 错误会被静默忽略）。使用 Docker Compose 时，ffmpeg 和 Ghostscript 不在应用容器中运行，而是在独立的 `thumbnailer` 容器中运行：无网络、无密钥、以 `nobody` 用户运行、文件系统只读，且无法访问 `uploads/`。应用将每个源文件复制到共享卷 `thumbjobs`（`in/`），worker（`src/thumbnailWorker.js`）将结果写入 `out/`，应用仅接受不超过 2 MB 的普通文件（不接受符号链接）。如果该容器未运行，则跳过缩略图生成，应用仅记录一次警告。未设置 `THUMBNAIL_WORKER_DIR` 时（本地开发），这些工具直接在应用中以空环境（仅有 `PATH`）运行。
 
 设置 `ENCRYPTION_KEY` 后，缩略图会从明文副本生成，随后加密，并删除该副本。如果生成失败，可能写了一半的缩略图会被移除。
 

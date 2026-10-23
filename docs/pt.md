@@ -936,7 +936,7 @@ uploads/.chunks/{uploadId}/
 
 ## 12. Geração de miniaturas
 
-As miniaturas são geradas de forma assíncrona após o upload (`startThumbnail()` — erros são ignorados silenciosamente). ffmpeg e Ghostscript são executados com um ambiente vazio (apenas `PATH`), portanto não veem `SESSION_SECRET` nem as credenciais do banco de dados ou SMTP. Isso protege apenas parcialmente contra uma execução real de código, já que os processos rodam com o mesmo usuário do app.
+As miniaturas são geradas de forma assíncrona após o upload (`startThumbnail()` — erros são ignorados silenciosamente). Com Docker Compose, ffmpeg e Ghostscript não rodam no contêiner do app, mas em um contêiner próprio `thumbnailer`: sem rede, sem segredos, como usuário `nobody`, com sistema de arquivos somente leitura e sem acesso a `uploads/`. O app copia cada arquivo de origem para o volume compartilhado `thumbjobs` (`in/`), o worker (`src/thumbnailWorker.js`) grava o resultado em `out/` e o app só o aceita como arquivo regular de até 2 MB (sem links simbólicos). Se o contêiner não estiver rodando, as miniaturas são ignoradas e o app registra um aviso uma única vez. Sem `THUMBNAIL_WORKER_DIR` (desenvolvimento local) as ferramentas rodam diretamente no app, com um ambiente vazio (apenas `PATH`).
 
 Se `ENCRYPTION_KEY` estiver definida, a miniatura é gerada a partir da cópia em texto simples, depois criptografada, e a cópia é excluída. Se a geração falhar, uma miniatura eventualmente escrita pela metade é removida.
 

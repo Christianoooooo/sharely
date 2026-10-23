@@ -23,8 +23,8 @@ COPY docs/*.md ./docs/
 COPY --from=builder /app/client/dist ./client/dist/
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
-  && mkdir -p uploads control \
-  && chown appuser:appgroup uploads control
+  && mkdir -p uploads control thumbjobs \
+  && chown appuser:appgroup uploads control thumbjobs
 
 USER appuser
 

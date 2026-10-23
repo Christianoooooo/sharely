@@ -32,9 +32,11 @@ services:
       UPDATE_CHANNEL: "${UPDATE_CHANNEL:-release}"
       UPDATE_BRANCH: "${UPDATE_BRANCH:-main}"
       UPDATE_REPO: "${UPDATE_REPO:-Christianoooooo/sharely}"
+      THUMBNAIL_WORKER_DIR: "/app/thumbjobs"
     volumes:
       - uploads:/app/uploads
       - control:/app/control
+      - thumbjobs:/app/thumbjobs
     depends_on:
       mongo:
         condition: service_healthy
@@ -51,6 +53,33 @@ services:
         max-size: "50m"
         max-file: "5"
 
+  # Runs ffmpeg/ghostscript on untrusted uploads. Isolated from the app: no network,
+  # no secrets, no access to stored uploads, different user, read-only filesystem.
+  # It only sees the job queue, where the app copies each file to be thumbnailed.
+  thumbnailer:
+    build: .
+    command: ["node", "src/thumbnailWorker.js"]
+    user: "65534:65534"
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 256
+    environment:
+      THUMBNAIL_WORKER_DIR: "/app/thumbjobs"
+    volumes:
+      - thumbjobs:/app/thumbjobs
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # Privileged helper that applies updates on request from the app. It is the only
   # container with Docker socket access, so it is opt-in via the "updater" profile
   # and never starts with a plain `docker compose up`. Enable self-update by also
@@ -62,6 +91,7 @@ services:
       COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-sharely}"
       UPDATE_BRANCH: "${UPDATE_BRANCH:-main}"
       APP_SERVICE: "app"
+      THUMB_SERVICE: "thumbnailer"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/project
@@ -110,3 +140,4 @@ volumes:
   uploads:
   mongo_data:
   control:
+  thumbjobs:

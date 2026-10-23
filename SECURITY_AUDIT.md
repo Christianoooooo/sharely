@@ -24,8 +24,8 @@
 | | Anzahl |
 |---|---|
 | Funde im ursprünglichen Audit | 22 (2 kritisch, 4 hoch, 8 mittel, 1 DSGVO-mittel, 5 niedrig, 2 Info) |
-| Vollständig behoben | 18 |
-| Behoben mit verbleibendem Restrisiko | 4 (H2, H4, N1, D3) |
+| Vollständig behoben | 19 |
+| Behoben mit verbleibendem Restrisiko | 3 (H2, H4, D3) |
 | Zusätzliche Funde beim Beheben | 4 (alle behoben) |
 | Neu eingeführter und wieder behobener Fehler | 1 (E2E-Timeout nach Session-Rotation) |
 | Betriebsvorfall durch einen Fix | 1 (502 nach Port-Bindung an Loopback, behoben über Konfiguration und Doku) |
@@ -121,9 +121,11 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
 
 ### NIEDRIG
 
-#### N1 – Ghostscript/ffmpeg im App-Container — **behoben, Restrisiko** (PR #195, `1789be6`)
+#### N1 – Ghostscript/ffmpeg im App-Container — **behoben** (PR #195, `1789be6`; eigener Container)
 - Beide laufen jetzt mit leerer Umgebung (nur `PATH`).
-- **Restrisiko:** Sie laufen unter demselben Nutzer wie Node. Bei echter Codeausführung sind die Secrets über `/proc/1/environ` weiterhin lesbar. Vollen Schutz bringt nur ein eigener Container ohne Secrets und ohne Netzwerk.
+- Mit Docker Compose laufen sie im eigenen Container `thumbnailer`: ohne Netzwerk, ohne Secrets, als `nobody`, mit schreibgeschütztem Dateisystem und ohne Zugriff auf `uploads/`. Die App reicht Dateien über das Volume `thumbjobs` weiter und übernimmt Ergebnisse nur als reguläre Datei bis 2 MB (keine Symlinks oder FIFOs).
+- **Nachweis:** Isolation im Container geprüft (kein Netz, keine Secrets, kein Schreibzugriff auf `in/` und das Queue-Verzeichnis); Symlink-Ergebnis wird abgelehnt.
+- **Bewusst so gelassen:** Ein kompromittierter Worker sieht die Dateien, die gerade in der Warteschlange liegen, und kann deren Thumbnails verfälschen. Ohne Docker (lokale Entwicklung) laufen die Tools weiterhin im App-Prozess.
 
 #### N2 – Updater mit Docker-Socket — **behoben** (PR #195, `7b8aea6`)
 - Das Control-Verzeichnis gehört jetzt root und hat das Sticky-Bit (`1777`). Die App kann nur `update.request` anlegen und `update.state` schreiben. Untergeschobene Symlinks werden beim Start entfernt.
@@ -174,7 +176,7 @@ Alle kritischen und hohen Funde sind geschlossen. Offen sind nur bewusst zurück
 ## Offene Punkte
 
 1. **Alte 8-stellige Datei-IDs** sind weiterhin erratbar und nur durch das Rate-Limit geschützt. Eine Neuvergabe würde bestehende Links brechen und ist eine Betreiberentscheidung.
-2. **Thumbnails in eigenem Container** (Restrisiko N1). Vollständige Trennung von den Secrets der App.
+2. **Thumbnail-Container anlegen:** Nach dem Update einmalig `docker compose up -d --build` (mit Updater zusätzlich `docker compose --profile updater up -d --build updater`).
 3. **Prüfungen auf der eigenen Instanz nach dem Update:**
    - Audit-Log zeigt echte Client-IPs (sonst `TRUST_PROXY` anpassen).
    - WebSocket funktioniert über den Proxy (Galerie lädt, keine 403 auf `/ws`).

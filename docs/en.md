@@ -936,7 +936,7 @@ uploads/.chunks/{uploadId}/
 
 ## 12. Thumbnail Generation
 
-Thumbnails are generated asynchronously after upload (`startThumbnail()` — errors are silently ignored). ffmpeg and Ghostscript run with an empty environment (only `PATH`), so they see neither `SESSION_SECRET` nor database or SMTP credentials. This offers only limited protection against actual code execution, since the processes run as the same user as the app.
+Thumbnails are generated asynchronously after upload (`startThumbnail()` — errors are silently ignored). With Docker Compose, ffmpeg and Ghostscript do not run in the app container but in a separate `thumbnailer` container: no network, no secrets, user `nobody`, read-only filesystem and no access to `uploads/`. The app copies each source file into the shared `thumbjobs` volume (`in/`), the worker (`src/thumbnailWorker.js`) writes the result to `out/`, and the app only accepts it as a regular file of at most 2 MB (no symlinks). If the container is not running, thumbnails are skipped and the app logs a warning once. Without `THUMBNAIL_WORKER_DIR` (local development) the tools run directly in the app with an empty environment (only `PATH`).
 
 If `ENCRYPTION_KEY` is set, the thumbnail is generated from the plaintext copy, then encrypted, and the copy is deleted. If generation fails, any partially written thumbnail is removed.
 
