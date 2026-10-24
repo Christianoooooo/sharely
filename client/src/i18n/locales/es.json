@@ -564,6 +564,7 @@
     "s6Body": "Las contraseñas se almacenan como hashes bcrypt (12 rondas). Las claves API se almacenan como hashes SHA-256; el texto en claro nunca se persiste. Todas las conexiones se cifran mediante TLS en producción. El acceso al servidor y a la base de datos está restringido únicamente al personal autorizado.",
     "s6Encryption": "Los archivos subidos se almacenan en un volumen cifrado (el cifrado en reposo está habilitado en este servidor).",
     "s6NoEncryption": "Los archivos subidos no se cifran a nivel de aplicación. El cifrado en reposo depende de la configuración del servidor y almacenamiento del operador.",
+    "s6AppEncryption": "Los archivos subidos y las miniaturas se almacenan cifrados por la aplicación (AES-256-GCM). Los contenidos de la base de datos, como nombres de archivo y datos de cuenta, así como las fotos de perfil, no están incluidos.",
     "s7Title": "7. Cambios en esta política",
     "s7Body": "El operador puede actualizar esta política en cualquier momento. La fecha de la última revisión se indicará arriba. El uso continuado del servicio tras los cambios constituye la aceptación de la política actualizada.",
     "version": "Sharely – compartición de archivos de código abierto · Política de privacidad",

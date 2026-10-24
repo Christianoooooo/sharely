@@ -564,6 +564,7 @@
     "s6Body": "Le password sono archiviate come hash bcrypt (12 round). Le chiavi API sono archiviate come hash SHA-256; il testo in chiaro non viene mai persistito. Tutte le connessioni sono cifrate tramite TLS in produzione. L'accesso al server e al database è limitato al personale autorizzato.",
     "s6Encryption": "I file caricati sono archiviati su un volume cifrato (la cifratura a riposo è abilitata su questo server).",
     "s6NoEncryption": "I file caricati non sono cifrati a livello applicativo. La cifratura a riposo dipende dalla configurazione del server e dello storage dell'operatore.",
+    "s6AppEncryption": "I file caricati e le miniature sono archiviati cifrati dall'applicazione (AES-256-GCM). I contenuti del database, come nomi dei file e dati dell'account, e le immagini del profilo non sono inclusi.",
     "s7Title": "7. Modifiche alla presente informativa",
     "s7Body": "L'operatore può aggiornare questa informativa in qualsiasi momento. La data dell'ultima revisione sarà indicata in alto. L'uso continuato del servizio dopo le modifiche costituisce accettazione dell'informativa aggiornata.",
     "version": "Sharely – condivisione file open source · Informativa sulla privacy",

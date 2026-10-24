@@ -717,6 +717,7 @@
     "s6Body": "Passwörter werden als bcrypt-Hashes (12 Runden) gespeichert. API-Schlüssel werden als SHA-256-Hashes gespeichert; der Klartext wird nie persistiert. Alle Verbindungen sind in der Produktion per TLS verschlüsselt. Der Zugang zu Server und Datenbank ist auf autorisiertes Personal beschränkt.",
     "s6Encryption": "Hochgeladene Dateien werden auf einem verschlüsselten Volume gespeichert (Verschlüsselung ruhender Daten ist auf diesem Server aktiv).",
     "s6NoEncryption": "Hochgeladene Dateien werden auf App-Ebene nicht verschlüsselt. Die Verschlüsselung ruhender Daten ist abhängig von der Server- und Speicherkonfiguration des Betreibers.",
+    "s6AppEncryption": "Hochgeladene Dateien und Vorschaubilder werden von der Anwendung verschlüsselt gespeichert (AES-256-GCM). Datenbankinhalte wie Dateinamen und Kontodaten sowie Profilbilder sind davon nicht erfasst.",
     "s7Title": "7. Änderungen dieser Erklärung",
     "s7Body": "Der Betreiber kann diese Erklärung jederzeit aktualisieren. Das Datum der letzten Überarbeitung wird oben vermerkt. Die weitere Nutzung des Dienstes nach Änderungen gilt als Zustimmung zur aktualisierten Erklärung.",
     "version": "Sharely – Open-Source-Dateifreigabe · Datenschutzerklärung",

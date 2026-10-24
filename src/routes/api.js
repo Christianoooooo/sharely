@@ -30,6 +30,7 @@ const { deleteUserData } = require('../utils/deleteUserData');
 const AuditLog = require('../models/AuditLog');
 const mailer = require('../utils/mailer');
 const ldap = require('../utils/ldap');
+const fileCrypto = require('../utils/fileCrypto');
 const { getUpdateStatus } = require('../utils/updateCheck');
 const updateApply = require('../utils/updateApply');
 const { broadcast } = require('../ws');
@@ -579,6 +580,7 @@ router.get('/site-settings', async (req, res) => {
     cloudflareAnalytics: s.cloudflareAnalytics,
     fileRetentionDays: s.fileRetentionDays,
     encryptionAtRest: s.encryptionAtRest,
+    appEncryption: fileCrypto.isEnabled(),
     sessionDurationDays: s.sessionDurationDays ?? 7,
   });
 });

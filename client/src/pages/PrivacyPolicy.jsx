@@ -24,6 +24,7 @@ export default function PrivacyPolicy() {
   const isIncomplete = ops && (!ops.operatorName || !ops.operatorAddress || !ops.operatorEmail);
   const retentionDays = ops?.fileRetentionDays || 0;
   const encryptionAtRest = ops?.encryptionAtRest || false;
+  const appEncryption = ops?.appEncryption || false;
   const sessionDays = ops?.sessionDurationDays ?? 7;
 
   return (
@@ -197,9 +198,10 @@ export default function PrivacyPolicy() {
 
         <Section title={t('privacy.s6Title')}>
           <p>{t('privacy.s6Body')}</p>
+          {appEncryption && <p>{t('privacy.s6AppEncryption')}</p>}
           {encryptionAtRest ? (
             <p>{t('privacy.s6Encryption')}</p>
-          ) : (
+          ) : !appEncryption && (
             <p>{t('privacy.s6NoEncryption')}</p>
           )}
         </Section>
