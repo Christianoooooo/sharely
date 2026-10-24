@@ -564,6 +564,7 @@
     "s6Body": "As palavras-passe são armazenadas como hashes bcrypt (12 rondas). As chaves API são armazenadas como hashes SHA-256; o texto em claro nunca é persistido. Todas as ligações são encriptadas via TLS em produção. O acesso ao servidor e à base de dados está restrito apenas ao pessoal autorizado.",
     "s6Encryption": "Os ficheiros enviados são armazenados num volume encriptado (a encriptação em repouso está ativada neste servidor).",
     "s6NoEncryption": "Os ficheiros enviados não são encriptados ao nível da aplicação. A encriptação em repouso depende da configuração do servidor e armazenamento do operador.",
+    "s6AppEncryption": "Os ficheiros enviados e as miniaturas são armazenados encriptados pela aplicação (AES-256-GCM). Os conteúdos da base de dados, como nomes de ficheiros e dados de conta, bem como as fotos de perfil, não estão abrangidos.",
     "s7Title": "7. Alterações a esta política",
     "s7Body": "O operador pode atualizar esta política em qualquer momento. A data da última revisão será indicada acima. O uso continuado do serviço após alterações constitui aceitação da política atualizada.",
     "version": "Sharely – partilha de ficheiros open source · Política de privacidade",

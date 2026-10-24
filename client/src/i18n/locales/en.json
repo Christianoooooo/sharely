@@ -717,6 +717,7 @@
     "s6Body": "Passwords are stored as bcrypt hashes (12 rounds). API keys are stored as SHA-256 hashes; the plaintext is never persisted. All connections are encrypted via TLS in production. Access to the server and database is restricted to authorised personnel only.",
     "s6Encryption": "Uploaded files are stored on an encrypted volume (encryption at rest is enabled on this server).",
     "s6NoEncryption": "Uploaded files are not encrypted at the application level. Encryption at rest depends on the operator's server and storage configuration.",
+    "s6AppEncryption": "Uploaded files and thumbnails are stored encrypted by the application (AES-256-GCM). Database contents such as file names and account data, as well as profile pictures, are not covered.",
     "s7Title": "7. Changes to this Policy",
     "s7Body": "The operator may update this policy at any time. The date of the latest revision will be noted above. Continued use of the service after changes constitutes acceptance of the updated policy.",
     "version": "Sharely – open-source file sharing · Privacy Policy",
