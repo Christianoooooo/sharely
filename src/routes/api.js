@@ -100,7 +100,12 @@ const chunkMulter = multer({
     destination: (_req, _file, cb) => cb(null, CHUNK_DIR),
     filename: (_req, _file, cb) => cb(null, `${crypto.randomBytes(16).toString('hex')}.part`),
   }),
-  limits: { fileSize: 51 * 1024 * 1024 },
+  limits: {
+    fileSize: 51 * 1024 * 1024,
+    fields: 100,
+    fieldNestingDepth: 10,
+    fieldArrayIndexLimit: 1000,
+  },
 });
 
 function resolveChunkDir(uploadId) {

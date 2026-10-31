@@ -53,7 +53,11 @@ function discardUncommittedUploads(req, res, next) {
   res.on('finish', () => {
     if (res.statusCode < 400) return;
     for (const f of req.files || (req.file ? [req.file] : [])) {
-      if (!f.committed) discardUpload(f.path, f.sealed);
+      // Multer creates the file object before its storage engine assigns a path.
+      // A request refused mid-way (an unexpected extra file, for example) can
+      // reach this handler with `path` still undefined; unlink(undefined) throws
+      // inside the finish event and no error handler can catch that throw.
+      if (!f.committed && typeof f.path === 'string') discardUpload(f.path, f.sealed);
     }
   });
   next();
