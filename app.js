@@ -1,6 +1,7 @@
 require('dotenv').config({ quiet: true });
 const http = require('http');
 const express = require('express');
+const multer = require('multer');
 const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const path = require('path');
@@ -301,6 +302,11 @@ app.use((err, _req, res, next) => {
   console.error(err.stack);
   // Mid-stream failure (e.g. file download): let Express abort the connection.
   if (res.headersSent) return next(err);
+  // A request that exceeds a parser limit is a client error, not a server one.
+  if (err instanceof multer.MulterError) {
+    const status = err.code === 'LIMIT_UNEXPECTED_FILE' ? 400 : 413;
+    return res.status(status).json({ error: err.message });
+  }
   res.status(500).json({ error: 'Internal server error' });
 });
 

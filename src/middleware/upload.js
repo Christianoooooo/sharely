@@ -61,7 +61,16 @@ function fileFilter(_req, file, cb) {
 
 const upload = multer({
   storage,
-  limits: { fileSize: MAX_MB * 1024 * 1024 },
+  limits: {
+    fileSize: MAX_MB * 1024 * 1024,
+    // Bound the axes multer leaves at Infinity by default. Every text field is
+    // kept in req.body until the request ends, and each [key] segment in a
+    // field name adds another object or array, so an unbounded field count is
+    // unbounded heap before any route handler or auth middleware runs.
+    fields: 100,
+    fieldNestingDepth: 10,
+    fieldArrayIndexLimit: 1000,
+  },
   fileFilter,
 });
 
