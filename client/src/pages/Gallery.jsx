@@ -836,7 +836,7 @@ export default function Gallery() {
             <PaginationItem>
               <PaginationPrevious
                 disabled={page <= 1}
-                onClick={() => setSearchParams({ q, type, ...(uploader && { uploader }), page: page - 1 })}
+                onClick={() => setSearchParams({ q, type, ...(tag && { tag }), ...(uploader && { uploader }), page: page - 1 })}
               />
             </PaginationItem>
             {buildPageItems(page, pages).map((item, idx) =>
@@ -848,7 +848,7 @@ export default function Gallery() {
                 <PaginationItem key={item}>
                   <PaginationLink
                     isActive={item === page}
-                    onClick={() => setSearchParams({ q, type, ...(uploader && { uploader }), page: item })}
+                    onClick={() => setSearchParams({ q, type, ...(tag && { tag }), ...(uploader && { uploader }), page: item })}
                   >
                     {item}
                   </PaginationLink>
@@ -858,7 +858,7 @@ export default function Gallery() {
             <PaginationItem>
               <PaginationNext
                 disabled={page >= pages}
-                onClick={() => setSearchParams({ q, type, ...(uploader && { uploader }), page: page + 1 })}
+                onClick={() => setSearchParams({ q, type, ...(tag && { tag }), ...(uploader && { uploader }), page: page + 1 })}
               />
             </PaginationItem>
           </PaginationContent>
