@@ -435,6 +435,7 @@ export default function Gallery() {
   const q = searchParams.get('q') || '';
   const type = searchParams.get('type') || 'all';
   const tag = searchParams.get('tag') || '';
+  const uploader = searchParams.get('uploader') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
 
   const [searchInput, setSearchInput] = useState(q);
@@ -448,11 +449,18 @@ export default function Gallery() {
   const [myCollections, setMyCollections] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [predefinedTags, setPredefinedTags] = useState([]);
+  const [uploaders, setUploaders] = useState([]);
+  const isAdmin = user?.role === 'admin';
 
   // File tags (for filter chips) – always loaded so filter chips are always visible
   useEffect(() => {
     fetch('/api/tags').then((r) => r.ok ? r.json() : { tags: [] }).then((d) => setAllTags(d.tags || []));
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetch('/api/admin/users').then((r) => r.ok ? r.json() : { users: [] }).then((d) => setUploaders(d.users || []));
+  }, [isAdmin]);
 
   // Predefined tags & user collections (loaded lazily when select mode activates)
   useEffect(() => {
@@ -536,6 +544,7 @@ export default function Gallery() {
     setLoading(true);
     const params = new URLSearchParams({ page, q, type });
     if (tag) params.set('tag', tag);
+    if (uploader) params.set('uploader', uploader);
     try {
       const r = await fetch(`/api/gallery?${params}`);
       if (r.ok) {
@@ -547,7 +556,7 @@ export default function Gallery() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, type, tag]);
+  }, [page, q, type, tag, uploader]);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
@@ -563,12 +572,12 @@ export default function Gallery() {
 
   function handleSearch(e) {
     e.preventDefault();
-    setSearchParams({ q: searchInput, type, ...(tag && { tag }), page: 1 });
+    setSearchParams({ q: searchInput, type, ...(tag && { tag }), ...(uploader && { uploader }), page: 1 });
   }
 
   function clearSearch() {
     setSearchInput('');
-    setSearchParams({ type, ...(tag && { tag }), page: 1 });
+    setSearchParams({ type, ...(tag && { tag }), ...(uploader && { uploader }), page: 1 });
   }
 
   return (
@@ -609,7 +618,7 @@ export default function Gallery() {
             </button>
           )}
         </div>
-        <Select value={type} onValueChange={(v) => setSearchParams({ q, type: v, ...(tag && { tag }), page: 1 })}>
+        <Select value={type} onValueChange={(v) => setSearchParams({ q, type: v, ...(tag && { tag }), ...(uploader && { uploader }), page: 1 })}>
           <SelectTrigger className="h-10 w-36">
             <SelectValue />
           </SelectTrigger>
@@ -622,13 +631,27 @@ export default function Gallery() {
             <SelectItem value="code">{t('gallery.code')}</SelectItem>
           </SelectContent>
         </Select>
+        {isAdmin && (
+          <Select
+            value={uploader || 'all'}
+            onValueChange={(v) => setSearchParams({ q, type, ...(tag && { tag }), ...(v !== 'all' && { uploader: v }), page: 1 })}
+          >
+            <SelectTrigger className="h-10 w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('gallery.allUploaders')}</SelectItem>
+              {uploaders.map((u) => <SelectItem key={u._id} value={u._id}>{u.username}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Button type="submit" variant="secondary" className="h-10">{t('gallery.search')}</Button>
       </form>
 
       {/* Tag filter chips */}
       {allTags.length === 0 && tag && (
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => setSearchParams({ q, type, page: 1 })}>
+          <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => setSearchParams({ q, type, ...(uploader && { uploader }), page: 1 })}>
             <FontAwesomeIcon icon={faXmark} className="h-2.5 w-2.5" />
             {tag}
           </Badge>
@@ -642,13 +665,13 @@ export default function Gallery() {
               key={t_}
               variant={tag === t_ ? 'default' : 'outline-solid'}
               className="cursor-pointer"
-              onClick={() => setSearchParams({ q, type, tag: tag === t_ ? '' : t_, page: 1 })}
+              onClick={() => setSearchParams({ q, type, tag: tag === t_ ? '' : t_, ...(uploader && { uploader }), page: 1 })}
             >
               {t_}
             </Badge>
           ))}
           {tag && (
-            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSearchParams({ q, type, page: 1 })}>
+            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSearchParams({ q, type, ...(uploader && { uploader }), page: 1 })}>
               <FontAwesomeIcon icon={faXmark} className="h-3 w-3 mr-0.5" />{t('gallery.allTags')}
             </button>
           )}
@@ -813,7 +836,7 @@ export default function Gallery() {
             <PaginationItem>
               <PaginationPrevious
                 disabled={page <= 1}
-                onClick={() => setSearchParams({ q, type, page: page - 1 })}
+                onClick={() => setSearchParams({ q, type, ...(tag && { tag }), ...(uploader && { uploader }), page: page - 1 })}
               />
             </PaginationItem>
             {buildPageItems(page, pages).map((item, idx) =>
@@ -825,7 +848,7 @@ export default function Gallery() {
                 <PaginationItem key={item}>
                   <PaginationLink
                     isActive={item === page}
-                    onClick={() => setSearchParams({ q, type, page: item })}
+                    onClick={() => setSearchParams({ q, type, ...(tag && { tag }), ...(uploader && { uploader }), page: item })}
                   >
                     {item}
                   </PaginationLink>
@@ -835,7 +858,7 @@ export default function Gallery() {
             <PaginationItem>
               <PaginationNext
                 disabled={page >= pages}
-                onClick={() => setSearchParams({ q, type, page: page + 1 })}
+                onClick={() => setSearchParams({ q, type, ...(tag && { tag }), ...(uploader && { uploader }), page: page + 1 })}
               />
             </PaginationItem>
           </PaginationContent>

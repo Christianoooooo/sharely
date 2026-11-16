@@ -5,6 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const { rateLimit } = require('express-rate-limit');
 const { requireLogin, requireAdmin, requireApiKey } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -448,13 +449,17 @@ router.get('/file/:shortId', lookupLimiter, async (req, res) => {
 
 // ── Gallery ─────────────────────────────────────────────────────────────────
 router.get('/gallery', requireLogin, async (req, res) => {
-  const { q, type, tag, page: pageStr } = req.query;
+  const { q, type, tag, uploader, page: pageStr } = req.query;
   const page = Math.max(1, parseInt(pageStr || '1', 10));
   const PAGE_SIZE = 24;
   const isAdmin = req.session.user.role === 'admin';
 
   const filter = {};
   if (!isAdmin) filter.uploader = req.session.user.id;
+  else if (uploader) {
+    if (!mongoose.isValidObjectId(uploader)) return res.status(400).json({ error: 'Invalid uploader' });
+    filter.uploader = uploader;
+  }
   if (tag) filter.tags = tag;
 
   // Each entry is ANDed; full-text query and the code-type filter each add an $or.
