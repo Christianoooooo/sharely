@@ -585,7 +585,7 @@ POST /api/auth/login
 
 | Methode | Pfad | Auth | Beschreibung |
 |---|---|---|---|
-| `GET` | `/api/gallery` | Session | Eigene Dateien (Admin: alle), paginiert (24/Seite), Filter: `q`, `type`, `tag`, `page` |
+| `GET` | `/api/gallery` | Session | Eigene Dateien (Admin: alle), paginiert (24/Seite), Filter: `q`, `type`, `tag`, `uploader` (User-ID, nur Admin), `page` |
 | `GET` | `/api/file/:shortId` | — | Datei-Metadaten ohne `deleteToken` (inkrementiert View-Counter) |
 | `PATCH` | `/api/file/:shortId` | Session | Tags/Name aktualisieren |
 | `DELETE` | `/api/file/:shortId` | Session | Datei löschen |
